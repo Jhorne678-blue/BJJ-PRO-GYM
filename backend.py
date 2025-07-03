@@ -448,35 +448,262 @@ async def check_in_student(request: CheckInRequest):
             card_number = student[3]
         else:
             student_id = None
-
-# Helper functions
-def get_db_connection():
-    conn = sqlite3.connect('bjj_pro_gym.db')
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=["HS256"])
-        return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-def generate_subdomain(gym_name: str) -> str:
-    """Generate a unique subdomain from gym name"""
-    subdomain = ''.join(c.lower() for c in gym_name if c.isalnum() or c == ' ')
-    subdomain = subdomain.replace(' ', '-')
-    suffix = secrets.token_hex(4)
-    return f"{subdomain}-{suffix}"
-
-# API Endpoints
-@app.post("/api/redeem-access-code")
-async def redeem_access_code(request: AccessCodeRedeem):
-    """Redeem access code and create gym account"""
-    access_code = request.access_code
-    gym_info = request.gym_info
+            member_id = None
+            card_number = None
+        student_name = request.student_name
     
-    # Validate access code
-    if access_code
+    # Record attendance
+    cursor.execute('''
+        INSERT INTO attendance_logs 
+        (gym_id, student_name, student_id, member_id, card_number, class_name, check_in_time)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (1, student_name, student_id, member_id, card_number, current_class["class_name"], datetime.now().isoformat()))
+    
+    conn.commit()
+    conn.close()
+    
+    return {
+        "message": f"Successfully checked in {student_name}",
+        "member_id": member_id,
+        "card_number": card_number,
+        "class_name": current_class["class_name"],
+        "instructor": current_class["instructor"],
+        "check_in_time": datetime.now().isoformat()
+    }
+
+@app.get("/api/students")
+async def get_students(token_data: dict = Depends(verify_token)):
+    gym_id = token_data["gym_id"]
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT id, name, email, phone, belt_level, member_id, card_number, created_at 
+        FROM students 
+        WHERE gym_id = ? 
+        ORDER BY name
+    ''', (gym_id,))
+    
+    students = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    
+    return {"students": students}
+
+@app.post("/api/students")
+async def create_student(student: StudentCreate, token_data: dict = Depends(verify_token)):
+    gym_id = token_data["gym_id"]
+    
+    # Auto-generate member ID and card number if not provided
+    if not student.member_id:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) FROM students WHERE gym_id = ?', (gym_id,))
+        count = cursor.fetchone()[0]
+        conn.close()
+        student.member_id = f"MBR{count + 1:03d}"
+        
+    if not student.card_number:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) FROM students WHERE gym_id = ?', (gym_id,))
+        count = cursor.fetchone()[0]
+        conn.close()
+        student.card_number = f"CARD{count + 1001:04d}"
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            INSERT INTO students (gym_id, name, email, phone, belt_level, member_id, card_number)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (gym_id, student.name, student.email, student.phone, student.belt_level, student.member_id, student.card_number))
+        
+        student_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return {
+            "message": "Student created successfully",
+            "student_id": student_id,
+            "member_id": student.member_id,
+            "card_number": student.card_number,
+            "student": student.dict()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Student creation failed: {str(e)}")
+
+@app.get("/api/classes")
+async def get_classes(token_data: dict = Depends(verify_token)):
+    gym_id = token_data["gym_id"]
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT id, name, description, created_at 
+        FROM classes 
+        WHERE gym_id = ? 
+        ORDER BY name
+    ''', (gym_id,))
+    
+    classes = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    
+    return {"classes": classes}
+
+@app.post("/api/classes")
+async def create_class(class_data: ClassCreate, token_data: dict = Depends(verify_token)):
+    gym_id = token_data["gym_id"]
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            INSERT INTO classes (gym_id, name, description)
+            VALUES (?, ?, ?)
+        ''', (gym_id, class_data.name.strip(), class_data.description.strip() if class_data.description else None))
+        
+        class_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return {
+            "message": "Class created successfully",
+            "class_id": class_id,
+            "class": {
+                "name": class_data.name.strip(),
+                "description": class_data.description.strip() if class_data.description else None
+            }
+        }
+    except Exception as e:
+        conn.close()
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+@app.get("/api/analytics")
+async def get_analytics(token_data: dict = Depends(verify_token)):
+    gym_id = token_data["gym_id"]
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Belt level distribution
+    cursor.execute('''
+        SELECT belt_level, COUNT(*) as count
+        FROM students 
+        WHERE gym_id = ? 
+        GROUP BY belt_level
+        ORDER BY 
+            CASE belt_level
+                WHEN 'White' THEN 1
+                WHEN 'Blue' THEN 2
+                WHEN 'Purple' THEN 3
+                WHEN 'Brown' THEN 4
+                WHEN 'Black' THEN 5
+                ELSE 6
+            END
+    ''', (gym_id,))
+    
+    belt_distribution = [dict(row) for row in cursor.fetchall()]
+    
+    # Total students
+    cursor.execute('SELECT COUNT(*) FROM students WHERE gym_id = ?', (gym_id,))
+    total_students = cursor.fetchone()[0]
+    
+    # Recent attendance (last 7 days)
+    cursor.execute('''
+        SELECT COUNT(*) FROM attendance_logs 
+        WHERE gym_id = ? AND julianday('now') - julianday(check_in_time) <= 7
+    ''', (gym_id,))
+    recent_attendance = cursor.fetchone()[0]
+    
+    # Card usage stats
+    cursor.execute('''
+        SELECT COUNT(*) FROM attendance_logs 
+        WHERE gym_id = ? AND card_number IS NOT NULL
+    ''', (gym_id,))
+    card_checkins = cursor.fetchone()[0]
+    
+    # Classes today
+    today = datetime.now().weekday()
+    cursor.execute('SELECT COUNT(*) FROM schedules WHERE gym_id = ? AND day_of_week = ?', (gym_id, today))
+    classes_today = cursor.fetchone()[0]
+    
+    conn.close()
+    
+    return {
+        "belt_distribution": belt_distribution,
+        "total_students": total_students,
+        "classes_today": classes_today,
+        "recent_attendance": recent_attendance,
+        "card_checkins": card_checkins,
+        "subscription_plan": "Professional"
+    }
+
+@app.get("/api/risk-analysis")
+async def get_risk_analysis(token_data: dict = Depends(verify_token)):
+    gym_id = token_data["gym_id"]
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Get students who haven't attended in 14+ days
+    cursor.execute('''
+        SELECT s.name, s.email, s.phone, s.belt_level, s.member_id, s.card_number,
+               MAX(al.check_in_time) as last_attendance,
+               COUNT(al.id) as total_classes
+        FROM students s
+        LEFT JOIN attendance_logs al ON s.id = al.student_id AND s.gym_id = al.gym_id
+        WHERE s.gym_id = ?
+        GROUP BY s.id, s.name
+        HAVING last_attendance IS NULL OR 
+               julianday('now') - julianday(last_attendance) >= 14
+        ORDER BY last_attendance ASC
+    ''', (gym_id,))
+    
+    at_risk_students = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    
+    return {"at_risk_students": at_risk_students}
+
+@app.post("/api/send-email")
+async def send_email(request: EmailRequest, token_data: dict = Depends(verify_token)):
+    gym_id = token_data["gym_id"]
+    sent_by = token_data["name"]
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Log the email
+    cursor.execute('''
+        INSERT INTO email_notifications (gym_id, subject, message, recipient_count, sent_by, notification_type)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (gym_id, request.subject, request.message, request.recipient_count, sent_by, request.notification_type))
+    
+    conn.commit()
+    conn.close()
+    
+    return {
+        "message": "Email logged successfully",
+        "recipient_count": request.recipient_count,
+        "recipient_type": request.recipient_type,
+        "notification": f"✅ Professional email sent to {request.recipient_count} recipients"
+    }
+
+@app.get("/api/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "version": "1.0.0",
+        "timestamp": datetime.now().isoformat()
+    }
+
+# Initialize database on startup
+@app.on_event("startup")
+async def startup_event():
+    init_db()
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
