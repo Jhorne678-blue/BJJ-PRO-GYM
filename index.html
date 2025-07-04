@@ -36,49 +36,72 @@
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
         }
         
-        /* FIXED DROPDOWN STYLING FOR TOUCHSCREEN COMPATIBILITY */
-        select {
+        /* UNIVERSAL INPUT STYLING FOR ALL DEVICES */
+        input[type="text"], input[type="email"], input[type="tel"], input[type="password"], input[type="time"], textarea, select {
             background-color: white !important;
             color: #1f2937 !important;
             border: 2px solid #e5e7eb !important;
             border-radius: 8px !important;
-            padding: 8px 12px !important;
-            font-size: 14px !important;
-            min-height: 40px !important;
+            padding: 12px 16px !important;
+            font-size: 16px !important;
+            min-height: 50px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            appearance: none !important;
         }
 
-        select:focus {
+        input:focus, textarea:focus, select:focus {
             border-color: #3b82f6 !important;
             outline: none !important;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: #6b7280 !important;
+            opacity: 1 !important;
+        }
+
+        /* SELECT DROPDOWN STYLING */
+        select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+            background-position: right 12px center !important;
+            background-repeat: no-repeat !important;
+            background-size: 16px 16px !important;
+            padding-right: 40px !important;
         }
 
         select option {
             background-color: white !important;
             color: #1f2937 !important;
-            padding: 10px 12px !important;
-            font-size: 14px !important;
+            padding: 12px 16px !important;
+            font-size: 16px !important;
         }
 
-        select option:checked {
-            background-color: #3b82f6 !important;
-            color: white !important;
+        /* TOUCH OPTIMIZATION */
+        @media (max-width: 768px) {
+            input, select, textarea, button {
+                font-size: 16px !important;
+                min-height: 50px !important;
+            }
         }
 
-        /* Input field consistency */
-        input[type="text"], input[type="email"], input[type="tel"], input[type="password"], input[type="time"], textarea {
-            background-color: white !important;
-            color: #1f2937 !important;
-            border: 2px solid #e5e7eb !important;
+        /* BUTTON STYLING */
+        button {
+            min-height: 50px !important;
+            padding: 12px 24px !important;
+            font-size: 16px !important;
             border-radius: 8px !important;
-            padding: 8px 12px !important;
-            font-size: 14px !important;
+            font-weight: 600 !important;
+            transition: all 0.3s ease !important;
+            border: none !important;
+            cursor: pointer !important;
         }
 
-        input:focus, textarea:focus {
-            border-color: #3b82f6 !important;
-            outline: none !important;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+        button:disabled {
+            opacity: 0.6 !important;
+            cursor: not-allowed !important;
         }
         
         .success-pulse {
@@ -141,17 +164,21 @@
         .risk-medium { background: linear-gradient(135deg, #f59e0b, #d97706); }
         .risk-low { background: linear-gradient(135deg, #10b981, #059669); }
 
-        /* Mobile responsiveness */
-        @media (max-width: 768px) {
-            select, input, textarea {
-                font-size: 16px !important; /* Prevents zoom on iOS */
-                min-height: 44px !important; /* Touch target size */
-            }
-        }
-
         .security-overlay {
             background: rgba(0, 0, 0, 0.9);
             backdrop-filter: blur(5px);
+        }
+
+        /* RESPONSIVE GRID */
+        .responsive-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        /* SCROLL OPTIMIZATION */
+        * {
+            -webkit-overflow-scrolling: touch;
         }
     </style>
 </head>
@@ -161,7 +188,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // API Configuration - CONNECTED TO YOUR RAILWAY BACKEND
+        // API Configuration
         const API_BASE = 'https://bjj-pro-gym-bjjpro.up.railway.app/api';
         
         // Helper function for API calls
@@ -189,7 +216,7 @@
                 return response.json();
             } catch (error) {
                 if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                    throw new Error('Network error: Cannot connect to server. Please check if the backend is running on port 8000.');
+                    throw new Error('Network error: Cannot connect to server. Please check if the backend is running.');
                 }
                 throw error;
             }
@@ -251,7 +278,6 @@
                                     type="text"
                                     value={cardCode}
                                     onChange={(e) => setCardCode(e.target.value)}
-                                    className="w-full"
                                     placeholder="Enter card code or username"
                                     required
                                 />
@@ -265,7 +291,6 @@
                                     type="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full"
                                     placeholder="Enter password"
                                     required
                                 />
@@ -280,7 +305,7 @@
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="glass-button w-full py-3 text-white font-semibold rounded-xl"
+                                className="glass-button w-full text-white font-semibold"
                             >
                                 {isLoading ? 'Logging in...' : 'Login'}
                             </button>
@@ -289,7 +314,7 @@
                         <div className="mt-6 space-y-3">
                             <button
                                 onClick={quickDemo}
-                                className="w-full bg-purple-600 hover:bg-purple-700 py-3 text-white font-semibold rounded-xl"
+                                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold"
                             >
                                 🚀 Quick Demo (Auto-fill)
                             </button>
@@ -401,11 +426,11 @@
 
             return (
                 <div className="space-y-6">
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <h2 className="text-2xl font-bold text-white">Student Management</h2>
                         <button
                             onClick={() => setShowAddForm(true)}
-                            className="glass-button px-6 py-2 text-white font-semibold rounded-lg"
+                            className="glass-button px-6 py-3 text-white font-semibold"
                         >
                             ➕ Add Student
                         </button>
@@ -419,7 +444,7 @@
 
                     {/* Advanced Filtering */}
                     <div className="glass-effect rounded-xl p-6">
-                        <div className="flex justify-between items-center mb-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
                             <h3 className="text-lg font-semibold text-white">🔍 Advanced Filters</h3>
                             <button
                                 onClick={clearAllFilters}
@@ -429,7 +454,7 @@
                             </button>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="responsive-grid">
                             <div>
                                 <label className="block text-blue-100 text-sm font-medium mb-2">Name</label>
                                 <input
@@ -437,7 +462,6 @@
                                     value={nameFilter}
                                     onChange={(e) => setNameFilter(e.target.value)}
                                     placeholder="Filter by name..."
-                                    className="w-full"
                                 />
                             </div>
                             
@@ -448,7 +472,6 @@
                                     value={emailFilter}
                                     onChange={(e) => setEmailFilter(e.target.value)}
                                     placeholder="Filter by email..."
-                                    className="w-full"
                                 />
                             </div>
                             
@@ -459,7 +482,6 @@
                                     value={phoneFilter}
                                     onChange={(e) => setPhoneFilter(e.target.value)}
                                     placeholder="Filter by phone..."
-                                    className="w-full"
                                 />
                             </div>
                             
@@ -468,7 +490,6 @@
                                 <select
                                     value={beltFilter}
                                     onChange={(e) => setBeltFilter(e.target.value)}
-                                    className="w-full"
                                 >
                                     <option value="">All Belts</option>
                                     {belts.map(belt => (
@@ -484,7 +505,6 @@
                                     value={memberIdFilter}
                                     onChange={(e) => setMemberIdFilter(e.target.value)}
                                     placeholder="Filter by Member ID..."
-                                    className="w-full"
                                 />
                             </div>
                             
@@ -495,7 +515,6 @@
                                     value={cardNumberFilter}
                                     onChange={(e) => setCardNumberFilter(e.target.value)}
                                     placeholder="Filter by Card Number..."
-                                    className="w-full"
                                 />
                             </div>
                         </div>
@@ -517,16 +536,16 @@
                             <div className="space-y-3">
                                 {filteredStudents.map((student) => (
                                     <div key={student.id} className="bg-white bg-opacity-10 rounded-lg p-4 hover:bg-opacity-20 transition-colors">
-                                        <div className="flex justify-between items-start">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                                             <div className="flex-1">
-                                                <div className="flex items-center gap-3 mb-2">
+                                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-2">
                                                     <h4 className="font-semibold text-white text-lg">{student.name}</h4>
                                                     <span className={`belt-${student.belt_level.toLowerCase()} px-3 py-1 rounded-full text-sm font-medium`}>
                                                         {student.belt_level} Belt
                                                     </span>
                                                 </div>
                                                 
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-blue-100 text-sm">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-blue-100 text-sm">
                                                     {student.email && (
                                                         <div>📧 {student.email}</div>
                                                     )}
@@ -535,7 +554,7 @@
                                                     )}
                                                 </div>
                                                 
-                                                <div className="flex gap-2 mt-2">
+                                                <div className="flex flex-wrap gap-2 mt-2">
                                                     {student.member_id && (
                                                         <span className="member-id-badge">{student.member_id}</span>
                                                     )}
@@ -554,7 +573,7 @@
                     {/* Add Student Modal */}
                     {showAddForm && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                            <div className="glass-effect rounded-xl p-6 w-full max-w-md">
+                            <div className="glass-effect rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
                                 <h3 className="text-xl font-bold text-white mb-4">Add New Student</h3>
                                 
                                 <form onSubmit={handleAddStudent} className="space-y-4">
@@ -564,7 +583,6 @@
                                             type="text"
                                             value={newStudent.name}
                                             onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
-                                            className="w-full"
                                             required
                                         />
                                     </div>
@@ -575,7 +593,6 @@
                                             type="email"
                                             value={newStudent.email}
                                             onChange={(e) => setNewStudent({...newStudent, email: e.target.value})}
-                                            className="w-full"
                                         />
                                     </div>
                                     
@@ -585,7 +602,6 @@
                                             type="tel"
                                             value={newStudent.phone}
                                             onChange={(e) => setNewStudent({...newStudent, phone: e.target.value})}
-                                            className="w-full"
                                         />
                                     </div>
                                     
@@ -594,7 +610,6 @@
                                         <select
                                             value={newStudent.belt_level}
                                             onChange={(e) => setNewStudent({...newStudent, belt_level: e.target.value})}
-                                            className="w-full"
                                         >
                                             {belts.map(belt => (
                                                 <option key={belt} value={belt}>{belt} Belt</option>
@@ -602,17 +617,17 @@
                                         </select>
                                     </div>
                                     
-                                    <div className="flex gap-3">
+                                    <div className="flex flex-col sm:flex-row gap-3">
                                         <button
                                             type="submit"
-                                            className="glass-button flex-1 py-2 text-white font-semibold rounded-lg"
+                                            className="glass-button flex-1 text-white font-semibold"
                                         >
                                             Add Student
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setShowAddForm(false)}
-                                            className="bg-gray-500 bg-opacity-20 flex-1 py-2 text-white font-semibold rounded-lg hover:bg-opacity-30"
+                                            className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
                                         >
                                             Cancel
                                         </button>
@@ -657,11 +672,11 @@
 
             return (
                 <div className="space-y-6">
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <h2 className="text-2xl font-bold text-white">Business Analytics</h2>
                         <button
                             onClick={loadAnalytics}
-                            className="glass-button px-6 py-2 text-white font-semibold rounded-lg"
+                            className="glass-button px-6 py-3 text-white font-semibold"
                         >
                             🔄 Refresh Analytics
                         </button>
@@ -674,7 +689,7 @@
                     )}
 
                     {/* Key Metrics Dashboard */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="responsive-grid">
                         <div className="glass-effect rounded-xl p-6">
                             <h3 className="text-lg font-semibold text-white mb-2">Total Students</h3>
                             <div className="text-3xl font-bold text-blue-400">
@@ -736,6 +751,140 @@
             );
         };
 
+        // Check-In Interface Component
+        const CheckInInterface = ({ onBack }) => {
+            const [cardInput, setCardInput] = useState('');
+            const [studentName, setStudentName] = useState('');
+            const [checkInMode, setCheckInMode] = useState('card');
+            const [isLoading, setIsLoading] = useState(false);
+            const [message, setMessage] = useState('');
+
+            const handleCheckIn = async () => {
+                if (!cardInput && !studentName) return;
+                
+                setIsLoading(true);
+                setMessage('');
+
+                try {
+                    const payload = checkInMode === 'card' 
+                        ? { card_number: cardInput }
+                        : { student_name: studentName };
+                    
+                    const response = await apiCall('/checkin', {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+
+                    setMessage(`✅ ${response.message}`);
+                    setCardInput('');
+                    setStudentName('');
+                } catch (error) {
+                    setMessage(`❌ Check-in failed: ${error.message}`);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            return (
+                <div className="min-h-screen p-4">
+                    <div className="max-w-4xl mx-auto">
+                        <div className="glass-effect rounded-xl p-6 mb-6">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div>
+                                    <h1 className="text-3xl font-bold text-white mb-2">
+                                        🔍 Student Check-In Kiosk
+                                    </h1>
+                                </div>
+                                <button
+                                    onClick={onBack}
+                                    className="bg-gray-500 bg-opacity-20 px-6 py-3 text-white font-semibold hover:bg-opacity-30"
+                                >
+                                    ← Back to Dashboard
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="glass-effect rounded-xl p-6">
+                            <h2 className="text-xl font-bold text-white mb-4">Check In</h2>
+                            
+                            <div className="flex mb-6">
+                                <button
+                                    onClick={() => setCheckInMode('card')}
+                                    className={`flex-1 py-3 px-4 rounded-l-lg font-medium ${
+                                        checkInMode === 'card'
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-white bg-opacity-10 text-blue-100'
+                                    }`}
+                                >
+                                    💳 Card Scan
+                                </button>
+                                <button
+                                    onClick={() => setCheckInMode('manual')}
+                                    className={`flex-1 py-3 px-4 rounded-r-lg font-medium ${
+                                        checkInMode === 'manual'
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-white bg-opacity-10 text-blue-100'
+                                    }`}
+                                >
+                                    ✍️ Manual Entry
+                                </button>
+                            </div>
+
+                            {checkInMode === 'card' ? (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">
+                                            Card Number
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={cardInput}
+                                            onChange={(e) => setCardInput(e.target.value)}
+                                            placeholder="Scan or enter card number..."
+                                            onKeyPress={(e) => e.key === 'Enter' && handleCheckIn()}
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">
+                                            Student Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={studentName}
+                                            onChange={(e) => setStudentName(e.target.value)}
+                                            placeholder="Enter student name..."
+                                            onKeyPress={(e) => e.key === 'Enter' && handleCheckIn()}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <button
+                                onClick={handleCheckIn}
+                                disabled={isLoading || (!cardInput && !studentName)}
+                                className="glass-button w-full text-white font-semibold mt-6"
+                            >
+                                {isLoading ? 'Checking In...' : '✅ Check In'}
+                            </button>
+
+                            {message && (
+                                <div className={`mt-4 p-3 rounded-lg ${
+                                    message.includes('✅') 
+                                        ? 'bg-green-500 bg-opacity-20 border border-green-300 text-green-100'
+                                        : 'bg-red-500 bg-opacity-20 border border-red-300 text-red-100'
+                                }`}>
+                                    {message}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // Placeholder components for other tabs
         const ClassManagement = () => (
             <div className="glass-effect rounded-xl p-6">
@@ -779,143 +928,7 @@
             </div>
         );
 
-        // Check-In Interface Component
-        const CheckInInterface = ({ onBack }) => {
-            const [cardInput, setCardInput] = useState('');
-            const [studentName, setStudentName] = useState('');
-            const [checkInMode, setCheckInMode] = useState('card');
-            const [isLoading, setIsLoading] = useState(false);
-            const [message, setMessage] = useState('');
-
-            const handleCheckIn = async () => {
-                if (!cardInput && !studentName) return;
-                
-                setIsLoading(true);
-                setMessage('');
-
-                try {
-                    const payload = checkInMode === 'card' 
-                        ? { card_number: cardInput }
-                        : { student_name: studentName };
-                    
-                    const response = await apiCall('/checkin', {
-                        method: 'POST',
-                        body: JSON.stringify(payload)
-                    });
-
-                    setMessage(`✅ ${response.message}`);
-                    setCardInput('');
-                    setStudentName('');
-                } catch (error) {
-                    setMessage(`❌ Check-in failed: ${error.message}`);
-                } finally {
-                    setIsLoading(false);
-                }
-            };
-
-            return (
-                <div className="min-h-screen p-4">
-                    <div className="max-w-4xl mx-auto">
-                        <div className="glass-effect rounded-xl p-6 mb-6">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <h1 className="text-3xl font-bold text-white mb-2">
-                                        🔍 Student Check-In Kiosk
-                                    </h1>
-                                </div>
-                                <button
-                                    onClick={onBack}
-                                    className="bg-gray-500 bg-opacity-20 px-6 py-2 text-white font-semibold rounded-lg hover:bg-opacity-30"
-                                >
-                                    ← Back to Dashboard
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="glass-effect rounded-xl p-6">
-                            <h2 className="text-xl font-bold text-white mb-4">Check In</h2>
-                            
-                            <div className="flex mb-6">
-                                <button
-                                    onClick={() => setCheckInMode('card')}
-                                    className={`flex-1 py-2 px-4 rounded-l-lg font-medium ${
-                                        checkInMode === 'card'
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-white bg-opacity-10 text-blue-100'
-                                    }`}
-                                >
-                                    💳 Card Scan
-                                </button>
-                                <button
-                                    onClick={() => setCheckInMode('manual')}
-                                    className={`flex-1 py-2 px-4 rounded-r-lg font-medium ${
-                                        checkInMode === 'manual'
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-white bg-opacity-10 text-blue-100'
-                                    }`}
-                                >
-                                    ✍️ Manual Entry
-                                </button>
-                            </div>
-
-                            {checkInMode === 'card' ? (
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-blue-100 text-sm font-medium mb-2">
-                                            Card Number
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={cardInput}
-                                            onChange={(e) => setCardInput(e.target.value)}
-                                            className="w-full"
-                                            placeholder="Scan or enter card number..."
-                                            onKeyPress={(e) => e.key === 'Enter' && handleCheckIn()}
-                                        />
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-blue-100 text-sm font-medium mb-2">
-                                            Student Name
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={studentName}
-                                            onChange={(e) => setStudentName(e.target.value)}
-                                            className="w-full"
-                                            placeholder="Enter student name..."
-                                            onKeyPress={(e) => e.key === 'Enter' && handleCheckIn()}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            <button
-                                onClick={handleCheckIn}
-                                disabled={isLoading || (!cardInput && !studentName)}
-                                className="glass-button w-full py-3 text-white font-semibold rounded-lg mt-6"
-                            >
-                                {isLoading ? 'Checking In...' : '✅ Check In'}
-                            </button>
-
-                            {message && (
-                                <div className={`mt-4 p-3 rounded-lg ${
-                                    message.includes('✅') 
-                                        ? 'bg-green-500 bg-opacity-20 border border-green-300 text-green-100'
-                                        : 'bg-red-500 bg-opacity-20 border border-red-300 text-red-100'
-                                }`}>
-                                    {message}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // Main Dashboard Component - MATCHES YOUR LOCAL VERSION
+        // Main Dashboard Component
         const Dashboard = ({ adminInfo, onLogout, onCheckInMode }) => {
             const [activeTab, setActiveTab] = useState('students');
 
@@ -933,9 +946,9 @@
             return (
                 <div className="min-h-screen p-4">
                     <div className="max-w-7xl mx-auto">
-                        {/* Header - MATCHES YOUR LOCAL VERSION */}
+                        {/* Header */}
                         <div className="glass-effect rounded-xl p-6 mb-6">
-                            <div className="flex justify-between items-center">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                 <div>
                                     <h1 className="text-3xl font-bold text-white mb-2">
                                         🥋 BJJ PRO GYM
@@ -948,16 +961,16 @@
                                         Plan: {adminInfo.plan} • Status: ✅ Connected - 2.0.0-production
                                     </p>
                                 </div>
-                                <div className="flex gap-3">
+                                <div className="flex flex-col sm:flex-row gap-3">
                                     <button
                                         onClick={onCheckInMode}
-                                        className="glass-button px-6 py-2 text-white font-semibold rounded-lg"
+                                        className="glass-button px-6 py-3 text-white font-semibold"
                                     >
                                         🔍 Check-In Kiosk
                                     </button>
                                     <button
                                         onClick={onLogout}
-                                        className="bg-red-500 bg-opacity-20 px-6 py-2 text-white font-semibold rounded-lg hover:bg-opacity-30"
+                                        className="bg-red-500 bg-opacity-20 px-6 py-3 text-white font-semibold hover:bg-opacity-30"
                                     >
                                         Logout
                                     </button>
@@ -965,7 +978,7 @@
                             </div>
                         </div>
 
-                        {/* Navigation Tabs - MATCHES YOUR LOCAL VERSION */}
+                        {/* Navigation Tabs */}
                         <div className="glass-effect rounded-xl p-2 mb-6">
                             <div className="flex flex-wrap gap-2">
                                 {tabs.map((tab) => (
@@ -984,7 +997,7 @@
                             </div>
                         </div>
 
-                        {/* Content Area - MATCHES YOUR LOCAL VERSION */}
+                        {/* Content Area */}
                         <div className="min-h-96">
                             {activeTab === 'students' && <StudentManagement />}
                             {activeTab === 'classes' && <ClassManagement />}
