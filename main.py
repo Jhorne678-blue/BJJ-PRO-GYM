@@ -131,7 +131,8 @@ def init_db():
                 name TEXT NOT NULL,
                 description TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (gym_id) REFERENCES gyms (id)
+                FOREIGN KEY (gym_id) REFERENCES gyms (id),
+                UNIQUE(gym_id, name)
             )''',
             '''CREATE TABLE IF NOT EXISTS students (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -215,7 +216,9 @@ def setup_demo_data(cursor):
         demo_classes = [
             ("Fundamentals", "Basic BJJ techniques for beginners"),
             ("Advanced", "Advanced techniques and sparring"),
-            ("Competition", "Competition preparation and training")
+            ("Competition", "Competition preparation and training"),
+            ("No-Gi", "Brazilian Jiu-Jitsu without gi"),
+            ("Open Mat", "Free training and practice time")
         ]
         
         for class_name, description in demo_classes:
@@ -409,43 +412,6 @@ async def create_class(class_data: ClassCreate, token_data: dict = Depends(verif
         logger.error(f"Error creating class: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to create class")
 
-@app.post("/api/classes")
-async def create_class(class_data: ClassCreate, token_data: dict = Depends(verify_token)):
-    try:
-        gym_id = token_data["gym_id"]
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Check for duplicate class name
-        cursor.execute('''
-            SELECT COUNT(*) FROM classes WHERE gym_id = ? AND LOWER(name) = LOWER(?)
-        ''', (gym_id, class_data.name))
-        
-        if cursor.fetchone()[0] > 0:
-            conn.close()
-            raise HTTPException(status_code=400, detail="Class with this name already exists")
-        
-        cursor.execute('''
-            INSERT INTO classes (gym_id, name, description)
-            VALUES (?, ?, ?)
-        ''', (gym_id, class_data.name.strip(), class_data.description.strip() if class_data.description else None))
-        
-        class_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
-        
-        return {
-            "message": "Class created successfully",
-            "class_id": class_id,
-            "class": class_data.dict()
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error creating class: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to create class")
-
 @app.delete("/api/classes/{class_id}")
 async def delete_class(class_id: int, token_data: dict = Depends(verify_token)):
     try:
@@ -475,6 +441,95 @@ async def delete_class(class_id: int, token_data: dict = Depends(verify_token)):
     except Exception as e:
         logger.error(f"Error deleting class: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to delete class")
+
+# Current class endpoint for check-ins
+@app.get("/api/current-class")
+async def get_current_class():
+    """Get the currently scheduled class based on day/time"""
+    now = datetime.now()
+    current_day = now.weekday()  # 0 = Monday
+    current_time = now.strftime("%H:%M")
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT class_name, instructor FROM schedules 
+            WHERE gym_id = 1 AND day_of_week = ? 
+            AND start_time <= ? AND end_time >= ?
+            ORDER BY start_time LIMIT 1
+        ''', (current_day, current_time, current_time))
+        
+        result = cursor.fetchone()
+        conn.close()
+        
+        if result:
+            return {"class_name": result[0], "instructor": result[1]}
+        return {"class_name": "Open Mat", "instructor": "Open"}
+    except Exception as e:
+        logger.error(f"Error getting current class: {str(e)}")
+        return {"class_name": "Open Mat", "instructor": "Open"}
+
+# Check-in endpoint
+@app.post("/api/checkin")
+async def check_in_student(request: CheckInRequest):
+    current_class = await get_current_class()
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Handle check-in by card number or name
+        if request.card_number:
+            cursor.execute('''
+                SELECT id, name, member_id, card_number FROM students 
+                WHERE gym_id = 1 AND card_number = ?
+            ''', (request.card_number,))
+            student = cursor.fetchone()
+            if not student:
+                raise HTTPException(status_code=404, detail="Student not found")
+            student_name = student[1]
+            student_id = student[0]
+            member_id = student[2]
+            card_number = student[3]
+        else:
+            cursor.execute('''
+                SELECT id, name, member_id, card_number FROM students 
+                WHERE gym_id = 1 AND name = ?
+            ''', (request.student_name,))
+            student = cursor.fetchone()
+            if student:
+                student_id = student[0]
+                member_id = student[2]
+                card_number = student[3]
+            else:
+                student_id = None
+                member_id = None
+                card_number = None
+            student_name = request.student_name
+        
+        # Record attendance
+        cursor.execute('''
+            INSERT INTO attendance_logs 
+            (gym_id, student_name, student_id, member_id, card_number, class_name, check_in_time)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (1, student_name, student_id, member_id, card_number, current_class["class_name"], datetime.now().isoformat()))
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "message": f"Successfully checked in {student_name}",
+            "member_id": member_id,
+            "card_number": card_number,
+            "class_name": current_class["class_name"],
+            "instructor": current_class["instructor"],
+            "check_in_time": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Check-in error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Check-in failed")
 
 # Initialize database on startup (non-blocking)
 @app.on_event("startup")
