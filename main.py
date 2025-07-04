@@ -372,39 +372,109 @@ async def get_classes(token_data: dict = Depends(verify_token)):
         logger.error(f"Error getting classes: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to retrieve classes")
 
-@app.get("/api/analytics")
-async def get_analytics(token_data: dict = Depends(verify_token)):
+@app.post("/api/classes")
+async def create_class(class_data: ClassCreate, token_data: dict = Depends(verify_token)):
     try:
         gym_id = token_data["gym_id"]
         
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Belt distribution
+        # Check for duplicate class name
         cursor.execute('''
-            SELECT belt_level, COUNT(*) as count
-            FROM students 
-            WHERE gym_id = ? 
-            GROUP BY belt_level
-        ''', (gym_id,))
+            SELECT COUNT(*) FROM classes WHERE gym_id = ? AND LOWER(name) = LOWER(?)
+        ''', (gym_id, class_data.name))
         
-        belt_distribution = [dict(row) for row in cursor.fetchall()]
+        if cursor.fetchone()[0] > 0:
+            conn.close()
+            raise HTTPException(status_code=400, detail="Class with this name already exists")
         
-        # Total students
-        cursor.execute('SELECT COUNT(*) FROM students WHERE gym_id = ?', (gym_id,))
-        total_students = cursor.fetchone()[0]
+        cursor.execute('''
+            INSERT INTO classes (gym_id, name, description)
+            VALUES (?, ?, ?)
+        ''', (gym_id, class_data.name.strip(), class_data.description.strip() if class_data.description else None))
         
+        class_id = cursor.lastrowid
+        conn.commit()
         conn.close()
         
         return {
-            "belt_distribution": belt_distribution,
-            "total_students": total_students,
-            "recent_attendance": 45,
-            "card_usage_rate": 85
+            "message": "Class created successfully",
+            "class_id": class_id,
+            "class": class_data.dict()
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error getting analytics: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve analytics")
+        logger.error(f"Error creating class: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create class")
+
+@app.post("/api/classes")
+async def create_class(class_data: ClassCreate, token_data: dict = Depends(verify_token)):
+    try:
+        gym_id = token_data["gym_id"]
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check for duplicate class name
+        cursor.execute('''
+            SELECT COUNT(*) FROM classes WHERE gym_id = ? AND LOWER(name) = LOWER(?)
+        ''', (gym_id, class_data.name))
+        
+        if cursor.fetchone()[0] > 0:
+            conn.close()
+            raise HTTPException(status_code=400, detail="Class with this name already exists")
+        
+        cursor.execute('''
+            INSERT INTO classes (gym_id, name, description)
+            VALUES (?, ?, ?)
+        ''', (gym_id, class_data.name.strip(), class_data.description.strip() if class_data.description else None))
+        
+        class_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return {
+            "message": "Class created successfully",
+            "class_id": class_id,
+            "class": class_data.dict()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating class: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create class")
+
+@app.delete("/api/classes/{class_id}")
+async def delete_class(class_id: int, token_data: dict = Depends(verify_token)):
+    try:
+        gym_id = token_data["gym_id"]
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if class exists
+        cursor.execute('SELECT name FROM classes WHERE id = ? AND gym_id = ?', (class_id, gym_id))
+        class_result = cursor.fetchone()
+        
+        if not class_result:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Class not found")
+        
+        # Delete the class
+        cursor.execute('DELETE FROM classes WHERE id = ? AND gym_id = ?', (class_id, gym_id))
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"Class deleted: {class_result[0]} (ID: {class_id})")
+        return {"message": f"Class '{class_result[0]}' deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting class: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to delete class")
 
 # Initialize database on startup (non-blocking)
 @app.on_event("startup")
