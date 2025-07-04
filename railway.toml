@@ -1,1 +1,11 @@
+[build]
+builder = "NIXPACKS"
 
+[deploy]
+startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+
+[environments.production]
+variables = { SECRET_KEY = "${{RAILWAY_STATIC_URL}}_bjj_pro_secret_2024" }
