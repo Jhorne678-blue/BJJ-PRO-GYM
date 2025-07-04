@@ -26,36 +26,11 @@ app.add_middleware(
 security = HTTPBearer()
 SECRET_KEY = os.getenv("SECRET_KEY", "bjj_pro_gym_secret_key_2024_complete")
 
-# Access Codes Configuration
-MASTER_ACCESS_CODES = {
-    "Adelynn14": {
-        "plan": "professional",
-        "trial_days": 30,
-        "features": ["all"],
-        "priority": "high",
-        "description": "Professional Plan - Full Access"
-    }
-}
-
 # Pydantic models
-class GymCreate(BaseModel):
-    gym_name: str
-    owner_name: str
-    owner_email: str
-    phone: Optional[str] = None
-    address: Optional[str] = None
-
-class AccessCodeRedeem(BaseModel):
-    access_code: str
-    gym_info: GymCreate
-
 class LoginRequest(BaseModel):
     card_code: str
     password: Optional[str] = None
 
-class CardScanRequest(BaseModel):
-    card_code: str
-    
 class StudentCreate(BaseModel):
     name: str
     email: Optional[str] = None
@@ -344,101 +319,33 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-def generate_subdomain(gym_name: str) -> str:
-    """Generate a unique subdomain from gym name"""
-    subdomain = ''.join(c.lower() for c in gym_name if c.isalnum() or c == ' ')
-    subdomain = subdomain.replace(' ', '-')
-    suffix = secrets.token_hex(4)
-    return f"{subdomain}-{suffix}"
-
 # API Endpoints
-@app.post("/api/redeem-access-code")
-async def redeem_access_code(request: AccessCodeRedeem):
-    """Redeem access code and create gym account"""
-    access_code = request.access_code
-    gym_info = request.gym_info
-    
-    # Validate access code
-    if access_code not in MASTER_ACCESS_CODES:
-        raise HTTPException(status_code=400, detail="Invalid access code")
-    
-    code_info = MASTER_ACCESS_CODES[access_code]
-    
-    # Generate subdomain
-    subdomain = generate_subdomain(gym_info.gym_name)
-    
-    # Calculate trial end date
-    trial_end_date = datetime.now() + timedelta(days=code_info["trial_days"])
-    
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    try:
-        # Create gym account
-        cursor.execute('''
-            INSERT INTO gyms (
-                gym_name, subdomain, owner_name, owner_email, phone, address,
-                subscription_plan, subscription_status, trial_end_date, access_code
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (gym_info.gym_name, subdomain, gym_info.owner_name, 
-              gym_info.owner_email, gym_info.phone, gym_info.address,
-              code_info["plan"], "trial", trial_end_date.isoformat(), access_code))
-        
-        gym_id = cursor.lastrowid
-        
-        # Create admin user
-        admin_password = secrets.token_urlsafe(12)
-        password_hash = hashlib.sha256(admin_password.encode()).hexdigest()
-        
-        cursor.execute('''
-            INSERT INTO gym_admins (gym_id, name, email, password_hash, role)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (gym_id, gym_info.owner_name, gym_info.owner_email, password_hash, "owner"))
-        
-        conn.commit()
-        
-        # Generate dashboard URL
-        dashboard_url = f"https://{subdomain}.bjjprogym.com"
-        
-        return {
-            "success": True,
-            "message": "Account created successfully",
-            "gym_id": gym_id,
-            "gym_name": gym_info.gym_name,
-            "subdomain": subdomain,
-            "dashboard_url": dashboard_url,
-            "plan": code_info["plan"],
-            "trial_days": code_info["trial_days"],
-            "admin_password": admin_password,
-            "access_code_used": access_code,
-            "monthly_value": 197
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to create account: {str(e)}")
-    finally:
-        conn.close()
+@app.get("/api/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "version": "2.0.0-production",
+        "timestamp": datetime.now().isoformat(),
+        "database": "connected",
+        "features": ["students", "classes", "schedules", "attendance", "analytics", "risk-analysis", "communications", "system-status"]
+    }
 
 @app.post("/api/login")
 async def login(request: LoginRequest):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Handle card-only login (for card scanning)
+    # Require password for login
     if not request.password:
-        cursor.execute('''
-            SELECT ga.*, g.gym_name FROM gym_admins ga
-            JOIN gyms g ON ga.gym_id = g.id
-            WHERE ga.card_code = ?
-        ''', (request.card_code,))
-    else:
-        # Handle traditional login with password
-        password_hash = hashlib.sha256(request.password.encode()).hexdigest()
-        cursor.execute('''
-            SELECT ga.*, g.gym_name FROM gym_admins ga
-            JOIN gyms g ON ga.gym_id = g.id
-            WHERE ga.card_code = ? AND ga.password_hash = ?
-        ''', (request.card_code, password_hash))
+        raise HTTPException(status_code=400, detail="Password is required")
+    
+    # Handle traditional login with password
+    password_hash = hashlib.sha256(request.password.encode()).hexdigest()
+    cursor.execute('''
+        SELECT ga.*, g.gym_name FROM gym_admins ga
+        JOIN gyms g ON ga.gym_id = g.id
+        WHERE ga.card_code = ? AND ga.password_hash = ?
+    ''', (request.card_code, password_hash))
     
     admin = cursor.fetchone()
     conn.close()
@@ -467,12 +374,6 @@ async def login(request: LoginRequest):
             "plan": "professional"
         }
     }
-
-@app.post("/api/card-scan")
-async def card_scan_login(request: CardScanRequest):
-    """Handle card scanning for instant login"""
-    login_request = LoginRequest(card_code=request.card_code)
-    return await login(login_request)
 
 @app.get("/api/current-class")
 async def get_current_class_endpoint():
@@ -970,6 +871,7 @@ async def health_check():
 @app.on_event("startup")
 async def startup_event():
     init_db()
+    print("🚀 BJJ Pro Gym API Started Successfully!")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
