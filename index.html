@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BJJ Pro Gym - Professional Brazilian Jiu-Jitsu Management</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #1e3a8a 0%, #312e81 50%, #1e1b4b 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .glass-button {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(147, 51, 234, 0.8));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .glass-button:hover {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(147, 51, 234, 0.9));
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .pricing-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .pricing-card.featured {
+            border-color: rgba(59, 130, 246, 0.8);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .feature-check {
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .feature-x {
+            color: #ef4444;
+            font-weight: bold;
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, #1e3a8a 0%, #312e81 30%, #1e1b4b 60%, #0f0f23 100%);
+        }
+
+        .floating-card {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .access-code-glow {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+            }
+            50% { 
+                box-shadow: 0 0 30px rgba(59, 130, 246, 0.8);
+            }
+        }
+
+        input, select, textarea {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+            border: 2px solid rgba(255, 255, 255, 0.2) !important;
+            color: white !important;
+            border-radius: 8px !important;
+            padding: 8px 12px !important;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: rgba(59, 130, 246, 0.8) !important;
+            outline: none !important;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        .success-pulse {
+            animation: successPulse 0.6s ease-out;
+        }
+        
+        @keyframes successPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .belt-white { background: linear-gradient(135deg, #ffffff, #f3f4f6); color: #1f2937; }
+        .belt-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; }
+        .belt-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; }
+        .belt-brown { background: linear-gradient(135deg, #92400e, #78350f); color: white; }
+        .belt-black { background: linear-gradient(135deg, #1f2937, #111827); color: white; }
+
+        .member-id-badge {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .card-number-badge {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .pro-badge {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #1f2937;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // API Configuration - CONNECTED TO YOUR RAILWAY BACKEND
+        const API_BASE = 'https://bjj-pro-gym-bjjpro.up.railway.app/api';
+        
+        // Helper function for API calls
+        const apiCall = async (endpoint, options = {}) => {
+            const token = localStorage.getItem('auth_token');
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                },
+                ...options
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, config);
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || `API Error: ${response.status}`);
+                }
+                
+                return response.json();
+            } catch (error) {
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    throw new Error('Cannot connect to server. Please check your internet connection.');
+                }
+                throw error;
+            }
+        };
+
+        // Access Code Modal Component
+        const AccessCodeModal = ({ isOpen, onClose, onSuccess }) => {
+            const [accessCode, setAccessCode] = useState('');
+            const [gymInfo, setGymInfo] = useState({
+                gym_name: '',
+                owner_name: '',
+                owner_email: '',
+                phone: '',
+                address: ''
+            });
+            const [isLoading, setIsLoading] = useState(false);
+            const [error, setError] = useState('');
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                setError('');
+
+                try {
+                    const response = await apiCall('/redeem-access-code', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            access_code: accessCode,
+                            gym_info: gymInfo
+                        })
+                    });
+
+                    onSuccess(response);
+                } catch (error) {
+                    setError(error.message);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="glass-effect rounded-xl p-8 w-full max-w-md">
+                        <div className="text-center mb-6">
+                            <h2 className="text-2xl font-bold text-white mb-2">🔑 Enter Access Code</h2>
+                            <p className="text-blue-100">Get instant access to BJJ Pro Gym Professional</p>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">
+                                    Access Code
+                                </label>
+                                <input
+                                    type="text"
+                                    value={accessCode}
+                                    onChange={(e) => setAccessCode(e.target.value)}
+                                    className="w-full access-code-glow"
+                                    placeholder="Enter your access code..."
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">
+                                    Gym Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={gymInfo.gym_name}
+                                    onChange={(e) => setGymInfo({...gymInfo, gym_name: e.target.value})}
+                                    className="w-full"
+                                    placeholder="Your gym name..."
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">
+                                    Owner Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={gymInfo.owner_name}
+                                    onChange={(e) => setGymInfo({...gymInfo, owner_name: e.target.value})}
+                                    className="w-full"
+                                    placeholder="Your name..."
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">
+                                    Email
+                                </label>
+                                <input
+                                    type="email"
+                                    value={gymInfo.owner_email}
+                                    onChange={(e) => setGymInfo({...gymInfo, owner_email: e.target.value})}
+                                    className="w-full"
+                                    placeholder="your@email.com"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">
+                                    Phone
+                                </label>
+                                <input
+                                    type="tel"
+                                    value={gymInfo.phone}
+                                    onChange={(e) => setGymInfo({...gymInfo, phone: e.target.value})}
+                                    className="w-full"
+                                    placeholder="(555) 123-4567"
+                                />
+                            </div>
+
+                            {error && (
+                                <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                                    {error}
+                                </div>
+                            )}
+
+                            <div className="flex gap-3">
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="glass-button flex-1 py-3 text-white font-semibold rounded-lg"
+                                >
+                                    {isLoading ? 'Creating Account...' : '🚀 Create Account'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="bg-gray-500 bg-opacity-20 flex-1 py-3 text-white font-semibold rounded-lg hover:bg-opacity-30"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // Success Modal Component
+        const SuccessModal = ({ isOpen, accountData, onClose }) => {
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="glass-effect rounded-xl p-8 w-full max-w-md text-center">
+                        <div className="text-6xl mb-4">🎉</div>
+                        <h2 className="text-2xl font-bold text-white mb-4">
+                            Account Created Successfully!
+                        </h2>
+                        <p className="text-blue-100 mb-6">
+                            Your BJJ Pro Gym account is ready. You can now access your dashboard.
+                        </p>
+                        
+                        <div className="bg-white bg-opacity-10 rounded-lg p-4 mb-6 text-left">
+                            <div className="text-sm text-blue-200 mb-2">Your Access Details:</div>
+                            <div className="text-white text-sm">
+                                <div><strong>Gym:</strong> {accountData?.gym_name}</div>
+                                <div><strong>Plan:</strong> Professional (30-day trial)</div>
+                                <div><strong>Monthly Value:</strong> ${accountData?.monthly_value}/month</div>
+                                <div><strong>Dashboard:</strong> {accountData?.dashboard_url}</div>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={onClose}
+                            className="glass-button w-full py-3 text-white font-semibold rounded-lg"
+                        >
+                            🚀 Continue to Demo Dashboard
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // Pricing Section Component
+        const PricingSection = ({ onAccessCode }) => {
+            const plans = [
+                {
+                    name: "Starter",
+                    price: 97,
+                    description: "Perfect for small gyms starting out",
+                    features: [
+                        "Up to 100 students",
+                        "Basic attendance tracking",
+                        "1 location",
+                        "Email support",
+                        "Standard reporting",
+                        "Web dashboard"
+                    ],
+                    limitations: [
+                        "No card scanning",
+                        "No risk analysis",
+                        "Basic analytics only"
+                    ]
+                },
+                {
+                    name: "Professional",
+                    price: 197,
+                    description: "Most popular - Perfect for growing gyms",
+                    features: [
+                        "Up to 500 students",
+                        "Advanced analytics + automation",
+                        "RFID card scanning system",
+                        "Priority support",
+                        "Up to 3 locations",
+                        "Risk analysis & retention tools",
+                        "Enhanced reporting",
+                        "Email automation",
+                        "Mobile app access"
+                    ],
+                    limitations: [],
+                    featured: true
+                },
+                {
+                    name: "Enterprise",
+                    price: 397,
+                    description: "For large gyms and franchises",
+                    features: [
+                        "Unlimited students",
+                        "Multi-location management",
+                        "Custom integrations",
+                        "Dedicated support",
+                        "White-label options",
+                        "Advanced API access",
+                        "Custom reporting",
+                        "Priority feature requests",
+                        "Training & onboarding"
+                    ],
+                    limitations: []
+                }
+            ];
+
+            return (
+                <div className="py-20 px-4">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="text-center mb-16">
+                            <h2 className="text-4xl font-bold text-white mb-4">
+                                Choose Your Plan
+                            </h2>
+                            <p className="text-xl text-blue-100 mb-8">
+                                Professional gym management that scales with your business
+                            </p>
+                            <div className="inline-flex items-center gap-4 glass-effect rounded-full px-6 py-3">
+                                <span className="text-blue-100">Have an access code?</span>
+                                <button
+                                    onClick={onAccessCode}
+                                    className="glass-button px-6 py-2 text-white font-semibold rounded-full"
+                                >
+                                    🔑 Enter Code
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            {plans.map((plan, index) => (
+                                <div
+                                    key={index}
+                                    className={`pricing-card rounded-2xl p-8 relative ${
+                                        plan.featured ? 'featured' : ''
+                                    }`}
+                                >
+                                    {plan.featured && (
+                                        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                                            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-bold">
+                                                MOST POPULAR
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="text-center mb-8">
+                                        <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
+                                        <p className="text-blue-100 mb-4">{plan.description}</p>
+                                        <div className="text-4xl font-bold text-white mb-1">
+                                            ${plan.price}
+                                            <span className="text-lg font-normal text-blue-200">/month</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4 mb-8">
+                                        <div>
+                                            <h4 className="font-semibold text-white mb-3">✅ Included:</h4>
+                                            <ul className="space-y-2">
+                                                {plan.features.map((feature, i) => (
+                                                    <li key={i} className="flex items-start gap-2">
+                                                        <span className="feature-check text-sm">✓</span>
+                                                        <span className="text-blue-100 text-sm">{feature}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+
+                                        {plan.limitations.length > 0 && (
+                                            <div>
+                                                <h4 className="font-semibold text-white mb-3">❌ Not included:</h4>
+                                                <ul className="space-y-2">
+                                                    {plan.limitations.map((limitation, i) => (
+                                                        <li key={i} className="flex items-start gap-2">
+                                                            <span className="feature-x text-sm">✗</span>
+                                                            <span className="text-blue-300 text-sm">{limitation}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <button
+                                        onClick={plan.featured ? onAccessCode : undefined}
+                                        className={`w-full py-4 rounded-xl font-semibold transition-all ${
+                                            plan.featured
+                                                ? 'glass-button text-white'
+                                                : 'bg-white bg-opacity-10 text-white hover:bg-opacity-20'
+                                        }`}
+                                    >
+                                        {plan.featured ? '🚀 Use Access Code' : '📞 Contact Sales'}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Hero Section Component
+        const HeroSection = ({ onAccessCode, onDemoLogin }) => {
+            return (
+                <div className="hero-gradient min-h-screen flex items-center justify-center px-4">
+                    <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        <div className="space-y-8">
+                            <div className="space-y-4">
+                                <h1 className="text-5xl lg:text-6xl font-bold text-white leading-tight">
+                                    The Future of
+                                    <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                                        {' '}BJJ Gym
+                                    </span>
+                                    <br />Management
+                                </h1>
+                                <p className="text-xl text-blue-100 leading-relaxed">
+                                    Professional Brazilian Jiu-Jitsu academy management with 
+                                    RFID card scanning, automated retention analysis, and 
+                                    enterprise-grade analytics.
+                                </p>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                <button
+                                    onClick={onAccessCode}
+                                    className="glass-button px-8 py-4 text-white font-semibold rounded-xl text-lg"
+                                >
+                                    🔑 Enter Access Code
+                                </button>
+                                <button 
+                                    onClick={onDemoLogin}
+                                    className="bg-white bg-opacity-10 px-8 py-4 text-white font-semibold rounded-xl text-lg hover:bg-opacity-20 transition-all"
+                                >
+                                    🎭 Try Demo
+                                </button>
+                            </div>
+
+                            <div className="flex items-center gap-8 text-blue-200">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-green-400">✓</span>
+                                    <span>30-Day Free Trial</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-green-400">✓</span>
+                                    <span>No Setup Fees</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-green-400">✓</span>
+                                    <span>Cancel Anytime</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="relative">
+                            <div className="floating-card glass-effect rounded-2xl p-8 space-y-6">
+                                <div className="text-center">
+                                    <div className="text-4xl mb-2">🥋</div>
+                                    <h3 className="text-2xl font-bold text-white">BJJ Pro Gym</h3>
+                                    <div className="pro-badge mx-auto mt-2">Professional Edition</div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-blue-100">Active Students:</span>
+                                        <span className="text-white font-semibold">247</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-blue-100">Check-ins Today:</span>
+                                        <span className="text-white font-semibold">43</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-blue-100">Retention Rate:</span>
+                                        <span className="text-green-400 font-semibold">94%</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-blue-100">Monthly Revenue:</span>
+                                        <span className="text-white font-semibold">$18,760</span>
+                                    </div>
+                                </div>
+
+                                <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-4 text-center">
+                                    <div className="text-white font-semibold">Card Scanning Active</div>
+                                    <div className="text-blue-100 text-sm">Enterprise Ready</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Simple Demo Login Component
+        const DemoLogin = ({ onLogin, onBack }) => {
+            const [cardCode, setCardCode] = useState('');
+            const [password, setPassword] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+            const [error, setError] = useState('');
+
+            const handleLogin = async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                setError('');
+
+                try {
+                    const response = await apiCall('/login', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            card_code: cardCode,
+                            password: password || undefined
+                        })
+                    });
+
+                    localStorage.setItem('auth_token', response.access_token);
+                    onLogin(response.admin_info);
+                } catch (error) {
+                    setError(error.message);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const quickDemo = () => {
+                setCardCode('ADMIN001');
+                setPassword('admin123');
+                setTimeout(() => {
+                    const event = { preventDefault: () => {} };
+                    handleLogin(event);
+                }, 100);
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center p-4">
+                    <div className="glass-effect rounded-3xl p-8 w-full max-w-md">
+                        <div className="text-center mb-8">
+                            <h1 className="text-3xl font-bold text-white mb-2">🎭 Demo Login</h1>
+                            <div className="pro-badge mx-auto mb-4">Demo Access</div>
+                            <p className="text-blue-100">Try the full BJJ Pro Gym experience</p>
+                        </div>
+
+                        <form onSubmit={handleLogin} className="space-y-6">
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">
+                                    Card Code / Username
+                                </label>
+                                <input
+                                    type="text"
+                                    value={cardCode}
+                                    onChange={(e) => setCardCode(e.target.value)}
+                                    className="w-full"
+                                    placeholder="Enter card code or username"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">
+                                    Password
+                                </label>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full"
+                                    placeholder="Enter password"
+                                    required
+                                />
+                            </div>
+
+                            {error && (
+                                <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                                    {error}
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="glass-button w-full py-3 text-white font-semibold rounded-xl"
+                            >
+                                {isLoading ? 'Logging in...' : 'Login to Demo'}
+                            </button>
+                        </form>
+
+                        <div className="mt-6 space-y-3">
+                            <button
+                                onClick={quickDemo}
+                                className="w-full bg-purple-600 hover:bg-purple-700 py-3 text-white font-semibold rounded-xl"
+                            >
+                                🚀 Quick Demo (Auto-fill)
+                            </button>
+
+                            <button
+                                onClick={onBack}
+                                className="w-full bg-gray-500 bg-opacity-20 py-2 text-white font-semibold rounded-xl hover:bg-opacity-30"
+                            >
+                                ← Back to Home
+                            </button>
+                        </div>
+
+                        <div className="mt-6 text-center text-blue-200 text-sm">
+                            <p>Demo Credentials:</p>
+                            <p><strong>Card:</strong> ADMIN001</p>
+                            <p><strong>Password:</strong> admin123</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Simplified Dashboard Component (for demo)
+        const SimpleDashboard = ({ adminInfo, onLogout }) => {
+            const [healthStatus, setHealthStatus] = useState('Checking...');
+
+            useEffect(() => {
+                // Test API connection
+                apiCall('/health')
+                    .then(data => setHealthStatus(`✅ Connected - ${data.version}`))
+                    .catch(() => setHealthStatus('❌ Connection Error'));
+            }, []);
+
+            return (
+                <div className="min-h-screen p-4">
+                    <div className="max-w-4xl mx-auto">
+                        <div className="glass-effect rounded-xl p-6 mb-6">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h1 className="text-3xl font-bold text-white mb-2">
+                                        🥋 BJJ PRO GYM
+                                        <span className="pro-badge ml-3">Professional</span>
+                                    </h1>
+                                    <p className="text-blue-100">
+                                        Welcome back, {adminInfo.name} • {adminInfo.gym_name}
+                                    </p>
+                                    <p className="text-blue-200 text-sm">
+                                        Plan: {adminInfo.plan} • Status: {healthStatus}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={onLogout}
+                                    className="bg-red-500 bg-opacity-20 px-6 py-2 text-white font-semibold rounded-lg hover:bg-opacity-30"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="glass-effect rounded-xl p-6">
+                                <h3 className="text-lg font-semibold text-white mb-4">👥 Students</h3>
+                                <div className="text-3xl font-bold text-blue-400 mb-2">247</div>
+                                <div className="text-green-400 text-sm">+12% this month</div>
+                            </div>
+
+                            <div className="glass-effect rounded-xl p-6">
+                                <h3 className="text-lg font-semibold text-white mb-4">📊 Analytics</h3>
+                                <div className="text-3xl font-bold text-purple-400 mb-2">94%</div>
+                                <div className="text-blue-200 text-sm">Retention rate</div>
+                            </div>
+
+                            <div className="glass-effect rounded-xl p-6">
+                                <h3 className="text-lg font-semibold text-white mb-4">💳 Card Usage</h3>
+                                <div className="text-3xl font-bold text-green-400 mb-2">87%</div>
+                                <div className="text-green-400 text-sm">RFID adoption</div>
+                            </div>
+
+                            <div className="glass-effect rounded-xl p-6">
+                                <h3 className="text-lg font-semibold text-white mb-4">⚠️ Risk Analysis</h3>
+                                <div className="text-3xl font-bold text-yellow-400 mb-2">3</div>
+                                <div className="text-yellow-400 text-sm">At-risk students</div>
+                            </div>
+
+                            <div className="glass-effect rounded-xl p-6">
+                                <h3 className="text-lg font-semibold text-white mb-4">📧 Communications</h3>
+                                <div className="text-3xl font-bold text-blue-400 mb-2">156</div>
+                                <div className="text-blue-200 text-sm">Emails sent this week</div>
+                            </div>
+
+                            <div className="glass-effect rounded-xl p-6">
+                                <h3 className="text-lg font-semibold text-white mb-4">💰 Revenue</h3>
+                                <div className="text-3xl font-bold text-green-400 mb-2">$18.7K</div>
+                                <div className="text-green-400 text-sm">Monthly potential</div>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-4">🚀 Professional Features Active</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="text-center">
+                                    <div className="text-2xl mb-2">💳</div>
+                                    <div className="text-white text-sm">Card Scanning</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-2xl mb-2">📊</div>
+                                    <div className="text-white text-sm">Advanced Analytics</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-2xl mb-2">⚠️</div>
+                                    <div className="text-white text-sm">Risk Analysis</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-2xl mb-2">📧</div>
+                                    <div className="text-white text-sm">Email Automation</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 text-center">
+                            <div className="glass-effect rounded-xl p-4 inline-block">
+                                <p className="text-blue-100 text-sm">
+                                    🎉 <strong>Demo Mode:</strong> This is a live demonstration of BJJ Pro Gym Professional
+                                </p>
+                                <p className="text-blue-200 text-xs mt-2">
+                                    All features are functional and connected to your production backend
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            const [mode, setMode] = useState('landing'); // 'landing', 'demo-login', 'dashboard'
+            const [user, setUser] = useState(null);
+            const [showAccessCodeModal, setShowAccessCodeModal] = useState(false);
+            const [showSuccessModal, setShowSuccessModal] = useState(false);
+            const [accountData, setAccountData] = useState(null);
+
+            useEffect(() => {
+                const token = localStorage.getItem('auth_token');
+                if (token) {
+                    setUser({ name: 'Demo User', role: 'owner', gym_name: 'Demo BJJ Pro Academy', plan: 'professional' });
+                    setMode('dashboard');
+                }
+            }, []);
+
+            const handleAccessCodeSuccess = (data) => {
+                setAccountData(data);
+                setShowAccessCodeModal(false);
+                setShowSuccessModal(true);
+            };
+
+            const handleDemoLogin = (adminInfo) => {
+                setUser(adminInfo);
+                setMode('dashboard');
+            };
+
+            const handleLogout = () => {
+                localStorage.removeItem('auth_token');
+                setUser(null);
+                setMode('landing');
+            };
+
+            if (mode === 'landing') {
+                return (
+                    <div>
+                        <HeroSection 
+                            onAccessCode={() => setShowAccessCodeModal(true)}
+                            onDemoLogin={() => setMode('demo-login')}
+                        />
+                        <PricingSection onAccessCode={() => setShowAccessCodeModal(true)} />
+                        
+                        <AccessCodeModal
+                            isOpen={showAccessCodeModal}
+                            onClose={() => setShowAccessCodeModal(false)}
+                            onSuccess={handleAccessCodeSuccess}
+                        />
+                        
+                        <SuccessModal
+                            isOpen={showSuccessModal}
+                            accountData={accountData}
+                            onClose={() => {
+                                setShowSuccessModal(false);
+                                setMode('demo-login');
+                            }}
+                        />
+                    </div>
+                );
+            }
+
+            if (mode === 'demo-login') {
+                return (
+                    <DemoLogin
+                        onLogin={handleDemoLogin}
+                        onBack={() => setMode('landing')}
+                    />
+                );
+            }
+
+            if (mode === 'dashboard') {
+                return (
+                    <SimpleDashboard
+                        adminInfo={user}
+                        onLogout={handleLogout}
+                    />
+                );
+            }
+
+            return null;
+        };
+
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
