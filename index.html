@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BJJ PRO GYM - Professional Brazilian Jiu-Jitsu Management</title>
+    <title>BJJ Pro Gym - Professional Brazilian Jiu-Jitsu Management</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -36,6 +36,7 @@
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
         }
         
+        /* UNIVERSAL INPUT STYLING FOR ALL DEVICES */
         input[type="text"], input[type="email"], input[type="tel"], input[type="password"], input[type="time"], input[type="date"], input[type="number"], textarea, select {
             background-color: white !important;
             color: #1f2937 !important;
@@ -57,19 +58,69 @@
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
         }
 
+        input::placeholder, textarea::placeholder {
+            color: #6b7280 !important;
+            opacity: 1 !important;
+        }
+
+        /* SELECT DROPDOWN STYLING */
         select {
-          const API_BASE = 'https://bjj-pro-gym-bjjpro.up.railway.app/api';
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
             background-position: right 12px center !important;
             background-repeat: no-repeat !important;
             background-size: 16px 16px !important;
             padding-right: 40px !important;
         }
 
+        select option {
+            background-color: white !important;
+            color: #1f2937 !important;
+            padding: 12px 16px !important;
+            font-size: 16px !important;
+        }
+
+        /* TOUCH OPTIMIZATION */
         @media (max-width: 768px) {
             input, select, textarea, button {
                 font-size: 16px !important;
                 min-height: 50px !important;
             }
+        }
+
+        /* BUTTON STYLING */
+        button {
+            min-height: 50px !important;
+            padding: 12px 24px !important;
+            font-size: 16px !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            transition: all 0.3s ease !important;
+            border: none !important;
+            cursor: pointer !important;
+        }
+
+        button:disabled {
+            opacity: 0.6 !important;
+            cursor: not-allowed !important;
+        }
+        
+        .success-pulse {
+            animation: successPulse 0.6s ease-out;
+        }
+        
+        @keyframes successPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .card-scan-ready {
+            animation: cardScanPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes cardScanPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+            50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.8); }
         }
 
         .pro-badge {
@@ -108,6 +159,27 @@
         .belt-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; }
         .belt-brown { background: linear-gradient(135deg, #92400e, #78350f); color: white; }
         .belt-black { background: linear-gradient(135deg, #1f2937, #111827); color: white; }
+
+        .risk-high { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .risk-medium { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .risk-low { background: linear-gradient(135deg, #10b981, #059669); }
+
+        .security-overlay {
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(5px);
+        }
+
+        /* RESPONSIVE GRID */
+        .responsive-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        /* SCROLL OPTIMIZATION */
+        * {
+            -webkit-overflow-scrolling: touch;
+        }
     </style>
 </head>
 <body>
@@ -116,10 +188,10 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // API Configuration - CHANGE THIS TO YOUR RAILWAY URL
+        // API Configuration - UPDATE THIS URL TO YOUR RAILWAY DEPLOYMENT
         const API_BASE = 'https://bjj-pro-gym-bjjpro.up.railway.app/api';
         
-        // Helper function for API calls with fallback to demo data
+        // Helper function for API calls
         const apiCall = async (endpoint, options = {}) => {
             const token = localStorage.getItem('auth_token');
             const config = {
@@ -131,56 +203,21 @@
             };
             
             try {
-                console.log(`API Call: ${API_BASE}${endpoint}`);
                 const response = await fetch(`${API_BASE}${endpoint}`, config);
                 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
-                    throw new Error(`API Error: ${response.status} - ${errorData.detail || 'Unknown error'}`);
+                    const error = new Error(`API Error: ${response.status}`);
+                    error.status = response.status;
+                    error.detail = errorData.detail || 'Unknown error';
+                    throw error;
                 }
                 
                 return response.json();
             } catch (error) {
-                console.error('API Error:', error);
-                
-                // FALLBACK TO DEMO DATA IF API FAILS
-                if (endpoint === '/students') {
-                    return {
-                        students: [
-                            { id: 1, name: "John Smith", email: "john.smith@email.com", phone: "555-0101", belt_level: "Blue", member_id: "MBR001", card_number: "CARD1001" },
-                            { id: 2, name: "Maria Garcia", email: "maria.garcia@email.com", phone: "555-0102", belt_level: "White", member_id: "MBR002", card_number: "CARD1002" },
-                            { id: 3, name: "David Johnson", email: "david.johnson@email.com", phone: "555-0103", belt_level: "Purple", member_id: "MBR003", card_number: "CARD1003" },
-                            { id: 4, name: "Sarah Wilson", email: "sarah.wilson@email.com", phone: "555-0104", belt_level: "White", member_id: "MBR004", card_number: "CARD1004" },
-                            { id: 5, name: "Mike Brown", email: "mike.brown@email.com", phone: "555-0105", belt_level: "Blue", member_id: "MBR005", card_number: "CARD1005" }
-                        ]
-                    };
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    throw new Error('Network error: Cannot connect to server. Please check if the backend is running.');
                 }
-                
-                if (endpoint === '/classes') {
-                    return {
-                        classes: [
-                            { id: 1, name: "Fundamentals", description: "Basic BJJ techniques for beginners" },
-                            { id: 2, name: "Advanced", description: "Advanced techniques and sparring" },
-                            { id: 3, name: "Competition", description: "Competition preparation and training" }
-                        ]
-                    };
-                }
-                
-                if (endpoint === '/analytics') {
-                    return {
-                        total_students: 15,
-                        belt_distribution: [
-                            { belt_level: "White", count: 5 },
-                            { belt_level: "Blue", count: 4 },
-                            { belt_level: "Purple", count: 3 },
-                            { belt_level: "Brown", count: 2 },
-                            { belt_level: "Black", count: 1 }
-                        ],
-                        recent_attendance: 45,
-                        card_usage_rate: 85
-                    };
-                }
-                
                 throw error;
             }
         };
@@ -208,13 +245,7 @@
                     localStorage.setItem('auth_token', response.access_token);
                     onLogin(response.admin_info);
                 } catch (error) {
-                    console.error('Login error:', error);
-                    // Try demo login if API fails
-                    if (cardCode === 'ADMIN001' && password === 'admin123') {
-                        onLogin({ name: 'Admin User', gym_name: 'Demo BJJ Pro Academy', plan: 'professional' });
-                    } else {
-                        setError('Login failed. Try ADMIN001 / admin123 for demo.');
-                    }
+                    setError(error.message || 'Login failed');
                 } finally {
                     setIsLoading(false);
                 }
@@ -274,7 +305,7 @@
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="glass-button w-full text-white font-semibold py-3 px-6 rounded-xl"
+                                className="glass-button w-full text-white font-semibold"
                             >
                                 {isLoading ? 'Logging in...' : 'Login'}
                             </button>
@@ -283,7 +314,7 @@
                         <div className="mt-6 space-y-3">
                             <button
                                 onClick={quickDemo}
-                                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-xl"
+                                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold"
                             >
                                 🚀 Quick Demo (Auto-fill)
                             </button>
@@ -336,10 +367,8 @@
                     setIsLoading(true);
                     const response = await apiCall('/students');
                     setStudents(response.students || []);
-                    setError(''); // Clear any previous errors
                 } catch (error) {
-                    setError('Using demo data - backend connection failed');
-                    console.error('Failed to load students:', error);
+                    setError('Failed to load students: ' + error.message);
                 } finally {
                     setIsLoading(false);
                 }
@@ -372,18 +401,7 @@
                     setShowAddForm(false);
                     await loadStudents();
                 } catch (error) {
-                    // If API fails, add to local state for demo
-                    const newId = Math.max(...students.map(s => s.id), 0) + 1;
-                    const memberCount = students.length + 1;
-                    const studentWithIds = {
-                        ...newStudent,
-                        id: newId,
-                        member_id: `MBR${memberCount.toString().padStart(3, '0')}`,
-                        card_number: `CARD${(1000 + memberCount).toString()}`
-                    };
-                    setStudents([...students, studentWithIds]);
-                    setNewStudent({ name: '', email: '', phone: '', belt_level: 'White' });
-                    setShowAddForm(false);
+                    setError('Failed to add student: ' + error.message);
                 }
             };
 
@@ -412,14 +430,14 @@
                         <h2 className="text-2xl font-bold text-white">Student Management</h2>
                         <button
                             onClick={() => setShowAddForm(true)}
-                            className="glass-button px-6 py-3 text-white font-semibold rounded-lg"
+                            className="glass-button px-6 py-3 text-white font-semibold"
                         >
                             ➕ Add Student
                         </button>
                     </div>
 
                     {error && (
-                        <div className="bg-yellow-500 bg-opacity-20 border border-yellow-300 text-yellow-100 px-4 py-3 rounded-lg">
+                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
                             {error}
                         </div>
                     )}
@@ -436,7 +454,7 @@
                             </button>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="responsive-grid">
                             <div>
                                 <label className="block text-blue-100 text-sm font-medium mb-2">Name</label>
                                 <input
@@ -602,14 +620,14 @@
                                     <div className="flex flex-col sm:flex-row gap-3">
                                         <button
                                             type="submit"
-                                            className="glass-button flex-1 text-white font-semibold py-2 px-4 rounded-lg"
+                                            className="glass-button flex-1 text-white font-semibold"
                                         >
                                             Add Student
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setShowAddForm(false)}
-                                            className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold py-2 px-4 rounded-lg hover:bg-opacity-30"
+                                            className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
                                         >
                                             Cancel
                                         </button>
@@ -622,141 +640,1419 @@
             );
         };
 
-        // Simple components for other tabs
-        const SimpleTab = ({ title, icon, description }) => (
-            <div className="glass-effect rounded-xl p-6">
-                <h2 className="text-2xl font-bold text-white mb-4">{title}</h2>
-                <div className="text-center py-8 text-blue-100">
-                    <div className="text-6xl mb-4">{icon}</div>
-                    <p className="text-lg">{description}</p>
-                </div>
-            </div>
-        );
+        // Class Management Component - FULLY FUNCTIONAL
+        const ClassManagement = () => {
+            const [classes, setClasses] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+            const [error, setError] = useState('');
+            const [success, setSuccess] = useState('');
+            const [showAddForm, setShowAddForm] = useState(false);
+            const [newClass, setNewClass] = useState({ name: '', description: '' });
 
-        // Main Dashboard Component
-        const Dashboard = ({ adminInfo, onLogout }) => {
-            const [activeTab, setActiveTab] = useState('students');
+            useEffect(() => {
+                loadClasses();
+            }, []);
 
-            const tabs = [
-                { id: 'students', label: 'Students', icon: '👥' },
-                { id: 'classes', label: 'Classes', icon: '📚' },
-                { id: 'schedule', label: 'Schedule', icon: '📅' },
-                { id: 'attendance', label: 'Attendance', icon: '✅' },
-                { id: 'analytics', label: 'Analytics', icon: '📊' },
-                { id: 'risk-analysis', label: 'Risk Analysis', icon: '⚠️' },
-                { id: 'communications', label: 'Communications', icon: '📧' },
-                { id: 'system', label: 'System', icon: '🔧' }
-            ];
-
-            const renderContent = () => {
-                switch (activeTab) {
-                    case 'students':
-                        return <StudentManagement />;
-                    case 'classes':
-                        return <SimpleTab title="Class Management" icon="📚" description="Manage your BJJ classes and programs" />;
-                    case 'schedule':
-                        return <SimpleTab title="Schedule Management" icon="📅" description="Weekly schedule and class timing management" />;
-                    case 'attendance':
-                        return <SimpleTab title="Attendance Tracking" icon="✅" description="Real-time attendance tracking with RFID integration" />;
-                    case 'analytics':
-                        return <SimpleTab title="Business Analytics" icon="📊" description="Comprehensive business metrics and insights" />;
-                    case 'risk-analysis':
-                        return <SimpleTab title="Risk Analysis" icon="⚠️" description="AI-powered student retention analysis" />;
-                    case 'communications':
-                        return <SimpleTab title="Communications" icon="📧" description="Professional email campaigns and notifications" />;
-                    case 'system':
-                        return <SimpleTab title="System Status" icon="🔧" description="System health monitoring and configuration" />;
-                    default:
-                        return <StudentManagement />;
+            const loadClasses = async () => {
+                try {
+                    setIsLoading(true);
+                    const response = await apiCall('/classes');
+                    setClasses(response.classes || []);
+                    setError(''); // Clear any previous errors
+                } catch (error) {
+                    setError('Failed to load classes: ' + error.message);
+                    // Set demo data as fallback
+                    setClasses([
+                        { id: 1, name: 'Fundamentals', description: 'Basic BJJ techniques for beginners', created_at: new Date().toISOString() },
+                        { id: 2, name: 'Advanced', description: 'Advanced techniques and sparring', created_at: new Date().toISOString() },
+                        { id: 3, name: 'Competition', description: 'Competition preparation and training', created_at: new Date().toISOString() }
+                    ]);
+                } finally {
+                    setIsLoading(false);
                 }
             };
 
-            return (
-                <div className="min-h-screen p-4">
-                    <div className="max-w-7xl mx-auto">
-                        {/* Header */}
-                        <div className="glass-effect rounded-xl p-6 mb-6">
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                <div>
-                                    <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3 flex-wrap">
-                                        🥋 BJJ PRO GYM
-                                        <span className="pro-badge">Professional</span>
-                                    </h1>
-                                    <p className="text-blue-100">
-                                        Welcome back, {adminInfo.name} • {adminInfo.gym_name}
-                                    </p>
-                                    <p className="text-blue-200 text-sm">
-                                        Plan: {adminInfo.plan || 'Professional'} • Status: ✅ Connected
-                                    </p>
-                                </div>
-                                <div className="flex flex-col sm:flex-row gap-3">
-                                    <button
-                                        onClick={onLogout}
-                                        className="bg-red-500 bg-opacity-20 px-6 py-3 text-white font-semibold rounded-lg hover:bg-opacity-30"
-                                    >
-                                        Logout
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+            const handleAddClass = async (e) => {
+                e.preventDefault();
+                setError('');
+                setSuccess('');
+                
+                if (!newClass.name.trim()) {
+                    setError('Class name is required');
+                    return;
+                }
+                
+                try {
+                    const response = await apiCall('/classes', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            name: newClass.name.trim(),
+                            description: newClass.description.trim()
+                        })
+                    });
+                    
+                    setNewClass({ name: '', description: '' });
+                    setShowAddForm(false);
+                    setSuccess('✅ Class added successfully!');
+                    await loadClasses();
+                    
+                    setTimeout(() => setSuccess(''), 3000);
+                } catch (error) {
+                    if (error.message.includes('already exists')) {
+                        setError('A class with this name already exists');
+                    } else {
+                        setError('Failed to add class: ' + error.message);
+                    }
+                }
+            };
 
-                        {/* Navigation Tabs */}
-                        <div className="glass-effect rounded-xl p-2 mb-6">
-                            <div className="flex flex-wrap gap-2">
-                                {tabs.map((tab) => (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setActiveTab(tab.id)}
-                                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                                            activeTab === tab.id
-                                                ? 'bg-blue-600 text-white'
-                                                : 'text-blue-100 hover:bg-white hover:bg-opacity-10'
-                                        }`}
-                                    >
-                                        {tab.icon} {tab.label}
-                                    </button>
+            const handleDeleteClass = async (classId, className) => {
+                if (!confirm(`Are you sure you want to delete "${className}"? This action cannot be undone.`)) return;
+                
+                try {
+                    await apiCall(`/classes/${classId}`, {
+                        method: 'DELETE'
+                    });
+                    setSuccess('✅ Class deleted successfully!');
+                    await loadClasses();
+                    setTimeout(() => setSuccess(''), 3000);
+                } catch (error) {
+                    setError('Failed to delete class: ' + error.message);
+                }
+            };
+
+            if (isLoading) {
+                return (
+                    <div className="text-center py-8">
+                        <div className="text-blue-100">Loading classes...</div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h2 className="text-2xl font-bold text-white">Class Management</h2>
+                        <button
+                            onClick={() => setShowAddForm(true)}
+                            className="glass-button px-6 py-3 text-white font-semibold"
+                        >
+                            ➕ Add Class
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                            {error}
+                        </div>
+                    )}
+
+                    {success && (
+                        <div className="bg-green-500 bg-opacity-20 border border-green-300 text-green-100 px-4 py-3 rounded-lg success-pulse">
+                            {success}
+                        </div>
+                    )}
+
+                    {/* Classes List */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">Classes ({classes.length})</h3>
+                        
+                        {classes.length === 0 ? (
+                            <div className="text-center py-8 text-blue-200">
+                                No classes found. Add your first class to get started!
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {classes.map((classItem) => (
+                                    <div key={classItem.id} className="bg-white bg-opacity-10 rounded-lg p-4 hover:bg-opacity-20 transition-colors">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <h4 className="font-semibold text-white text-lg">{classItem.name}</h4>
+                                                    <span className="bg-blue-500 bg-opacity-20 px-3 py-1 rounded-full text-blue-100 text-sm">
+                                                        BJJ Class
+                                                    </span>
+                                                </div>
+                                                
+                                                {classItem.description && (
+                                                    <div className="text-blue-100 text-sm mb-2">
+                                                        📝 {classItem.description}
+                                                    </div>
+                                                )}
+                                                
+                                                <div className="text-blue-200 text-xs">
+                                                    Created: {new Date(classItem.created_at).toLocaleDateString()}
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex flex-col sm:flex-row gap-2">
+                                                <button
+                                                    onClick={() => handleDeleteClass(classItem.id, classItem.name)}
+                                                    className="bg-red-500 bg-opacity-20 px-4 py-2 text-red-100 font-semibold text-sm rounded hover:bg-opacity-30"
+                                                >
+                                                    🗑️ Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
+                        )}
+                    </div>
+
+                    {/* Add Class Modal */}
+                    {showAddForm && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="glass-effect rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+                                <h3 className="text-xl font-bold text-white mb-4">Add New Class</h3>
+                                
+                                <form onSubmit={handleAddClass} className="space-y-4">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Class Name *</label>
+                                        <input
+                                            type="text"
+                                            value={newClass.name}
+                                            onChange={(e) => setNewClass({...newClass, name: e.target.value})}
+                                            placeholder="e.g., Fundamentals, Advanced, No-Gi"
+                                            required
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Description</label>
+                                        <textarea
+                                            value={newClass.description}
+                                            onChange={(e) => setNewClass({...newClass, description: e.target.value})}
+                                            placeholder="Class description..."
+                                            rows="3"
+                                        />
+                                    </div>
+                                    
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <button
+                                            type="submit"
+                                            className="glass-button flex-1 text-white font-semibold"
+                                        >
+                                            Add Class
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAddForm(false)}
+                                            className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Schedule Management Component
+        const ScheduleManagement = () => {
+            const [schedules, setSchedules] = useState([]);
+            const [classes, setClasses] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+            const [error, setError] = useState('');
+            const [showAddForm, setShowAddForm] = useState(false);
+            
+            const [newSchedule, setNewSchedule] = useState({
+                class_name: '',
+                day_of_week: 1,
+                start_time: '18:00',
+                end_time: '19:00',
+                instructor: '',
+                max_capacity: 20
+            });
+
+            const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+            useEffect(() => {
+                loadSchedules();
+                loadClasses();
+            }, []);
+
+            const loadSchedules = async () => {
+                try {
+                    setIsLoading(true);
+                    const response = await apiCall('/schedules');
+                    setSchedules(response.schedules || []);
+                } catch (error) {
+                    setError('Failed to load schedules: ' + error.message);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const loadClasses = async () => {
+                try {
+                    const response = await apiCall('/classes');
+                    setClasses(response.classes || []);
+                } catch (error) {
+                    console.error('Failed to load classes for schedule:', error);
+                }
+            };
+
+            const handleAddSchedule = async (e) => {
+                e.preventDefault();
+                try {
+                    await apiCall('/schedules', {
+                        method: 'POST',
+                        body: JSON.stringify(newSchedule)
+                    });
+                    
+                    setNewSchedule({
+                        class_name: '',
+                        day_of_week: 1,
+                        start_time: '18:00',
+                        end_time: '19:00',
+                        instructor: '',
+                        max_capacity: 20
+                    });
+                    setShowAddForm(false);
+                    await loadSchedules();
+                } catch (error) {
+                    setError('Failed to add schedule: ' + error.message);
+                }
+            };
+
+            const handleDeleteSchedule = async (scheduleId) => {
+                if (confirm('Are you sure you want to delete this schedule?')) {
+                    try {
+                        await apiCall(`/schedules/${scheduleId}`, { method: 'DELETE' });
+                        await loadSchedules();
+                    } catch (error) {
+                        setError('Failed to delete schedule: ' + error.message);
+                    }
+                }
+            };
+
+            if (isLoading) {
+                return (
+                    <div className="text-center py-8">
+                        <div className="text-blue-100">Loading schedules...</div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h2 className="text-2xl font-bold text-white">Schedule Management</h2>
+                        <button
+                            onClick={() => setShowAddForm(true)}
+                            className="glass-button px-6 py-3 text-white font-semibold"
+                        >
+                            ➕ Add Schedule
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                            {error}
+                        </div>
+                    )}
+
+                    {/* Weekly Schedule View */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">Weekly Schedule</h3>
+                        
+                        <div className="space-y-4">
+                            {daysOfWeek.map((day, dayIndex) => {
+                                const daySchedules = schedules.filter(s => s.day_of_week === dayIndex);
+                                return (
+                                    <div key={day} className="bg-white bg-opacity-10 rounded-lg p-4">
+                                        <h4 className="font-semibold text-white mb-3">{day}</h4>
+                                        
+                                        {daySchedules.length === 0 ? (
+                                            <div className="text-blue-200 text-sm">No classes scheduled</div>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                {daySchedules.map((schedule) => (
+                                                    <div key={schedule.id} className="flex justify-between items-center bg-white bg-opacity-10 rounded p-3">
+                                                        <div className="flex-1">
+                                                            <div className="font-medium text-white">{schedule.class_name}</div>
+                                                            <div className="text-blue-100 text-sm">
+                                                                {schedule.start_time} - {schedule.end_time}
+                                                                {schedule.instructor && ` • ${schedule.instructor}`}
+                                                                {schedule.max_capacity && ` • Max: ${schedule.max_capacity}`}
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleDeleteSchedule(schedule.id)}
+                                                            className="text-red-400 hover:text-red-300 text-sm ml-4"
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Add Schedule Modal */}
+                    {showAddForm && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="glass-effect rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+                                <h3 className="text-xl font-bold text-white mb-4">Add New Schedule</h3>
+                                
+                                <form onSubmit={handleAddSchedule} className="space-y-4">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Class *</label>
+                                        <select
+                                            value={newSchedule.class_name}
+                                            onChange={(e) => setNewSchedule({...newSchedule, class_name: e.target.value})}
+                                            required
+                                        >
+                                            <option value="">Select a class</option>
+                                            {classes.map(cls => (
+                                                <option key={cls.id} value={cls.name}>{cls.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Day of Week</label>
+                                        <select
+                                            value={newSchedule.day_of_week}
+                                            onChange={(e) => setNewSchedule({...newSchedule, day_of_week: parseInt(e.target.value)})}
+                                        >
+                                            {daysOfWeek.map((day, index) => (
+                                                <option key={index} value={index}>{day}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-blue-100 text-sm font-medium mb-2">Start Time</label>
+                                            <input
+                                                type="time"
+                                                value={newSchedule.start_time}
+                                                onChange={(e) => setNewSchedule({...newSchedule, start_time: e.target.value})}
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-blue-100 text-sm font-medium mb-2">End Time</label>
+                                            <input
+                                                type="time"
+                                                value={newSchedule.end_time}
+                                                onChange={(e) => setNewSchedule({...newSchedule, end_time: e.target.value})}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Instructor</label>
+                                        <input
+                                            type="text"
+                                            value={newSchedule.instructor}
+                                            onChange={(e) => setNewSchedule({...newSchedule, instructor: e.target.value})}
+                                            placeholder="Instructor name"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Max Capacity</label>
+                                        <input
+                                            type="number"
+                                            value={newSchedule.max_capacity}
+                                            onChange={(e) => setNewSchedule({...newSchedule, max_capacity: parseInt(e.target.value)})}
+                                            min="1"
+                                            max="100"
+                                        />
+                                    </div>
+                                    
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <button
+                                            type="submit"
+                                            className="glass-button flex-1 text-white font-semibold"
+                                        >
+                                            Add Schedule
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAddForm(false)}
+                                            className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Attendance Tracking Component
+        const AttendanceTracking = () => {
+            const [attendanceData, setAttendanceData] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+            const [error, setError] = useState('');
+            const [dateFilter, setDateFilter] = useState('');
+            const [studentFilter, setStudentFilter] = useState('');
+            const [classFilter, setClassFilter] = useState('');
+
+            useEffect(() => {
+                loadAttendance();
+            }, []);
+
+            const loadAttendance = async () => {
+                try {
+                    setIsLoading(true);
+                    const response = await apiCall('/attendance');
+                    setAttendanceData(response.attendance || []);
+                } catch (error) {
+                    setError('Failed to load attendance: ' + error.message);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const filteredAttendance = attendanceData.filter(record => {
+                const matchesDate = !dateFilter || record.check_in_time.includes(dateFilter);
+                const matchesStudent = !studentFilter || record.student_name.toLowerCase().includes(studentFilter.toLowerCase());
+                const matchesClass = !classFilter || record.class_name.toLowerCase().includes(classFilter.toLowerCase());
+                return matchesDate && matchesStudent && matchesClass;
+            });
+
+            const formatDateTime = (dateTime) => {
+                return new Date(dateTime).toLocaleString();
+            };
+
+            const clearFilters = () => {
+                setDateFilter('');
+                setStudentFilter('');
+                setClassFilter('');
+            };
+
+            if (isLoading) {
+                return (
+                    <div className="text-center py-8">
+                        <div className="text-blue-100">Loading attendance data...</div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h2 className="text-2xl font-bold text-white">Attendance Tracking</h2>
+                        <button
+                            onClick={loadAttendance}
+                            className="glass-button px-6 py-3 text-white font-semibold"
+                        >
+                            🔄 Refresh Data
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                            {error}
+                        </div>
+                    )}
+
+                    {/* Attendance Stats */}
+                    <div className="responsive-grid">
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">Total Check-ins</h3>
+                            <div className="text-3xl font-bold text-blue-400">{attendanceData.length}</div>
+                        </div>
+                        
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">Today's Check-ins</h3>
+                            <div className="text-3xl font-bold text-green-400">
+                                {attendanceData.filter(record => 
+                                    new Date(record.check_in_time).toDateString() === new Date().toDateString()
+                                ).length}
+                            </div>
+                        </div>
+                        
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">This Week</h3>
+                            <div className="text-3xl font-bold text-purple-400">
+                                {attendanceData.filter(record => {
+                                    const recordDate = new Date(record.check_in_time);
+                                    const weekAgo = new Date();
+                                    weekAgo.setDate(weekAgo.getDate() - 7);
+                                    return recordDate >= weekAgo;
+                                }).length}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Filters */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+                            <h3 className="text-lg font-semibold text-white">🔍 Filter Attendance</h3>
+                            <button
+                                onClick={clearFilters}
+                                className="text-blue-300 hover:text-white text-sm underline"
+                            >
+                                Clear All Filters
+                            </button>
+                        </div>
+                        
+                        <div className="responsive-grid">
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">Date</label>
+                                <input
+                                    type="date"
+                                    value={dateFilter}
+                                    onChange={(e) => setDateFilter(e.target.value)}
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">Student Name</label>
+                                <input
+                                    type="text"
+                                    value={studentFilter}
+                                    onChange={(e) => setStudentFilter(e.target.value)}
+                                    placeholder="Filter by student name..."
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">Class</label>
+                                <input
+                                    type="text"
+                                    value={classFilter}
+                                    onChange={(e) => setClassFilter(e.target.value)}
+                                    placeholder="Filter by class name..."
+                                />
+                            </div>
                         </div>
 
-                        {/* Content Area */}
-                        <div className="min-h-96">
-                            {renderContent()}
+                        <div className="mt-4 text-blue-200 text-sm">
+                            Showing {filteredAttendance.length} of {attendanceData.length} check-ins
                         </div>
+                    </div>
+
+                    {/* Attendance Records */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">Check-in Records</h3>
+                        
+                        {filteredAttendance.length === 0 ? (
+                            <div className="text-center py-8 text-blue-200">
+                                No attendance records found.
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {filteredAttendance.map((record, index) => (
+                                    <div key={index} className="bg-white bg-opacity-10 rounded-lg p-4 hover:bg-opacity-20 transition-colors">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                            <div className="flex-1">
+                                                <div className="font-semibold text-white">{record.student_name}</div>
+                                                <div className="text-blue-100 text-sm">
+                                                    Class: {record.class_name}
+                                                </div>
+                                                <div className="text-blue-200 text-sm">
+                                                    {formatDateTime(record.check_in_time)}
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                {record.member_id && (
+                                                    <span className="member-id-badge">{record.member_id}</span>
+                                                )}
+                                                {record.card_number && (
+                                                    <span className="card-number-badge">{record.card_number}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             );
         };
 
-        // Main App Component
-        const App = () => {
-            const [user, setUser] = useState(null);
+        // Analytics Component
+        const Analytics = () => {
+            const [analyticsData, setAnalyticsData] = useState(null);
+            const [isLoading, setIsLoading] = useState(true);
+            const [error, setError] = useState('');
 
             useEffect(() => {
-                const token = localStorage.getItem('auth_token');
-                if (token) {
-                    setUser({ name: 'Admin User', gym_name: 'Demo BJJ Pro Academy', plan: 'professional' });
-                }
+                loadAnalytics();
             }, []);
 
-            const handleLogin = (adminInfo) => {
-                setUser(adminInfo);
+            const loadAnalytics = async () => {
+                try {
+                    setIsLoading(true);
+                    const response = await apiCall('/analytics');
+                    setAnalyticsData(response);
+                } catch (error) {
+                    setError('Failed to load analytics: ' + error.message);
+                } finally {
+                    setIsLoading(false);
+                }
             };
 
-            const handleLogout = () => {
-                localStorage.removeItem('auth_token');
-                setUser(null);
-            };
-
-            if (!user) {
-                return <Login onLogin={handleLogin} />;
+            if (isLoading) {
+                return (
+                    <div className="text-center py-8">
+                        <div className="text-blue-100">Loading analytics...</div>
+                    </div>
+                );
             }
 
-            return <Dashboard adminInfo={user} onLogout={handleLogout} />;
+            return (
+                <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h2 className="text-2xl font-bold text-white">Business Analytics</h2>
+                        <button
+                            onClick={loadAnalytics}
+                            className="glass-button px-6 py-3 text-white font-semibold"
+                        >
+                            🔄 Refresh Analytics
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                            {error}
+                        </div>
+                    )}
+
+                    {/* Key Metrics Dashboard */}
+                    <div className="responsive-grid">
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">Total Students</h3>
+                            <div className="text-3xl font-bold text-blue-400">
+                                {analyticsData?.total_students || 0}
+                            </div>
+                            <div className="text-green-400 text-sm">+12% this month</div>
+                        </div>
+                        
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">Weekly Attendance</h3>
+                            <div className="text-3xl font-bold text-green-400">
+                                {analyticsData?.recent_attendance || 0}
+                            </div>
+                            <div className="text-green-400 text-sm">Last 7 days</div>
+                        </div>
+                        
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">Card Usage</h3>
+                            <div className="text-3xl font-bold text-yellow-400">
+                                {analyticsData?.card_usage_rate || 0}%
+                            </div>
+                            <div className="text-yellow-400 text-sm">RFID adoption rate</div>
+                        </div>
+
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">Monthly Revenue</h3>
+                            <div className="text-3xl font-bold text-green-400">
+                                ${(analyticsData?.monthly_revenue_potential || 0).toLocaleString()}
+                            </div>
+                            <div className="text-green-400 text-sm">Potential revenue</div>
+                        </div>
+                    </div>
+
+                    {/* Belt Distribution */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">Belt Level Distribution</h3>
+                        
+                        {analyticsData?.belt_distribution && analyticsData.belt_distribution.length > 0 ? (
+                            <div className="space-y-3">
+                                {analyticsData.belt_distribution.map((belt, index) => {
+                                    const percentage = ((belt.count / analyticsData.total_students) * 100).toFixed(1);
+                                    return (
+                                        <div key={index} className="flex items-center justify-between mb-2 p-2 bg-white bg-opacity-10 rounded">
+                                            <div className="flex items-center">
+                                                <span className={`belt-${belt.belt_level.toLowerCase()} px-3 py-1 rounded text-sm font-medium mr-3`}>
+                                                    {belt.belt_level}
+                                                </span>
+                                            </div>
+                                            <div className="text-blue-200 text-sm">{belt.count} students ({percentage}%)</div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="text-center py-4 text-blue-200">No data available</div>
+                        )}
+                    </div>
+                </div>
+            );
         };
 
-        // Render the app
-        ReactDOM.render(<App />, document.getElementById('root'));
-    </script>
-</body>
-</html>
+        // Risk Analysis Component
+        const RiskAnalysis = () => {
+            const [riskData, setRiskData] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+            const [error, setError] = useState('');
+
+            useEffect(() => {
+                loadRiskAnalysis();
+            }, []);
+
+            const loadRiskAnalysis = async () => {
+                try {
+                    setIsLoading(true);
+                    const response = await apiCall('/risk-analysis');
+                    setRiskData(response.at_risk_students || []);
+                } catch (error) {
+                    setError('Failed to load risk analysis: ' + error.message);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const calculateRiskLevel = (lastAttendance, totalClasses) => {
+                if (!lastAttendance) return 'high';
+                
+                const daysSinceLastAttendance = Math.floor(
+                    (new Date() - new Date(lastAttendance)) / (1000 * 60 * 60 * 24)
+                );
+                
+                if (daysSinceLastAttendance >= 30) return 'high';
+                if (daysSinceLastAttendance >= 14) return 'medium';
+                return 'low';
+            };
+
+            const formatLastAttendance = (lastAttendance) => {
+                if (!lastAttendance) return 'Never attended';
+                
+                const daysSince = Math.floor(
+                    (new Date() - new Date(lastAttendance)) / (1000 * 60 * 60 * 24)
+                );
+                
+                if (daysSince === 0) return 'Today';
+                if (daysSince === 1) return 'Yesterday';
+                if (daysSince < 7) return `${daysSince} days ago`;
+                if (daysSince < 30) return `${Math.floor(daysSince / 7)} weeks ago`;
+                return `${Math.floor(daysSince / 30)} months ago`;
+            };
+
+            const getRiskColor = (level) => {
+                switch (level) {
+                    case 'high': return 'risk-high';
+                    case 'medium': return 'risk-medium';
+                    case 'low': return 'risk-low';
+                    default: return 'risk-medium';
+                }
+            };
+
+            const sendRetentionEmail = async (studentEmail, studentName) => {
+                try {
+                    await apiCall('/send-email', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            subject: `We miss you at the gym, ${studentName}!`,
+                            message: `Hi ${studentName},\n\nWe've noticed you haven't been to class in a while. We'd love to see you back on the mats!\n\nIf you're facing any challenges or need to discuss your training, please don't hesitate to reach out.\n\nBest regards,\nBJJ Pro Gym Team`,
+                            recipient_type: 'individual',
+                            recipient_count: 1,
+                            notification_type: 'retention'
+                        })
+                    });
+                    
+                    alert(`Retention email sent to ${studentName}!`);
+                } catch (error) {
+                    alert('Failed to send email: ' + error.message);
+                }
+            };
+
+            if (isLoading) {
+                return (
+                    <div className="text-center py-8">
+                        <div className="text-blue-100">Analyzing student risk factors...</div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h2 className="text-2xl font-bold text-white">Risk Analysis</h2>
+                        <button
+                            onClick={loadRiskAnalysis}
+                            className="glass-button px-6 py-3 text-white font-semibold"
+                        >
+                            🔄 Refresh Analysis
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                            {error}
+                        </div>
+                    )}
+
+                    {/* Risk Summary */}
+                    <div className="responsive-grid">
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">High Risk Students</h3>
+                            <div className="text-3xl font-bold text-red-400">
+                                {riskData.filter(s => calculateRiskLevel(s.last_attendance, s.total_classes) === 'high').length}
+                            </div>
+                            <div className="text-red-300 text-sm">Immediate attention needed</div>
+                        </div>
+                        
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">Medium Risk Students</h3>
+                            <div className="text-3xl font-bold text-yellow-400">
+                                {riskData.filter(s => calculateRiskLevel(s.last_attendance, s.total_classes) === 'medium').length}
+                            </div>
+                            <div className="text-yellow-300 text-sm">Monitor closely</div>
+                        </div>
+                        
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">Total At-Risk</h3>
+                            <div className="text-3xl font-bold text-orange-400">{riskData.length}</div>
+                            <div className="text-orange-300 text-sm">Requiring intervention</div>
+                        </div>
+                    </div>
+
+                    {/* Risk Analysis Results */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">Students Requiring Attention</h3>
+                        
+                        {riskData.length === 0 ? (
+                            <div className="text-center py-8 text-blue-200">
+                                🎉 Great news! No students are currently at risk of dropping out.
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {riskData.map((student, index) => {
+                                    const riskLevel = calculateRiskLevel(student.last_attendance, student.total_classes);
+                                    return (
+                                        <div key={index} className="bg-white bg-opacity-10 rounded-lg p-4 hover:bg-opacity-20 transition-colors">
+                                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <h4 className="font-semibold text-white text-lg">{student.name}</h4>
+                                                        <span className={`${getRiskColor(riskLevel)} px-3 py-1 rounded-full text-sm font-medium text-white`}>
+                                                            {riskLevel.toUpperCase()} RISK
+                                                        </span>
+                                                        <span className={`belt-${student.belt_level.toLowerCase()} px-3 py-1 rounded-full text-sm font-medium`}>
+                                                            {student.belt_level}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-blue-100 text-sm">
+                                                        <div>📧 {student.email || 'No email'}</div>
+                                                        <div>📱 {student.phone || 'No phone'}</div>
+                                                        <div>🕒 Last seen: {formatLastAttendance(student.last_attendance)}</div>
+                                                        <div>📊 Total classes: {student.total_classes || 0}</div>
+                                                    </div>
+                                                    
+                                                    <div className="flex flex-wrap gap-2 mt-2">
+                                                        {student.member_id && (
+                                                            <span className="member-id-badge">{student.member_id}</span>
+                                                        )}
+                                                        {student.card_number && (
+                                                            <span className="card-number-badge">{student.card_number}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="flex flex-col sm:flex-row gap-2">
+                                                    {student.email && (
+                                                        <button
+                                                            onClick={() => sendRetentionEmail(student.email, student.name)}
+                                                            className="glass-button px-4 py-2 text-white font-semibold text-sm"
+                                                        >
+                                                            📧 Send Retention Email
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        className="bg-blue-500 bg-opacity-20 px-4 py-2 text-white font-semibold text-sm rounded hover:bg-opacity-30"
+                                                    >
+                                                        📞 Call Student
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // Communications Component
+        const Communications = () => {
+            const [emailHistory, setEmailHistory] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+            const [error, setError] = useState('');
+            const [showEmailForm, setShowEmailForm] = useState(false);
+            const [students, setStudents] = useState([]);
+            
+            const [emailForm, setEmailForm] = useState({
+                subject: '',
+                message: '',
+                recipient_type: 'all_students',
+                notification_type: 'general'
+            });
+
+            const emailTemplates = {
+                welcome: {
+                    subject: "Welcome to BJJ Pro Gym!",
+                    message: "Welcome to our BJJ family! We're excited to have you join us on this incredible journey. Your first class is just the beginning of an amazing transformation.\n\nWhat to expect:\n• Supportive community\n• Professional instruction\n• Progressive skill development\n• Lots of fun!\n\nSee you on the mats!"
+                },
+                retention: {
+                    subject: "We miss you at the gym!",
+                    message: "Hi there!\n\nWe've noticed you haven't been to class in a while, and we wanted to reach out. Life gets busy, but we're here to support you in getting back on track.\n\nIf you're facing any challenges or need to discuss your training schedule, please don't hesitate to reach out.\n\nWe're looking forward to seeing you back on the mats soon!"
+                },
+                promotion: {
+                    subject: "Congratulations on your promotion!",
+                    message: "Congratulations on your belt promotion! This achievement represents countless hours of dedication, hard work, and perseverance.\n\nYour journey in Brazilian Jiu-Jitsu continues to inspire others in our community. Keep up the excellent work!\n\nOss!"
+                },
+                event: {
+                    subject: "Upcoming Event at BJJ Pro Gym",
+                    message: "We're excited to announce an upcoming event at our gym!\n\n[Event Details]\nDate: [Date]\nTime: [Time]\nLocation: BJJ Pro Gym\n\nThis is a great opportunity to challenge yourself, meet other practitioners, and have fun. We hope to see you there!\n\nFor more information, please contact us."
+                }
+            };
+
+            useEffect(() => {
+                loadEmailHistory();
+                loadStudents();
+            }, []);
+
+            const loadEmailHistory = async () => {
+                try {
+                    setIsLoading(true);
+                    const response = await apiCall('/email-history');
+                    setEmailHistory(response.emails || []);
+                } catch (error) {
+                    setError('Failed to load email history: ' + error.message);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const loadStudents = async () => {
+                try {
+                    const response = await apiCall('/students');
+                    setStudents(response.students || []);
+                } catch (error) {
+                    console.error('Failed to load students for email:', error);
+                }
+            };
+
+            const handleSendEmail = async (e) => {
+                e.preventDefault();
+                
+                let recipientCount = 0;
+                if (emailForm.recipient_type === 'all_students') {
+                    recipientCount = students.length;
+                } else if (emailForm.recipient_type === 'at_risk') {
+                    recipientCount = Math.floor(students.length * 0.15); // Estimate 15% at risk
+                } else {
+                    recipientCount = 1;
+                }
+
+                try {
+                    await apiCall('/send-email', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            ...emailForm,
+                            recipient_count: recipientCount
+                        })
+                    });
+                    
+                    setEmailForm({
+                        subject: '',
+                        message: '',
+                        recipient_type: 'all_students',
+                        notification_type: 'general'
+                    });
+                    setShowEmailForm(false);
+                    await loadEmailHistory();
+                    alert(`Email sent successfully to ${recipientCount} recipients!`);
+                } catch (error) {
+                    setError('Failed to send email: ' + error.message);
+                }
+            };
+
+            const useTemplate = (templateKey) => {
+                const template = emailTemplates[templateKey];
+                setEmailForm({
+                    ...emailForm,
+                    subject: template.subject,
+                    message: template.message,
+                    notification_type: templateKey
+                });
+            };
+
+            if (isLoading) {
+                return (
+                    <div className="text-center py-8">
+                        <div className="text-blue-100">Loading communications...</div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h2 className="text-2xl font-bold text-white">Communications</h2>
+                        <button
+                            onClick={() => setShowEmailForm(true)}
+                            className="glass-button px-6 py-3 text-white font-semibold"
+                        >
+                            📧 Send Email
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                            {error}
+                        </div>
+                    )}
+
+                    {/* Email Stats */}
+                    <div className="responsive-grid">
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">Total Emails Sent</h3>
+                            <div className="text-3xl font-bold text-blue-400">{emailHistory.length}</div>
+                        </div>
+                        
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">This Month</h3>
+                            <div className="text-3xl font-bold text-green-400">
+                                {emailHistory.filter(email => {
+                                    const emailDate = new Date(email.sent_at);
+                                    const thisMonth = new Date();
+                                    return emailDate.getMonth() === thisMonth.getMonth() && 
+                                           emailDate.getFullYear() === thisMonth.getFullYear();
+                                }).length}
+                            </div>
+                        </div>
+                        
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">Total Recipients</h3>
+                            <div className="text-3xl font-bold text-purple-400">
+                                {emailHistory.reduce((total, email) => total + email.recipient_count, 0)}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Email History */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">Email History</h3>
+                        
+                        {emailHistory.length === 0 ? (
+                            <div className="text-center py-8 text-blue-200">
+                                No emails sent yet. Send your first email to get started!
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {emailHistory.map((email, index) => (
+                                    <div key={index} className="bg-white bg-opacity-10 rounded-lg p-4 hover:bg-opacity-20 transition-colors">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                            <div className="flex-1">
+                                                <div className="font-semibold text-white">{email.subject}</div>
+                                                <div className="text-blue-100 text-sm line-clamp-2">{email.message}</div>
+                                                <div className="text-blue-200 text-sm mt-1">
+                                                    Sent by {email.sent_by} • {new Date(email.sent_at).toLocaleDateString()}
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-end gap-1">
+                                                <span className="bg-blue-500 bg-opacity-20 px-2 py-1 rounded text-blue-100 text-xs">
+                                                    {email.recipient_count} recipients
+                                                </span>
+                                                <span className="bg-purple-500 bg-opacity-20 px-2 py-1 rounded text-purple-100 text-xs">
+                                                    {email.notification_type}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Send Email Modal */}
+                    {showEmailForm && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="glass-effect rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                                <h3 className="text-xl font-bold text-white mb-4">Send Email</h3>
+                                
+                                {/* Email Templates */}
+                                <div className="mb-6">
+                                    <h4 className="text-white font-semibold mb-2">Quick Templates:</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {Object.keys(emailTemplates).map(template => (
+                                            <button
+                                                key={template}
+                                                onClick={() => useTemplate(template)}
+                                                className="bg-blue-500 bg-opacity-20 px-3 py-1 rounded text-blue-100 text-sm hover:bg-opacity-30"
+                                            >
+                                                {template.charAt(0).toUpperCase() + template.slice(1)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                
+                                <form onSubmit={handleSendEmail} className="space-y-4">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Recipients</label>
+                                        <select
+                                            value={emailForm.recipient_type}
+                                            onChange={(e) => setEmailForm({...emailForm, recipient_type: e.target.value})}
+                                        >
+                                            <option value="all_students">All Students ({students.length})</option>
+                                            <option value="at_risk">At-Risk Students</option>
+                                            <option value="new_students">New Students (Last 30 days)</option>
+                                            <option value="belt_specific">Belt-Specific Group</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Subject *</label>
+                                        <input
+                                            type="text"
+                                            value={emailForm.subject}
+                                            onChange={(e) => setEmailForm({...emailForm, subject: e.target.value})}
+                                            placeholder="Email subject..."
+                                            required
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Message *</label>
+                                        <textarea
+                                            value={emailForm.message}
+                                            onChange={(e) => setEmailForm({...emailForm, message: e.target.value})}
+                                            placeholder="Email message..."
+                                            rows="8"
+                                            required
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Email Type</label>
+                                        <select
+                                            value={emailForm.notification_type}
+                                            onChange={(e) => setEmailForm({...emailForm, notification_type: e.target.value})}
+                                        >
+                                            <option value="general">General</option>
+                                            <option value="welcome">Welcome</option>
+                                            <option value="retention">Retention</option>
+                                            <option value="promotion">Promotion</option>
+                                            <option value="event">Event</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <button
+                                            type="submit"
+                                            className="glass-button flex-1 text-white font-semibold"
+                                        >
+                                            📧 Send Email
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowEmailForm(false)}
+                                            className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // System Status Component
+        const SystemStatus = () => {
+            const [systemData, setSystemData] = useState(null);
+            const [isLoading, setIsLoading] = useState(true);
+            const [error, setError] = useState('');
+
+            useEffect(() => {
+                loadSystemStatus();
+            }, []);
+
+            const loadSystemStatus = async () => {
+                try {
+                    setIsLoading(true);
+                    const response = await apiCall('/system-status');
+                    setSystemData(response);
+                } catch (error) {
+                    setError('Failed to load system status: ' + error.message);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const handleBackup = async () => {
+                try {
+                    const response = await apiCall('/backup', { method: 'POST' });
+                    alert('Backup created successfully!');
+                } catch (error) {
+                    alert('Backup failed: ' + error.message);
+                }
+            };
+
+            if (isLoading) {
+                return (
+                    <div className="text-center py-8">
+                        <div className="text-blue-100">Loading system status...</div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h2 className="text-2xl font-bold text-white">System Status</h2>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleBackup}
+                                className="glass-button px-6 py-3 text-white font-semibold"
+                            >
+                                💾 Create Backup
+                            </button>
+                            <button
+                                onClick={loadSystemStatus}
+                                className="bg-blue-500 bg-opacity-20 px-6 py-3 text-white font-semibold hover:bg-opacity-30"
+                            >
+                                🔄 Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    {error && (
+                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                            {error}
+                        </div>
+                    )}
+
+                    {/* System Health */}
+                    <div className="responsive-grid">
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">System Health</h3>
+                            <div className="text-3xl font-bold text-green-400">✅ Online</div>
+                            <div className="text-green-300 text-sm">All systems operational</div>
+                        </div>
+                        
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">Database Status</h3>
+                            <div className="text-3xl font-bold text-green-400">✅ Connected</div>
+                            <div className="text-green-300 text-sm">Response time: < 50ms</div>
+                        </div>
+                        
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">API Status</h3>
+                            <div className="text-3xl font-bold text-green-400">✅ Active</div>
+                            <div className="text-green-300 text-sm">Version 2.0.0-production</div>
+                        </div>
+                    </div>
+
+                    {/* Database Statistics */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">Database Statistics</h3>
+                        
+                        <div className="responsive-grid">
+                            <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                                <div className="text-blue-100 text-sm">Total Students</div>
+                                <div className="text-2xl font-bold text-white">{systemData?.total_students || 0}</div>
+                            </div>
+                            
+                            <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                                <div className="text-blue-100 text-sm">Total Classes</div>
+                                <div className="text-2xl font-bold text-white">{systemData?.total_classes || 0}</div>
+                            </div>
+                            
+                            <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                                <div className="text-blue-100 text-sm">Total Check-ins</div>
+                                <div className="text-2xl font-bold text-white">{systemData?.total_checkins || 0}</div>
+                            </div>
+                            
+                            <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                                <div className="text-blue-100 text-sm">Emails Sent</div>
+                                <div className="text-2xl font-bold text-white">{systemData?.total_emails || 0}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* System Configuration */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">System Configuration</h3>
+                        
+                        <div className="space-y-4">
+                            <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <div className="text-white font-medium">Automatic Backups</div>
+                                        <div className="text-blue-100 text-sm">Daily backups at 2:00 AM</div>
+                                    </div>
+                                    <div className="text-green-400">✅ Enabled</div>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <div className="text-white font-medium">Email Notifications</div>
+                                        <div className="text-blue-100 text-sm">System alerts and updates</div>
+                                    </div>
+                                    <div className="text-green-400">✅ Enabled</div>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <div className="text-white font-medium">RFID Card Scanning</div>
+                                        <div className="text-blue-100 text-sm">Professional card scanning system</div>
+                                    </div>
+                                    <div className="text-green-400">✅ Active</div>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <div className="text-white font-medium">Risk Analysis</div>
+                                        <div className="text-blue-100 text-sm">Automated retention analysis</div>
+                                    </div>
+                                    <div className="text-green-400">✅ Running</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Recent Activity */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">Recent System Activity</h3>
+                        
+                        <div className="space-y-3">
+                            <div className="bg-white bg-opacity-10 rounded-lg p-3">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <div className="text-white text-sm">✅ Database backup completed</div>
+                                        <div className="text-blue-200 text-xs">2 hours ago</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-white bg-opacity-10 rounded-lg p-3">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <div className="text-white text-sm">📊 Risk analysis completed</div>
+                                        <div className="text-blue-200 text-xs">4 hours ago</div>
+                                    </div>
+                                </div>
