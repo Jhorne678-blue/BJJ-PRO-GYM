@@ -35,78 +35,52 @@
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
         }
-
-        .pricing-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(15px);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        .pricing-card:hover {
-            transform: translateY(-8px);
-            border-color: rgba(59, 130, 246, 0.5);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .pricing-card.featured {
-            border-color: rgba(59, 130, 246, 0.8);
-            background: rgba(59, 130, 246, 0.1);
-        }
-
-        .feature-check {
-            color: #10b981;
-            font-weight: bold;
-        }
-
-        .feature-x {
-            color: #ef4444;
-            font-weight: bold;
-        }
-
-        .hero-gradient {
-            background: linear-gradient(135deg, #1e3a8a 0%, #312e81 30%, #1e1b4b 60%, #0f0f23 100%);
-        }
-
-        .floating-card {
-            animation: float 6s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-        }
-
-        .access-code-glow {
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { 
-                box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
-            }
-            50% { 
-                box-shadow: 0 0 30px rgba(59, 130, 246, 0.8);
-            }
-        }
-
-        input, select, textarea {
-            background-color: rgba(255, 255, 255, 0.1) !important;
-            border: 2px solid rgba(255, 255, 255, 0.2) !important;
-            color: white !important;
+        
+        /* FIXED DROPDOWN STYLING FOR TOUCHSCREEN COMPATIBILITY */
+        select {
+            background-color: white !important;
+            color: #1f2937 !important;
+            border: 2px solid #e5e7eb !important;
             border-radius: 8px !important;
             padding: 8px 12px !important;
+            font-size: 14px !important;
+            min-height: 40px !important;
         }
 
-        input:focus, select:focus, textarea:focus {
-            border-color: rgba(59, 130, 246, 0.8) !important;
+        select:focus {
+            border-color: #3b82f6 !important;
             outline: none !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
         }
 
-        input::placeholder, textarea::placeholder {
-            color: rgba(255, 255, 255, 0.6) !important;
+        select option {
+            background-color: white !important;
+            color: #1f2937 !important;
+            padding: 10px 12px !important;
+            font-size: 14px !important;
         }
 
+        select option:checked {
+            background-color: #3b82f6 !important;
+            color: white !important;
+        }
+
+        /* Input field consistency */
+        input[type="text"], input[type="email"], input[type="tel"], input[type="password"], input[type="time"], textarea {
+            background-color: white !important;
+            color: #1f2937 !important;
+            border: 2px solid #e5e7eb !important;
+            border-radius: 8px !important;
+            padding: 8px 12px !important;
+            font-size: 14px !important;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #3b82f6 !important;
+            outline: none !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+        }
+        
         .success-pulse {
             animation: successPulse 0.6s ease-out;
         }
@@ -117,11 +91,25 @@
             100% { transform: scale(1); }
         }
 
-        .belt-white { background: linear-gradient(135deg, #ffffff, #f3f4f6); color: #1f2937; }
-        .belt-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; }
-        .belt-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; }
-        .belt-brown { background: linear-gradient(135deg, #92400e, #78350f); color: white; }
-        .belt-black { background: linear-gradient(135deg, #1f2937, #111827); color: white; }
+        .card-scan-ready {
+            animation: cardScanPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes cardScanPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+            50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.8); }
+        }
+
+        .pro-badge {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #1f2937;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
 
         .member-id-badge {
             background: linear-gradient(135deg, #10b981, #059669);
@@ -143,15 +131,27 @@
             font-family: 'Courier New', monospace;
         }
 
-        .pro-badge {
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
-            color: #1f2937;
-            font-weight: 700;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .belt-white { background: linear-gradient(135deg, #ffffff, #f3f4f6); color: #1f2937; }
+        .belt-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; }
+        .belt-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; }
+        .belt-brown { background: linear-gradient(135deg, #92400e, #78350f); color: white; }
+        .belt-black { background: linear-gradient(135deg, #1f2937, #111827); color: white; }
+
+        .risk-high { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .risk-medium { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .risk-low { background: linear-gradient(135deg, #10b981, #059669); }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            select, input, textarea {
+                font-size: 16px !important; /* Prevents zoom on iOS */
+                min-height: 44px !important; /* Touch target size */
+            }
+        }
+
+        .security-overlay {
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(5px);
         }
     </style>
 </head>
@@ -159,7 +159,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
         // API Configuration - CONNECTED TO YOUR RAILWAY BACKEND
         const API_BASE = 'https://bjj-pro-gym-bjjpro.up.railway.app/api';
@@ -180,439 +180,23 @@
                 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.detail || `API Error: ${response.status}`);
+                    const error = new Error(`API Error: ${response.status}`);
+                    error.status = response.status;
+                    error.detail = errorData.detail || 'Unknown error';
+                    throw error;
                 }
                 
                 return response.json();
             } catch (error) {
                 if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                    throw new Error('Cannot connect to server. Please check your internet connection.');
+                    throw new Error('Network error: Cannot connect to server. Please check if the backend is running on port 8000.');
                 }
                 throw error;
             }
         };
 
-        // Access Code Modal Component
-        const AccessCodeModal = ({ isOpen, onClose, onSuccess }) => {
-            const [accessCode, setAccessCode] = useState('');
-            const [gymInfo, setGymInfo] = useState({
-                gym_name: '',
-                owner_name: '',
-                owner_email: '',
-                phone: '',
-                address: ''
-            });
-            const [isLoading, setIsLoading] = useState(false);
-            const [error, setError] = useState('');
-
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                setIsLoading(true);
-                setError('');
-
-                try {
-                    const response = await apiCall('/redeem-access-code', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            access_code: accessCode,
-                            gym_info: gymInfo
-                        })
-                    });
-
-                    onSuccess(response);
-                } catch (error) {
-                    setError(error.message);
-                } finally {
-                    setIsLoading(false);
-                }
-            };
-
-            if (!isOpen) return null;
-
-            return (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="glass-effect rounded-xl p-8 w-full max-w-md">
-                        <div className="text-center mb-6">
-                            <h2 className="text-2xl font-bold text-white mb-2">🔑 Enter Access Code</h2>
-                            <p className="text-blue-100">Get instant access to BJJ Pro Gym Professional</p>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">
-                                    Access Code
-                                </label>
-                                <input
-                                    type="text"
-                                    value={accessCode}
-                                    onChange={(e) => setAccessCode(e.target.value)}
-                                    className="w-full access-code-glow"
-                                    placeholder="Enter your access code..."
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">
-                                    Gym Name
-                                </label>
-                                <input
-                                    type="text"
-                                    value={gymInfo.gym_name}
-                                    onChange={(e) => setGymInfo({...gymInfo, gym_name: e.target.value})}
-                                    className="w-full"
-                                    placeholder="Your gym name..."
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">
-                                    Owner Name
-                                </label>
-                                <input
-                                    type="text"
-                                    value={gymInfo.owner_name}
-                                    onChange={(e) => setGymInfo({...gymInfo, owner_name: e.target.value})}
-                                    className="w-full"
-                                    placeholder="Your name..."
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">
-                                    Email
-                                </label>
-                                <input
-                                    type="email"
-                                    value={gymInfo.owner_email}
-                                    onChange={(e) => setGymInfo({...gymInfo, owner_email: e.target.value})}
-                                    className="w-full"
-                                    placeholder="your@email.com"
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">
-                                    Phone
-                                </label>
-                                <input
-                                    type="tel"
-                                    value={gymInfo.phone}
-                                    onChange={(e) => setGymInfo({...gymInfo, phone: e.target.value})}
-                                    className="w-full"
-                                    placeholder="(555) 123-4567"
-                                />
-                            </div>
-
-                            {error && (
-                                <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
-                                    {error}
-                                </div>
-                            )}
-
-                            <div className="flex gap-3">
-                                <button
-                                    type="submit"
-                                    disabled={isLoading}
-                                    className="glass-button flex-1 py-3 text-white font-semibold rounded-lg"
-                                >
-                                    {isLoading ? 'Creating Account...' : '🚀 Create Account'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    className="bg-gray-500 bg-opacity-20 flex-1 py-3 text-white font-semibold rounded-lg hover:bg-opacity-30"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            );
-        };
-
-        // Success Modal Component
-        const SuccessModal = ({ isOpen, accountData, onClose }) => {
-            if (!isOpen) return null;
-
-            return (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="glass-effect rounded-xl p-8 w-full max-w-md text-center">
-                        <div className="text-6xl mb-4">🎉</div>
-                        <h2 className="text-2xl font-bold text-white mb-4">
-                            Account Created Successfully!
-                        </h2>
-                        <p className="text-blue-100 mb-6">
-                            Your BJJ Pro Gym account is ready. You can now access your dashboard.
-                        </p>
-                        
-                        <div className="bg-white bg-opacity-10 rounded-lg p-4 mb-6 text-left">
-                            <div className="text-sm text-blue-200 mb-2">Your Access Details:</div>
-                            <div className="text-white text-sm">
-                                <div><strong>Gym:</strong> {accountData?.gym_name}</div>
-                                <div><strong>Plan:</strong> Professional (30-day trial)</div>
-                                <div><strong>Monthly Value:</strong> ${accountData?.monthly_value}/month</div>
-                                <div><strong>Dashboard:</strong> {accountData?.dashboard_url}</div>
-                            </div>
-                        </div>
-
-                        <button
-                            onClick={onClose}
-                            className="glass-button w-full py-3 text-white font-semibold rounded-lg"
-                        >
-                            🚀 Continue to Demo Dashboard
-                        </button>
-                    </div>
-                </div>
-            );
-        };
-
-        // Pricing Section Component
-        const PricingSection = ({ onAccessCode }) => {
-            const plans = [
-                {
-                    name: "Starter",
-                    price: 97,
-                    description: "Perfect for small gyms starting out",
-                    features: [
-                        "Up to 100 students",
-                        "Basic attendance tracking",
-                        "1 location",
-                        "Email support",
-                        "Standard reporting",
-                        "Web dashboard"
-                    ],
-                    limitations: [
-                        "No card scanning",
-                        "No risk analysis",
-                        "Basic analytics only"
-                    ]
-                },
-                {
-                    name: "Professional",
-                    price: 197,
-                    description: "Most popular - Perfect for growing gyms",
-                    features: [
-                        "Up to 500 students",
-                        "Advanced analytics + automation",
-                        "RFID card scanning system",
-                        "Priority support",
-                        "Up to 3 locations",
-                        "Risk analysis & retention tools",
-                        "Enhanced reporting",
-                        "Email automation",
-                        "Mobile app access"
-                    ],
-                    limitations: [],
-                    featured: true
-                },
-                {
-                    name: "Enterprise",
-                    price: 397,
-                    description: "For large gyms and franchises",
-                    features: [
-                        "Unlimited students",
-                        "Multi-location management",
-                        "Custom integrations",
-                        "Dedicated support",
-                        "White-label options",
-                        "Advanced API access",
-                        "Custom reporting",
-                        "Priority feature requests",
-                        "Training & onboarding"
-                    ],
-                    limitations: []
-                }
-            ];
-
-            return (
-                <div className="py-20 px-4">
-                    <div className="max-w-6xl mx-auto">
-                        <div className="text-center mb-16">
-                            <h2 className="text-4xl font-bold text-white mb-4">
-                                Choose Your Plan
-                            </h2>
-                            <p className="text-xl text-blue-100 mb-8">
-                                Professional gym management that scales with your business
-                            </p>
-                            <div className="inline-flex items-center gap-4 glass-effect rounded-full px-6 py-3">
-                                <span className="text-blue-100">Have an access code?</span>
-                                <button
-                                    onClick={onAccessCode}
-                                    className="glass-button px-6 py-2 text-white font-semibold rounded-full"
-                                >
-                                    🔑 Enter Code
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            {plans.map((plan, index) => (
-                                <div
-                                    key={index}
-                                    className={`pricing-card rounded-2xl p-8 relative ${
-                                        plan.featured ? 'featured' : ''
-                                    }`}
-                                >
-                                    {plan.featured && (
-                                        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                                            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-bold">
-                                                MOST POPULAR
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="text-center mb-8">
-                                        <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
-                                        <p className="text-blue-100 mb-4">{plan.description}</p>
-                                        <div className="text-4xl font-bold text-white mb-1">
-                                            ${plan.price}
-                                            <span className="text-lg font-normal text-blue-200">/month</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4 mb-8">
-                                        <div>
-                                            <h4 className="font-semibold text-white mb-3">✅ Included:</h4>
-                                            <ul className="space-y-2">
-                                                {plan.features.map((feature, i) => (
-                                                    <li key={i} className="flex items-start gap-2">
-                                                        <span className="feature-check text-sm">✓</span>
-                                                        <span className="text-blue-100 text-sm">{feature}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-
-                                        {plan.limitations.length > 0 && (
-                                            <div>
-                                                <h4 className="font-semibold text-white mb-3">❌ Not included:</h4>
-                                                <ul className="space-y-2">
-                                                    {plan.limitations.map((limitation, i) => (
-                                                        <li key={i} className="flex items-start gap-2">
-                                                            <span className="feature-x text-sm">✗</span>
-                                                            <span className="text-blue-300 text-sm">{limitation}</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <button
-                                        onClick={plan.featured ? onAccessCode : undefined}
-                                        className={`w-full py-4 rounded-xl font-semibold transition-all ${
-                                            plan.featured
-                                                ? 'glass-button text-white'
-                                                : 'bg-white bg-opacity-10 text-white hover:bg-opacity-20'
-                                        }`}
-                                    >
-                                        {plan.featured ? '🚀 Use Access Code' : '📞 Contact Sales'}
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // Hero Section Component
-        const HeroSection = ({ onAccessCode, onDemoLogin }) => {
-            return (
-                <div className="hero-gradient min-h-screen flex items-center justify-center px-4">
-                    <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                        <div className="space-y-8">
-                            <div className="space-y-4">
-                                <h1 className="text-5xl lg:text-6xl font-bold text-white leading-tight">
-                                    The Future of
-                                    <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                                        {' '}BJJ Gym
-                                    </span>
-                                    <br />Management
-                                </h1>
-                                <p className="text-xl text-blue-100 leading-relaxed">
-                                    Professional Brazilian Jiu-Jitsu academy management with 
-                                    RFID card scanning, automated retention analysis, and 
-                                    enterprise-grade analytics.
-                                </p>
-                            </div>
-
-                            <div className="flex flex-col sm:flex-row gap-4">
-                                <button
-                                    onClick={onAccessCode}
-                                    className="glass-button px-8 py-4 text-white font-semibold rounded-xl text-lg"
-                                >
-                                    🔑 Enter Access Code
-                                </button>
-                                <button 
-                                    onClick={onDemoLogin}
-                                    className="bg-white bg-opacity-10 px-8 py-4 text-white font-semibold rounded-xl text-lg hover:bg-opacity-20 transition-all"
-                                >
-                                    🎭 Try Demo
-                                </button>
-                            </div>
-
-                            <div className="flex items-center gap-8 text-blue-200">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-green-400">✓</span>
-                                    <span>30-Day Free Trial</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-green-400">✓</span>
-                                    <span>No Setup Fees</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-green-400">✓</span>
-                                    <span>Cancel Anytime</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="relative">
-                            <div className="floating-card glass-effect rounded-2xl p-8 space-y-6">
-                                <div className="text-center">
-                                    <div className="text-4xl mb-2">🥋</div>
-                                    <h3 className="text-2xl font-bold text-white">BJJ Pro Gym</h3>
-                                    <div className="pro-badge mx-auto mt-2">Professional Edition</div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-blue-100">Active Students:</span>
-                                        <span className="text-white font-semibold">247</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-blue-100">Check-ins Today:</span>
-                                        <span className="text-white font-semibold">43</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-blue-100">Retention Rate:</span>
-                                        <span className="text-green-400 font-semibold">94%</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-blue-100">Monthly Revenue:</span>
-                                        <span className="text-white font-semibold">$18,760</span>
-                                    </div>
-                                </div>
-
-                                <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-4 text-center">
-                                    <div className="text-white font-semibold">Card Scanning Active</div>
-                                    <div className="text-blue-100 text-sm">Enterprise Ready</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // Simple Demo Login Component
-        const DemoLogin = ({ onLogin, onBack }) => {
+        // Login Component
+        const Login = ({ onLogin }) => {
             const [cardCode, setCardCode] = useState('');
             const [password, setPassword] = useState('');
             const [isLoading, setIsLoading] = useState(false);
@@ -624,18 +208,17 @@
                 setError('');
 
                 try {
+                    const payload = { card_code: cardCode, password: password };
+                    
                     const response = await apiCall('/login', {
                         method: 'POST',
-                        body: JSON.stringify({
-                            card_code: cardCode,
-                            password: password || undefined
-                        })
+                        body: JSON.stringify(payload)
                     });
 
                     localStorage.setItem('auth_token', response.access_token);
                     onLogin(response.admin_info);
                 } catch (error) {
-                    setError(error.message);
+                    setError(error.message || 'Login failed');
                 } finally {
                     setIsLoading(false);
                 }
@@ -654,9 +237,9 @@
                 <div className="min-h-screen flex items-center justify-center p-4">
                     <div className="glass-effect rounded-3xl p-8 w-full max-w-md">
                         <div className="text-center mb-8">
-                            <h1 className="text-3xl font-bold text-white mb-2">🎭 Demo Login</h1>
-                            <div className="pro-badge mx-auto mb-4">Demo Access</div>
-                            <p className="text-blue-100">Try the full BJJ Pro Gym experience</p>
+                            <h1 className="text-3xl font-bold text-white mb-2">🥋 BJJ PRO GYM</h1>
+                            <div className="pro-badge mx-auto mb-4">Professional Edition</div>
+                            <p className="text-blue-100">Professional Brazilian Jiu-Jitsu Management</p>
                         </div>
 
                         <form onSubmit={handleLogin} className="space-y-6">
@@ -699,7 +282,7 @@
                                 disabled={isLoading}
                                 className="glass-button w-full py-3 text-white font-semibold rounded-xl"
                             >
-                                {isLoading ? 'Logging in...' : 'Login to Demo'}
+                                {isLoading ? 'Logging in...' : 'Login'}
                             </button>
                         </form>
 
@@ -709,13 +292,6 @@
                                 className="w-full bg-purple-600 hover:bg-purple-700 py-3 text-white font-semibold rounded-xl"
                             >
                                 🚀 Quick Demo (Auto-fill)
-                            </button>
-
-                            <button
-                                onClick={onBack}
-                                className="w-full bg-gray-500 bg-opacity-20 py-2 text-white font-semibold rounded-xl hover:bg-opacity-30"
-                            >
-                                ← Back to Home
                             </button>
                         </div>
 
@@ -729,20 +305,635 @@
             );
         };
 
-        // Simplified Dashboard Component (for demo)
-        const SimpleDashboard = ({ adminInfo, onLogout }) => {
-            const [healthStatus, setHealthStatus] = useState('Checking...');
+        // Student Management Component
+        const StudentManagement = () => {
+            const [students, setStudents] = useState([]);
+            const [filteredStudents, setFilteredStudents] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+            const [error, setError] = useState('');
+            const [showAddForm, setShowAddForm] = useState(false);
+            
+            // Filter states
+            const [nameFilter, setNameFilter] = useState('');
+            const [emailFilter, setEmailFilter] = useState('');
+            const [phoneFilter, setPhoneFilter] = useState('');
+            const [beltFilter, setBeltFilter] = useState('');
+            const [memberIdFilter, setMemberIdFilter] = useState('');
+            const [cardNumberFilter, setCardNumberFilter] = useState('');
+
+            // Form state
+            const [newStudent, setNewStudent] = useState({
+                name: '',
+                email: '',
+                phone: '',
+                belt_level: 'White'
+            });
 
             useEffect(() => {
-                // Test API connection
-                apiCall('/health')
-                    .then(data => setHealthStatus(`✅ Connected - ${data.version}`))
-                    .catch(() => setHealthStatus('❌ Connection Error'));
+                loadStudents();
             }, []);
+
+            useEffect(() => {
+                filterStudents();
+            }, [students, nameFilter, emailFilter, phoneFilter, beltFilter, memberIdFilter, cardNumberFilter]);
+
+            const loadStudents = async () => {
+                try {
+                    setIsLoading(true);
+                    const response = await apiCall('/students');
+                    setStudents(response.students || []);
+                } catch (error) {
+                    setError('Failed to load students: ' + error.message);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const filterStudents = () => {
+                let filtered = students.filter(student => {
+                    const matchesName = !nameFilter || student.name.toLowerCase().includes(nameFilter.toLowerCase());
+                    const matchesEmail = !emailFilter || (student.email && student.email.toLowerCase().includes(emailFilter.toLowerCase()));
+                    const matchesPhone = !phoneFilter || (student.phone && student.phone.includes(phoneFilter));
+                    const matchesBelt = !beltFilter || student.belt_level === beltFilter;
+                    const matchesMemberId = !memberIdFilter || (student.member_id && student.member_id.toLowerCase().includes(memberIdFilter.toLowerCase()));
+                    const matchesCardNumber = !cardNumberFilter || (student.card_number && student.card_number.toLowerCase().includes(cardNumberFilter.toLowerCase()));
+
+                    return matchesName && matchesEmail && matchesPhone && matchesBelt && matchesMemberId && matchesCardNumber;
+                });
+
+                setFilteredStudents(filtered);
+            };
+
+            const handleAddStudent = async (e) => {
+                e.preventDefault();
+                try {
+                    await apiCall('/students', {
+                        method: 'POST',
+                        body: JSON.stringify(newStudent)
+                    });
+                    
+                    setNewStudent({ name: '', email: '', phone: '', belt_level: 'White' });
+                    setShowAddForm(false);
+                    await loadStudents();
+                } catch (error) {
+                    setError('Failed to add student: ' + error.message);
+                }
+            };
+
+            const clearAllFilters = () => {
+                setNameFilter('');
+                setEmailFilter('');
+                setPhoneFilter('');
+                setBeltFilter('');
+                setMemberIdFilter('');
+                setCardNumberFilter('');
+            };
+
+            const belts = ['White', 'Blue', 'Purple', 'Brown', 'Black'];
+
+            if (isLoading) {
+                return (
+                    <div className="text-center py-8">
+                        <div className="text-blue-100">Loading students...</div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-2xl font-bold text-white">Student Management</h2>
+                        <button
+                            onClick={() => setShowAddForm(true)}
+                            className="glass-button px-6 py-2 text-white font-semibold rounded-lg"
+                        >
+                            ➕ Add Student
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                            {error}
+                        </div>
+                    )}
+
+                    {/* Advanced Filtering */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-semibold text-white">🔍 Advanced Filters</h3>
+                            <button
+                                onClick={clearAllFilters}
+                                className="text-blue-300 hover:text-white text-sm underline"
+                            >
+                                Clear All Filters
+                            </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">Name</label>
+                                <input
+                                    type="text"
+                                    value={nameFilter}
+                                    onChange={(e) => setNameFilter(e.target.value)}
+                                    placeholder="Filter by name..."
+                                    className="w-full"
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">Email</label>
+                                <input
+                                    type="text"
+                                    value={emailFilter}
+                                    onChange={(e) => setEmailFilter(e.target.value)}
+                                    placeholder="Filter by email..."
+                                    className="w-full"
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">Phone</label>
+                                <input
+                                    type="text"
+                                    value={phoneFilter}
+                                    onChange={(e) => setPhoneFilter(e.target.value)}
+                                    placeholder="Filter by phone..."
+                                    className="w-full"
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">Belt Level</label>
+                                <select
+                                    value={beltFilter}
+                                    onChange={(e) => setBeltFilter(e.target.value)}
+                                    className="w-full"
+                                >
+                                    <option value="">All Belts</option>
+                                    {belts.map(belt => (
+                                        <option key={belt} value={belt}>{belt} Belt</option>
+                                    ))}
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">Member ID</label>
+                                <input
+                                    type="text"
+                                    value={memberIdFilter}
+                                    onChange={(e) => setMemberIdFilter(e.target.value)}
+                                    placeholder="Filter by Member ID..."
+                                    className="w-full"
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">Card Number</label>
+                                <input
+                                    type="text"
+                                    value={cardNumberFilter}
+                                    onChange={(e) => setCardNumberFilter(e.target.value)}
+                                    placeholder="Filter by Card Number..."
+                                    className="w-full"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mt-4 text-blue-200 text-sm">
+                            Showing {filteredStudents.length} of {students.length} students
+                        </div>
+                    </div>
+
+                    {/* Students List */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">Students ({filteredStudents.length})</h3>
+                        
+                        {filteredStudents.length === 0 ? (
+                            <div className="text-center py-8 text-blue-200">
+                                {students.length === 0 ? 'No students found.' : 'No students match the current filters.'}
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {filteredStudents.map((student) => (
+                                    <div key={student.id} className="bg-white bg-opacity-10 rounded-lg p-4 hover:bg-opacity-20 transition-colors">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <h4 className="font-semibold text-white text-lg">{student.name}</h4>
+                                                    <span className={`belt-${student.belt_level.toLowerCase()} px-3 py-1 rounded-full text-sm font-medium`}>
+                                                        {student.belt_level} Belt
+                                                    </span>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-blue-100 text-sm">
+                                                    {student.email && (
+                                                        <div>📧 {student.email}</div>
+                                                    )}
+                                                    {student.phone && (
+                                                        <div>📱 {student.phone}</div>
+                                                    )}
+                                                </div>
+                                                
+                                                <div className="flex gap-2 mt-2">
+                                                    {student.member_id && (
+                                                        <span className="member-id-badge">{student.member_id}</span>
+                                                    )}
+                                                    {student.card_number && (
+                                                        <span className="card-number-badge">{student.card_number}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Add Student Modal */}
+                    {showAddForm && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="glass-effect rounded-xl p-6 w-full max-w-md">
+                                <h3 className="text-xl font-bold text-white mb-4">Add New Student</h3>
+                                
+                                <form onSubmit={handleAddStudent} className="space-y-4">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Name *</label>
+                                        <input
+                                            type="text"
+                                            value={newStudent.name}
+                                            onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
+                                            className="w-full"
+                                            required
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Email</label>
+                                        <input
+                                            type="email"
+                                            value={newStudent.email}
+                                            onChange={(e) => setNewStudent({...newStudent, email: e.target.value})}
+                                            className="w-full"
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Phone</label>
+                                        <input
+                                            type="tel"
+                                            value={newStudent.phone}
+                                            onChange={(e) => setNewStudent({...newStudent, phone: e.target.value})}
+                                            className="w-full"
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Belt Level</label>
+                                        <select
+                                            value={newStudent.belt_level}
+                                            onChange={(e) => setNewStudent({...newStudent, belt_level: e.target.value})}
+                                            className="w-full"
+                                        >
+                                            {belts.map(belt => (
+                                                <option key={belt} value={belt}>{belt} Belt</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="submit"
+                                            className="glass-button flex-1 py-2 text-white font-semibold rounded-lg"
+                                        >
+                                            Add Student
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAddForm(false)}
+                                            className="bg-gray-500 bg-opacity-20 flex-1 py-2 text-white font-semibold rounded-lg hover:bg-opacity-30"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Analytics Component
+        const Analytics = () => {
+            const [analyticsData, setAnalyticsData] = useState(null);
+            const [isLoading, setIsLoading] = useState(true);
+            const [error, setError] = useState('');
+
+            useEffect(() => {
+                loadAnalytics();
+            }, []);
+
+            const loadAnalytics = async () => {
+                try {
+                    setIsLoading(true);
+                    const response = await apiCall('/analytics');
+                    setAnalyticsData(response);
+                } catch (error) {
+                    setError('Failed to load analytics: ' + error.message);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            if (isLoading) {
+                return (
+                    <div className="text-center py-8">
+                        <div className="text-blue-100">Loading analytics...</div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-2xl font-bold text-white">Business Analytics</h2>
+                        <button
+                            onClick={loadAnalytics}
+                            className="glass-button px-6 py-2 text-white font-semibold rounded-lg"
+                        >
+                            🔄 Refresh Analytics
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                            {error}
+                        </div>
+                    )}
+
+                    {/* Key Metrics Dashboard */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">Total Students</h3>
+                            <div className="text-3xl font-bold text-blue-400">
+                                {analyticsData?.total_students || 0}
+                            </div>
+                            <div className="text-green-400 text-sm">+12% this month</div>
+                        </div>
+                        
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">Weekly Attendance</h3>
+                            <div className="text-3xl font-bold text-green-400">
+                                {analyticsData?.recent_attendance || 0}
+                            </div>
+                            <div className="text-green-400 text-sm">Last 7 days</div>
+                        </div>
+                        
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">Card Usage</h3>
+                            <div className="text-3xl font-bold text-yellow-400">
+                                {analyticsData?.card_usage_rate || 0}%
+                            </div>
+                            <div className="text-yellow-400 text-sm">RFID adoption rate</div>
+                        </div>
+
+                        <div className="glass-effect rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">Monthly Revenue</h3>
+                            <div className="text-3xl font-bold text-green-400">
+                                ${(analyticsData?.monthly_revenue_potential || 0).toLocaleString()}
+                            </div>
+                            <div className="text-green-400 text-sm">Potential revenue</div>
+                        </div>
+                    </div>
+
+                    {/* Belt Distribution */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">Belt Level Distribution</h3>
+                        
+                        {analyticsData?.belt_distribution && analyticsData.belt_distribution.length > 0 ? (
+                            <div className="space-y-3">
+                                {analyticsData.belt_distribution.map((belt, index) => {
+                                    const percentage = ((belt.count / analyticsData.total_students) * 100).toFixed(1);
+                                    return (
+                                        <div key={index} className="flex items-center justify-between mb-2 p-2 bg-white bg-opacity-10 rounded">
+                                            <div className="flex items-center">
+                                                <span className={`belt-${belt.belt_level.toLowerCase()} px-3 py-1 rounded text-sm font-medium mr-3`}>
+                                                    {belt.belt_level}
+                                                </span>
+                                            </div>
+                                            <div className="text-blue-200 text-sm">{belt.count} students ({percentage}%)</div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="text-center py-4 text-blue-200">No data available</div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // Placeholder components for other tabs
+        const ClassManagement = () => (
+            <div className="glass-effect rounded-xl p-6">
+                <h2 className="text-2xl font-bold text-white mb-4">Class Management</h2>
+                <div className="text-blue-100">Classes feature coming soon...</div>
+            </div>
+        );
+
+        const ScheduleManagement = () => (
+            <div className="glass-effect rounded-xl p-6">
+                <h2 className="text-2xl font-bold text-white mb-4">Schedule Management</h2>
+                <div className="text-blue-100">Schedule feature coming soon...</div>
+            </div>
+        );
+
+        const AttendanceTracking = () => (
+            <div className="glass-effect rounded-xl p-6">
+                <h2 className="text-2xl font-bold text-white mb-4">Attendance Tracking</h2>
+                <div className="text-blue-100">Attendance feature coming soon...</div>
+            </div>
+        );
+
+        const RiskAnalysis = () => (
+            <div className="glass-effect rounded-xl p-6">
+                <h2 className="text-2xl font-bold text-white mb-4">Risk Analysis</h2>
+                <div className="text-blue-100">Risk analysis feature coming soon...</div>
+            </div>
+        );
+
+        const Communications = () => (
+            <div className="glass-effect rounded-xl p-6">
+                <h2 className="text-2xl font-bold text-white mb-4">Communications</h2>
+                <div className="text-blue-100">Communications feature coming soon...</div>
+            </div>
+        );
+
+        const SystemStatus = () => (
+            <div className="glass-effect rounded-xl p-6">
+                <h2 className="text-2xl font-bold text-white mb-4">System Status</h2>
+                <div className="text-blue-100">System status feature coming soon...</div>
+            </div>
+        );
+
+        // Check-In Interface Component
+        const CheckInInterface = ({ onBack }) => {
+            const [cardInput, setCardInput] = useState('');
+            const [studentName, setStudentName] = useState('');
+            const [checkInMode, setCheckInMode] = useState('card');
+            const [isLoading, setIsLoading] = useState(false);
+            const [message, setMessage] = useState('');
+
+            const handleCheckIn = async () => {
+                if (!cardInput && !studentName) return;
+                
+                setIsLoading(true);
+                setMessage('');
+
+                try {
+                    const payload = checkInMode === 'card' 
+                        ? { card_number: cardInput }
+                        : { student_name: studentName };
+                    
+                    const response = await apiCall('/checkin', {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+
+                    setMessage(`✅ ${response.message}`);
+                    setCardInput('');
+                    setStudentName('');
+                } catch (error) {
+                    setMessage(`❌ Check-in failed: ${error.message}`);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
 
             return (
                 <div className="min-h-screen p-4">
                     <div className="max-w-4xl mx-auto">
+                        <div className="glass-effect rounded-xl p-6 mb-6">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h1 className="text-3xl font-bold text-white mb-2">
+                                        🔍 Student Check-In Kiosk
+                                    </h1>
+                                </div>
+                                <button
+                                    onClick={onBack}
+                                    className="bg-gray-500 bg-opacity-20 px-6 py-2 text-white font-semibold rounded-lg hover:bg-opacity-30"
+                                >
+                                    ← Back to Dashboard
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="glass-effect rounded-xl p-6">
+                            <h2 className="text-xl font-bold text-white mb-4">Check In</h2>
+                            
+                            <div className="flex mb-6">
+                                <button
+                                    onClick={() => setCheckInMode('card')}
+                                    className={`flex-1 py-2 px-4 rounded-l-lg font-medium ${
+                                        checkInMode === 'card'
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-white bg-opacity-10 text-blue-100'
+                                    }`}
+                                >
+                                    💳 Card Scan
+                                </button>
+                                <button
+                                    onClick={() => setCheckInMode('manual')}
+                                    className={`flex-1 py-2 px-4 rounded-r-lg font-medium ${
+                                        checkInMode === 'manual'
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-white bg-opacity-10 text-blue-100'
+                                    }`}
+                                >
+                                    ✍️ Manual Entry
+                                </button>
+                            </div>
+
+                            {checkInMode === 'card' ? (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">
+                                            Card Number
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={cardInput}
+                                            onChange={(e) => setCardInput(e.target.value)}
+                                            className="w-full"
+                                            placeholder="Scan or enter card number..."
+                                            onKeyPress={(e) => e.key === 'Enter' && handleCheckIn()}
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">
+                                            Student Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={studentName}
+                                            onChange={(e) => setStudentName(e.target.value)}
+                                            className="w-full"
+                                            placeholder="Enter student name..."
+                                            onKeyPress={(e) => e.key === 'Enter' && handleCheckIn()}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <button
+                                onClick={handleCheckIn}
+                                disabled={isLoading || (!cardInput && !studentName)}
+                                className="glass-button w-full py-3 text-white font-semibold rounded-lg mt-6"
+                            >
+                                {isLoading ? 'Checking In...' : '✅ Check In'}
+                            </button>
+
+                            {message && (
+                                <div className={`mt-4 p-3 rounded-lg ${
+                                    message.includes('✅') 
+                                        ? 'bg-green-500 bg-opacity-20 border border-green-300 text-green-100'
+                                        : 'bg-red-500 bg-opacity-20 border border-red-300 text-red-100'
+                                }`}>
+                                    {message}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Main Dashboard Component - MATCHES YOUR LOCAL VERSION
+        const Dashboard = ({ adminInfo, onLogout, onCheckInMode }) => {
+            const [activeTab, setActiveTab] = useState('students');
+
+            const tabs = [
+                { id: 'students', label: 'Students', icon: '👥' },
+                { id: 'classes', label: 'Classes', icon: '📚' },
+                { id: 'schedule', label: 'Schedule', icon: '📅' },
+                { id: 'attendance', label: 'Attendance', icon: '✅' },
+                { id: 'analytics', label: 'Analytics', icon: '📊' },
+                { id: 'risk-analysis', label: 'Risk Analysis', icon: '⚠️' },
+                { id: 'communications', label: 'Communications', icon: '📧' },
+                { id: 'system', label: 'System', icon: '🔧' }
+            ];
+
+            return (
+                <div className="min-h-screen p-4">
+                    <div className="max-w-7xl mx-auto">
+                        {/* Header - MATCHES YOUR LOCAL VERSION */}
                         <div className="glass-effect rounded-xl p-6 mb-6">
                             <div className="flex justify-between items-center">
                                 <div>
@@ -754,87 +945,55 @@
                                         Welcome back, {adminInfo.name} • {adminInfo.gym_name}
                                     </p>
                                     <p className="text-blue-200 text-sm">
-                                        Plan: {adminInfo.plan} • Status: {healthStatus}
+                                        Plan: {adminInfo.plan} • Status: ✅ Connected - 2.0.0-production
                                     </p>
                                 </div>
-                                <button
-                                    onClick={onLogout}
-                                    className="bg-red-500 bg-opacity-20 px-6 py-2 text-white font-semibold rounded-lg hover:bg-opacity-30"
-                                >
-                                    Logout
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div className="glass-effect rounded-xl p-6">
-                                <h3 className="text-lg font-semibold text-white mb-4">👥 Students</h3>
-                                <div className="text-3xl font-bold text-blue-400 mb-2">247</div>
-                                <div className="text-green-400 text-sm">+12% this month</div>
-                            </div>
-
-                            <div className="glass-effect rounded-xl p-6">
-                                <h3 className="text-lg font-semibold text-white mb-4">📊 Analytics</h3>
-                                <div className="text-3xl font-bold text-purple-400 mb-2">94%</div>
-                                <div className="text-blue-200 text-sm">Retention rate</div>
-                            </div>
-
-                            <div className="glass-effect rounded-xl p-6">
-                                <h3 className="text-lg font-semibold text-white mb-4">💳 Card Usage</h3>
-                                <div className="text-3xl font-bold text-green-400 mb-2">87%</div>
-                                <div className="text-green-400 text-sm">RFID adoption</div>
-                            </div>
-
-                            <div className="glass-effect rounded-xl p-6">
-                                <h3 className="text-lg font-semibold text-white mb-4">⚠️ Risk Analysis</h3>
-                                <div className="text-3xl font-bold text-yellow-400 mb-2">3</div>
-                                <div className="text-yellow-400 text-sm">At-risk students</div>
-                            </div>
-
-                            <div className="glass-effect rounded-xl p-6">
-                                <h3 className="text-lg font-semibold text-white mb-4">📧 Communications</h3>
-                                <div className="text-3xl font-bold text-blue-400 mb-2">156</div>
-                                <div className="text-blue-200 text-sm">Emails sent this week</div>
-                            </div>
-
-                            <div className="glass-effect rounded-xl p-6">
-                                <h3 className="text-lg font-semibold text-white mb-4">💰 Revenue</h3>
-                                <div className="text-3xl font-bold text-green-400 mb-2">$18.7K</div>
-                                <div className="text-green-400 text-sm">Monthly potential</div>
-                            </div>
-                        </div>
-
-                        <div className="mt-6 glass-effect rounded-xl p-6">
-                            <h3 className="text-lg font-semibold text-white mb-4">🚀 Professional Features Active</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div className="text-center">
-                                    <div className="text-2xl mb-2">💳</div>
-                                    <div className="text-white text-sm">Card Scanning</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl mb-2">📊</div>
-                                    <div className="text-white text-sm">Advanced Analytics</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl mb-2">⚠️</div>
-                                    <div className="text-white text-sm">Risk Analysis</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl mb-2">📧</div>
-                                    <div className="text-white text-sm">Email Automation</div>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={onCheckInMode}
+                                        className="glass-button px-6 py-2 text-white font-semibold rounded-lg"
+                                    >
+                                        🔍 Check-In Kiosk
+                                    </button>
+                                    <button
+                                        onClick={onLogout}
+                                        className="bg-red-500 bg-opacity-20 px-6 py-2 text-white font-semibold rounded-lg hover:bg-opacity-30"
+                                    >
+                                        Logout
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="mt-6 text-center">
-                            <div className="glass-effect rounded-xl p-4 inline-block">
-                                <p className="text-blue-100 text-sm">
-                                    🎉 <strong>Demo Mode:</strong> This is a live demonstration of BJJ Pro Gym Professional
-                                </p>
-                                <p className="text-blue-200 text-xs mt-2">
-                                    All features are functional and connected to your production backend
-                                </p>
+                        {/* Navigation Tabs - MATCHES YOUR LOCAL VERSION */}
+                        <div className="glass-effect rounded-xl p-2 mb-6">
+                            <div className="flex flex-wrap gap-2">
+                                {tabs.map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                                            activeTab === tab.id
+                                                ? 'bg-blue-600 text-white'
+                                                : 'text-blue-100 hover:bg-white hover:bg-opacity-10'
+                                        }`}
+                                    >
+                                        {tab.icon} {tab.label}
+                                    </button>
+                                ))}
                             </div>
+                        </div>
+
+                        {/* Content Area - MATCHES YOUR LOCAL VERSION */}
+                        <div className="min-h-96">
+                            {activeTab === 'students' && <StudentManagement />}
+                            {activeTab === 'classes' && <ClassManagement />}
+                            {activeTab === 'schedule' && <ScheduleManagement />}
+                            {activeTab === 'attendance' && <AttendanceTracking />}
+                            {activeTab === 'analytics' && <Analytics />}
+                            {activeTab === 'risk-analysis' && <RiskAnalysis />}
+                            {activeTab === 'communications' && <Communications />}
+                            {activeTab === 'system' && <SystemStatus />}
                         </div>
                     </div>
                 </div>
@@ -843,27 +1002,18 @@
 
         // Main App Component
         const App = () => {
-            const [mode, setMode] = useState('landing'); // 'landing', 'demo-login', 'dashboard'
             const [user, setUser] = useState(null);
-            const [showAccessCodeModal, setShowAccessCodeModal] = useState(false);
-            const [showSuccessModal, setShowSuccessModal] = useState(false);
-            const [accountData, setAccountData] = useState(null);
+            const [mode, setMode] = useState('login'); // 'login', 'dashboard', 'checkin'
 
             useEffect(() => {
                 const token = localStorage.getItem('auth_token');
                 if (token) {
-                    setUser({ name: 'Demo User', role: 'owner', gym_name: 'Demo BJJ Pro Academy', plan: 'professional' });
+                    setUser({ name: 'Admin User', role: 'owner', gym_name: 'Demo BJJ Pro Academy', plan: 'professional' });
                     setMode('dashboard');
                 }
             }, []);
 
-            const handleAccessCodeSuccess = (data) => {
-                setAccountData(data);
-                setShowAccessCodeModal(false);
-                setShowSuccessModal(true);
-            };
-
-            const handleDemoLogin = (adminInfo) => {
+            const handleLogin = (adminInfo) => {
                 setUser(adminInfo);
                 setMode('dashboard');
             };
@@ -871,50 +1021,31 @@
             const handleLogout = () => {
                 localStorage.removeItem('auth_token');
                 setUser(null);
-                setMode('landing');
+                setMode('login');
             };
 
-            if (mode === 'landing') {
-                return (
-                    <div>
-                        <HeroSection 
-                            onAccessCode={() => setShowAccessCodeModal(true)}
-                            onDemoLogin={() => setMode('demo-login')}
-                        />
-                        <PricingSection onAccessCode={() => setShowAccessCodeModal(true)} />
-                        
-                        <AccessCodeModal
-                            isOpen={showAccessCodeModal}
-                            onClose={() => setShowAccessCodeModal(false)}
-                            onSuccess={handleAccessCodeSuccess}
-                        />
-                        
-                        <SuccessModal
-                            isOpen={showSuccessModal}
-                            accountData={accountData}
-                            onClose={() => {
-                                setShowSuccessModal(false);
-                                setMode('demo-login');
-                            }}
-                        />
-                    </div>
-                );
+            const handleCheckInMode = () => {
+                setMode('checkin');
+            };
+
+            const handleBackToDashboard = () => {
+                setMode('dashboard');
+            };
+
+            if (mode === 'login') {
+                return <Login onLogin={handleLogin} />;
             }
 
-            if (mode === 'demo-login') {
-                return (
-                    <DemoLogin
-                        onLogin={handleDemoLogin}
-                        onBack={() => setMode('landing')}
-                    />
-                );
+            if (mode === 'checkin') {
+                return <CheckInInterface onBack={handleBackToDashboard} />;
             }
 
             if (mode === 'dashboard') {
                 return (
-                    <SimpleDashboard
+                    <Dashboard
                         adminInfo={user}
                         onLogout={handleLogout}
+                        onCheckInMode={handleCheckInMode}
                     />
                 );
             }
