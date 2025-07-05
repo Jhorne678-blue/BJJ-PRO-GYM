@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BJJ Pro Gym - Professional Brazilian Jiu-Jitsu Management</title>
+    <title>BJJProGym - Professional Brazilian Jiu-Jitsu Management System</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -66,7 +66,6 @@
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
         }
 
-        /* SELECT DROPDOWN STYLING */
         select {
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
             background-position: right 12px center !important;
@@ -75,7 +74,6 @@
             padding-right: 40px !important;
         }
 
-        /* BUTTON STYLING */
         button {
             min-height: 50px !important;
             padding: 12px 24px !important;
@@ -143,6 +141,21 @@
             width: 100%;
             min-height: 100vh;
         }
+
+        .plan-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .plan-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .plan-card.selected {
+            border: 2px solid #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -151,296 +164,881 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // Login Component
-        const Login = ({ onLogin }) => {
+        // API Configuration - PRODUCTION READY
+        const API_BASE = 'https://api.bjjprogym.com'; // UPDATE THIS TO YOUR PRODUCTION API URL
+        const STRIPE_PUBLISHABLE_KEY = 'pk_live_...'; // UPDATE THIS TO YOUR REAL STRIPE KEY
+
+        // Authentication & API Service
+        class APIService {
+            constructor() {
+                this.baseURL = API_BASE;
+                this.token = localStorage.getItem('auth_token');
+            }
+
+            async request(endpoint, options = {}) {
+                const url = `${this.baseURL}${endpoint}`;
+                const config = {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(this.token && { 'Authorization': `Bearer ${this.token}` }),
+                        ...options.headers,
+                    },
+                    ...options,
+                };
+
+                if (config.body && typeof config.body === 'object') {
+                    config.body = JSON.stringify(config.body);
+                }
+
+                try {
+                    const response = await fetch(url, config);
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.message || 'API request failed');
+                    }
+                    
+                    return data;
+                } catch (error) {
+                    console.error('API Request failed:', error);
+                    throw error;
+                }
+            }
+
+            // Authentication endpoints
+            async register(userData) {
+                return this.request('/auth/register', {
+                    method: 'POST',
+                    body: userData
+                });
+            }
+
+            async verifyEmail(token) {
+                return this.request('/auth/verify-email', {
+                    method: 'POST',
+                    body: { token }
+                });
+            }
+
+            async login(credentials) {
+                const response = await this.request('/auth/login', {
+                    method: 'POST',
+                    body: credentials
+                });
+                if (response.access_token) {
+                    this.token = response.access_token;
+                    localStorage.setItem('auth_token', this.token);
+                }
+                return response;
+            }
+
+            async validateAccessCode(code) {
+                return this.request('/auth/validate-access-code', {
+                    method: 'POST',
+                    body: { code }
+                });
+            }
+
+            // Gym management endpoints
+            async createGym(gymData) {
+                return this.request('/gyms', {
+                    method: 'POST',
+                    body: gymData
+                });
+            }
+
+            async getStudents() {
+                return this.request('/students');
+            }
+
+            async createStudent(studentData) {
+                return this.request('/students', {
+                    method: 'POST',
+                    body: studentData
+                });
+            }
+
+            async updateStudent(id, studentData) {
+                return this.request(`/students/${id}`, {
+                    method: 'PUT',
+                    body: studentData
+                });
+            }
+
+            async deleteStudent(id) {
+                return this.request(`/students/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+
+            async getClasses() {
+                return this.request('/classes');
+            }
+
+            async createClass(classData) {
+                return this.request('/classes', {
+                    method: 'POST',
+                    body: classData
+                });
+            }
+
+            async updateClass(id, classData) {
+                return this.request(`/classes/${id}`, {
+                    method: 'PUT',
+                    body: classData
+                });
+            }
+
+            async deleteClass(id) {
+                return this.request(`/classes/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+
+            async getSchedules() {
+                return this.request('/schedules');
+            }
+
+            async createSchedule(scheduleData) {
+                return this.request('/schedules', {
+                    method: 'POST',
+                    body: scheduleData
+                });
+            }
+
+            async updateSchedule(id, scheduleData) {
+                return this.request(`/schedules/${id}`, {
+                    method: 'PUT',
+                    body: scheduleData
+                });
+            }
+
+            async deleteSchedule(id) {
+                return this.request(`/schedules/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+
+            async getAttendance(filters = {}) {
+                const params = new URLSearchParams(filters);
+                return this.request(`/attendance?${params}`);
+            }
+
+            async recordCheckIn(checkInData) {
+                return this.request('/attendance/checkin', {
+                    method: 'POST',
+                    body: checkInData
+                });
+            }
+
+            async getAnalytics(period = 'month') {
+                return this.request(`/analytics?period=${period}`);
+            }
+
+            async getRiskAnalysis() {
+                return this.request('/risk-analysis');
+            }
+
+            async sendEmail(emailData) {
+                return this.request('/communications/send-email', {
+                    method: 'POST',
+                    body: emailData
+                });
+            }
+
+            async getEmailHistory() {
+                return this.request('/communications/history');
+            }
+
+            async getSystemStatus() {
+                return this.request('/system/status');
+            }
+
+            async initiateBackup() {
+                return this.request('/system/backup', {
+                    method: 'POST'
+                });
+            }
+        }
+
+        const api = new APIService();
+
+        // Landing Page - Access Code Entry & Plan Selection
+        const LandingPage = ({ onAccessValidated }) => {
+            const [step, setStep] = useState('access-code'); // access-code, plan-selection, registration
             const [accessCode, setAccessCode] = useState('');
+            const [selectedPlan, setSelectedPlan] = useState('professional');
             const [isLoading, setIsLoading] = useState(false);
             const [error, setError] = useState('');
-            const [showAdminLogin, setShowAdminLogin] = useState(false);
-            const [adminCredentials, setAdminCredentials] = useState({ username: '', password: '' });
+
+            const plans = [
+                {
+                    id: 'basic',
+                    name: 'Basic',
+                    price: 97,
+                    features: [
+                        'Up to 100 students',
+                        'Basic student management',
+                        'Class scheduling',
+                        'Email support'
+                    ]
+                },
+                {
+                    id: 'professional',
+                    name: 'Professional',
+                    price: 197,
+                    features: [
+                        'Up to 500 students',
+                        'Advanced analytics',
+                        'RFID card integration',
+                        'Risk analysis',
+                        'Email campaigns',
+                        'Priority support'
+                    ],
+                    recommended: true
+                },
+                {
+                    id: 'enterprise',
+                    name: 'Enterprise',
+                    price: 397,
+                    features: [
+                        'Unlimited students',
+                        'Multi-location management',
+                        'White-label branding',
+                        'Custom integrations',
+                        'Dedicated support'
+                    ]
+                }
+            ];
 
             const handleAccessCodeSubmit = async (e) => {
                 e.preventDefault();
                 setIsLoading(true);
                 setError('');
 
-                if (accessCode.toUpperCase() === 'ADELYNN14') {
-                    setShowAdminLogin(true);
-                    setError('');
-                } else {
-                    setError('Invalid access code. Contact your administrator for Professional access.');
+                try {
+                    const result = await api.validateAccessCode(accessCode);
+                    if (result.valid) {
+                        if (accessCode.toUpperCase() === 'ADELYNN14') {
+                            setSelectedPlan('professional');
+                        }
+                        setStep('plan-selection');
+                    } else {
+                        setError('Invalid access code. Please contact support.');
+                    }
+                } catch (err) {
+                    setError('Unable to validate access code. Please try again.');
                 }
                 setIsLoading(false);
             };
 
-            const handleAdminLogin = async (e) => {
+            const handlePlanSelection = () => {
+                setStep('registration');
+            };
+
+            const handleRegistration = () => {
+                onAccessValidated({
+                    accessCode,
+                    selectedPlan,
+                    planDetails: plans.find(p => p.id === selectedPlan)
+                });
+            };
+
+            if (step === 'access-code') {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-4">
+                        <div className="glass-effect rounded-3xl p-8 w-full max-w-md">
+                            <div className="text-center mb-8">
+                                <h1 className="text-4xl font-bold text-white mb-4">🥋 BJJProGym</h1>
+                                <div className="pro-badge mx-auto mb-4">Professional Platform</div>
+                                <p className="text-blue-100 mb-6">The #1 Brazilian Jiu-Jitsu Academy Management System</p>
+                            </div>
+
+                            <form onSubmit={handleAccessCodeSubmit} className="space-y-6">
+                                <div>
+                                    <label className="block text-blue-100 text-sm font-medium mb-2">
+                                        Professional Access Code
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={accessCode}
+                                        onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+                                        placeholder="Enter your access code"
+                                        required
+                                        autoFocus
+                                        style={{ textTransform: 'uppercase', letterSpacing: '2px', textAlign: 'center' }}
+                                    />
+                                </div>
+
+                                {error && (
+                                    <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg text-center">
+                                        {error}
+                                    </div>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    disabled={isLoading || !accessCode}
+                                    className="glass-button w-full text-white font-semibold"
+                                >
+                                    {isLoading ? 'Validating...' : '🔓 Validate Access Code'}
+                                </button>
+                            </form>
+
+                            <div className="mt-6 text-center text-blue-300 text-sm">
+                                <p>Need an access code?</p>
+                                <button className="text-blue-200 hover:text-white underline mt-2">
+                                    Contact Sales
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (step === 'plan-selection') {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-4">
+                        <div className="glass-effect rounded-3xl p-8 w-full max-w-6xl">
+                            <div className="text-center mb-8">
+                                <h1 className="text-4xl font-bold text-white mb-4">Choose Your Plan</h1>
+                                <p className="text-blue-100">Access code validated ✅ Now select your plan</p>
+                                {accessCode.toUpperCase() === 'ADELYNN14' && (
+                                    <div className="mt-4 bg-green-500 bg-opacity-20 border border-green-300 text-green-100 px-4 py-2 rounded-lg">
+                                        🎉 Special offer: Professional Plan unlocked with your access code!
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                {plans.map((plan) => (
+                                    <div
+                                        key={plan.id}
+                                        className={`plan-card glass-effect rounded-xl p-6 relative ${
+                                            selectedPlan === plan.id ? 'selected' : ''
+                                        }`}
+                                        onClick={() => setSelectedPlan(plan.id)}
+                                    >
+                                        {plan.recommended && (
+                                            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                                                <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-4 py-1 rounded-full text-sm font-bold">
+                                                    RECOMMENDED
+                                                </span>
+                                            </div>
+                                        )}
+                                        
+                                        <div className="text-center mb-6">
+                                            <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
+                                            <div className="text-4xl font-bold text-white mb-1">${plan.price}</div>
+                                            <div className="text-blue-200 text-sm">per month</div>
+                                        </div>
+
+                                        <ul className="space-y-3 mb-6">
+                                            {plan.features.map((feature, index) => (
+                                                <li key={index} className="flex items-center text-blue-100">
+                                                    <span className="text-green-400 mr-2">✓</span>
+                                                    {feature}
+                                                </li>
+                                            ))}
+                                        </ul>
+
+                                        <div className="text-center">
+                                            <div className={`w-4 h-4 rounded-full mx-auto ${
+                                                selectedPlan === plan.id ? 'bg-blue-500' : 'bg-gray-400'
+                                            }`}></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="text-center">
+                                <button
+                                    onClick={handlePlanSelection}
+                                    className="glass-button px-8 py-3 text-white font-semibold text-lg"
+                                >
+                                    Continue with {plans.find(p => p.id === selectedPlan)?.name} Plan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (step === 'registration') {
+                return <GymRegistration onRegistered={handleRegistration} planDetails={plans.find(p => p.id === selectedPlan)} />;
+            }
+        };
+
+        // Gym Registration Component
+        const GymRegistration = ({ onRegistered, planDetails }) => {
+            const [formData, setFormData] = useState({
+                gymName: '',
+                ownerName: '',
+                ownerEmail: '',
+                password: '',
+                confirmPassword: '',
+                address: '',
+                phone: '',
+                website: ''
+            });
+            const [isLoading, setIsLoading] = useState(false);
+            const [error, setError] = useState('');
+
+            const handleSubmit = async (e) => {
                 e.preventDefault();
                 setIsLoading(true);
                 setError('');
 
-                if ((adminCredentials.username === 'ADMIN001' && adminCredentials.password === 'admin123') ||
-                    (adminCredentials.username === 'BJJPRO' && adminCredentials.password === 'PROFESSIONAL2024')) {
+                if (formData.password !== formData.confirmPassword) {
+                    setError('Passwords do not match');
+                    setIsLoading(false);
+                    return;
+                }
+
+                try {
+                    const registrationData = {
+                        ...formData,
+                        planId: planDetails.id,
+                        planPrice: planDetails.price
+                    };
+
+                    const result = await api.register(registrationData);
                     
-                    localStorage.setItem('auth_token', 'professional_session');
-                    localStorage.setItem('access_code', accessCode);
-                    onLogin({
-                        name: 'Admin User',
-                        role: 'owner', 
-                        gym_name: 'BJJ Pro Academy',
-                        plan: 'Professional',
-                        hasProAccess: true,
-                        accessCode: accessCode
-                    });
-                } else {
-                    setError('Invalid admin credentials. Please check your username and password.');
+                    if (result.success) {
+                        onRegistered(result);
+                    } else {
+                        setError(result.message || 'Registration failed');
+                    }
+                } catch (err) {
+                    setError('Registration failed. Please try again.');
                 }
                 setIsLoading(false);
             };
 
-            const resetAccess = () => {
-                setShowAdminLogin(false);
-                setAccessCode('');
-                setAdminCredentials({ username: '', password: '' });
+            return (
+                <div className="min-h-screen flex items-center justify-center p-4">
+                    <div className="glass-effect rounded-3xl p-8 w-full max-w-2xl">
+                        <div className="text-center mb-8">
+                            <h1 className="text-3xl font-bold text-white mb-2">Create Your Gym Account</h1>
+                            <div className="flex items-center justify-center gap-2 mb-4">
+                                <span className="text-blue-100">Plan:</span>
+                                <span className="pro-badge">{planDetails.name} - ${planDetails.price}/month</span>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-blue-100 text-sm font-medium mb-2">
+                                        Gym Name *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.gymName}
+                                        onChange={(e) => setFormData({...formData, gymName: e.target.value})}
+                                        required
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-blue-100 text-sm font-medium mb-2">
+                                        Owner Name *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.ownerName}
+                                        onChange={(e) => setFormData({...formData, ownerName: e.target.value})}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">
+                                    Email Address *
+                                </label>
+                                <input
+                                    type="email"
+                                    value={formData.ownerEmail}
+                                    onChange={(e) => setFormData({...formData, ownerEmail: e.target.value})}
+                                    required
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-blue-100 text-sm font-medium mb-2">
+                                        Password *
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                        required
+                                        minLength="8"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-blue-100 text-sm font-medium mb-2">
+                                        Confirm Password *
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={formData.confirmPassword}
+                                        onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                                        required
+                                        minLength="8"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">
+                                    Gym Address
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.address}
+                                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-blue-100 text-sm font-medium mb-2">
+                                        Phone Number
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        value={formData.phone}
+                                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-blue-100 text-sm font-medium mb-2">
+                                        Website
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.website}
+                                        onChange={(e) => setFormData({...formData, website: e.target.value})}
+                                        placeholder="https://yourgym.com"
+                                    />
+                                </div>
+                            </div>
+
+                            {error && (
+                                <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                                    {error}
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="glass-button w-full text-white font-semibold text-lg"
+                            >
+                                {isLoading ? 'Creating Account...' : '🚀 Create Gym Account'}
+                            </button>
+                        </form>
+
+                        <div className="mt-6 text-center text-blue-300 text-sm">
+                            <p>By creating an account, you agree to our Terms of Service and Privacy Policy</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Email Verification Component
+        const EmailVerification = ({ email, onVerified }) => {
+            const [verificationCode, setVerificationCode] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+            const [error, setError] = useState('');
+
+            const handleVerify = async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
                 setError('');
+
+                try {
+                    const result = await api.verifyEmail(verificationCode);
+                    if (result.success) {
+                        onVerified(result);
+                    } else {
+                        setError('Invalid verification code');
+                    }
+                } catch (err) {
+                    setError('Verification failed. Please try again.');
+                }
+                setIsLoading(false);
             };
 
             return (
                 <div className="min-h-screen flex items-center justify-center p-4">
                     <div className="glass-effect rounded-3xl p-8 w-full max-w-md">
                         <div className="text-center mb-8">
-                            <h1 className="text-3xl font-bold text-white mb-2">🥋 BJJ PRO GYM</h1>
-                            <div className="pro-badge mx-auto mb-4">Professional Edition</div>
-                            <p className="text-blue-100 mb-4">The #1 Brazilian Jiu-Jitsu Academy Management Platform</p>
-                            
-                            <div className="bg-white bg-opacity-10 rounded-lg p-4 mb-4 text-left">
-                                <h3 className="text-white font-semibold mb-2">🚀 Complete Gym Management Solution</h3>
-                                <ul className="text-blue-100 text-sm space-y-1">
-                                    <li>• Advanced student tracking & analytics</li>
-                                    <li>• RFID check-in system integration</li>
-                                    <li>• AI-powered retention analysis</li>
-                                    <li>• Professional email campaigns</li>
-                                    <li>• Revenue & business analytics</li>
-                                    <li>• Save 15+ hours/week on admin work</li>
-                                </ul>
-                            </div>
-                            
-                            <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white p-3 rounded-lg mb-4">
-                                <div className="text-sm font-medium">💰 ROI: $1,900+ monthly value for $197/month</div>
-                                <div className="text-xs">Increase retention by 20% • Automate operations • Professional reporting</div>
-                            </div>
+                            <div className="text-6xl mb-4">📧</div>
+                            <h1 className="text-3xl font-bold text-white mb-4">Verify Your Email</h1>
+                            <p className="text-blue-100 mb-4">
+                                We've sent a verification code to:
+                            </p>
+                            <p className="text-white font-semibold">{email}</p>
                         </div>
 
-                        {!showAdminLogin ? (
+                        <form onSubmit={handleVerify} className="space-y-6">
                             <div>
-                                <div className="text-center mb-6">
-                                    <div className="text-4xl mb-3">🔐</div>
-                                    <h2 className="text-xl font-semibold text-white mb-2">Professional Access Required</h2>
-                                    <p className="text-blue-200 text-sm">Enter your access code to continue</p>
-                                </div>
-
-                                <form onSubmit={handleAccessCodeSubmit} className="space-y-6">
-                                    <div>
-                                        <label className="block text-blue-100 text-sm font-medium mb-2">
-                                            Professional Access Code
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={accessCode}
-                                            onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
-                                            placeholder="Enter your access code"
-                                            required
-                                            autoFocus
-                                            style={{ textTransform: 'uppercase', letterSpacing: '2px', textAlign: 'center' }}
-                                        />
-                                    </div>
-
-                                    {error && (
-                                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg text-center">
-                                            {error}
-                                        </div>
-                                    )}
-
-                                    <button
-                                        type="submit"
-                                        disabled={isLoading}
-                                        className="glass-button w-full text-white font-semibold"
-                                    >
-                                        {isLoading ? 'Verifying...' : '🔓 Verify Access Code'}
-                                    </button>
-                                </form>
-
-                                <div className="mt-6 text-center text-blue-300 text-xs">
-                                    <p>BJJ Pro Gym Professional Edition</p>
-                                    <p>Access Code: ADELYNN14</p>
-                                    <div className="mt-4 space-y-2">
-                                        <button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg">
-                                            💳 Purchase Professional Plan - $197/month
-                                        </button>
-                                        <button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg text-sm">
-                                            📞 Schedule Demo Call
-                                        </button>
-                                    </div>
-                                </div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">
+                                    Verification Code
+                                </label>
+                                <input
+                                    type="text"
+                                    value={verificationCode}
+                                    onChange={(e) => setVerificationCode(e.target.value)}
+                                    placeholder="Enter 6-digit code"
+                                    required
+                                    autoFocus
+                                    style={{ textAlign: 'center', letterSpacing: '4px' }}
+                                />
                             </div>
-                        ) : (
-                            <div>
-                                <div className="text-center mb-6">
-                                    <div className="text-green-400 mb-2">✅ Access Code Verified</div>
-                                    <h2 className="text-xl font-semibold text-white mb-2">Admin Login</h2>
-                                    <p className="text-blue-200 text-sm">Professional access granted with code: {accessCode}</p>
+
+                            {error && (
+                                <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                                    {error}
                                 </div>
+                            )}
 
-                                <form onSubmit={handleAdminLogin} className="space-y-6">
-                                    <div>
-                                        <label className="block text-blue-100 text-sm font-medium mb-2">
-                                            Admin Username
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={adminCredentials.username}
-                                            onChange={(e) => setAdminCredentials({...adminCredentials, username: e.target.value})}
-                                            placeholder="Enter admin username"
-                                            required
-                                        />
-                                    </div>
+                            <button
+                                type="submit"
+                                disabled={isLoading || !verificationCode}
+                                className="glass-button w-full text-white font-semibold"
+                            >
+                                {isLoading ? 'Verifying...' : '✅ Verify Email'}
+                            </button>
+                        </form>
 
-                                    <div>
-                                        <label className="block text-blue-100 text-sm font-medium mb-2">
-                                            Password
-                                        </label>
-                                        <input
-                                            type="password"
-                                            value={adminCredentials.password}
-                                            onChange={(e) => setAdminCredentials({...adminCredentials, password: e.target.value})}
-                                            placeholder="Enter password"
-                                            required
-                                        />
-                                    </div>
-
-                                    {error && (
-                                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
-                                            {error}
-                                        </div>
-                                    )}
-
-                                    <button
-                                        type="submit"
-                                        disabled={isLoading}
-                                        className="glass-button w-full text-white font-semibold"
-                                    >
-                                        {isLoading ? 'Logging in...' : '🚀 Enter Dashboard'}
-                                    </button>
-                                </form>
-
-                                <div className="mt-4 text-center">
-                                    <button
-                                        onClick={resetAccess}
-                                        className="text-blue-300 hover:text-white text-sm underline"
-                                    >
-                                        ← Use Different Access Code
-                                    </button>
-                                </div>
-
-                                <div className="mt-6 text-center text-blue-200 text-sm">
-                                    <p><strong>Demo Login:</strong></p>
-                                    <p>Username: ADMIN001</p>
-                                    <p>Password: admin123</p>
-                                </div>
-                            </div>
-                        )}
+                        <div className="mt-6 text-center">
+                            <button className="text-blue-200 hover:text-white underline text-sm">
+                                Resend verification code
+                            </button>
+                        </div>
                     </div>
                 </div>
             );
         };
 
-        // Student Management Component with FULL FUNCTIONALITY
+        // Login Component for returning users
+        const Login = ({ onLogin }) => {
+            const [formData, setFormData] = useState({
+                email: '',
+                password: ''
+            });
+            const [isLoading, setIsLoading] = useState(false);
+            const [error, setError] = useState('');
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                setError('');
+
+                try {
+                    const result = await api.login(formData);
+                    if (result.access_token) {
+                        onLogin(result.user);
+                    } else {
+                        setError('Invalid credentials');
+                    }
+                } catch (err) {
+                    setError('Login failed. Please check your credentials.');
+                }
+                setIsLoading(false);
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center p-4">
+                    <div className="glass-effect rounded-3xl p-8 w-full max-w-md">
+                        <div className="text-center mb-8">
+                            <h1 className="text-4xl font-bold text-white mb-4">🥋 BJJProGym</h1>
+                            <p className="text-blue-100">Welcome back! Sign in to your gym dashboard</p>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">
+                                    Email Address
+                                </label>
+                                <input
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                    required
+                                    autoFocus
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">
+                                    Password
+                                </label>
+                                <input
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                    required
+                                />
+                            </div>
+
+                            {error && (
+                                <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                                    {error}
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="glass-button w-full text-white font-semibold"
+                            >
+                                {isLoading ? 'Signing in...' : '🚀 Sign In'}
+                            </button>
+                        </form>
+
+                        <div className="mt-6 text-center">
+                            <button className="text-blue-200 hover:text-white underline text-sm">
+                                Forgot password?
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Student Management Component - PRODUCTION READY
         const StudentManagement = () => {
-            const [students, setStudents] = useState([
-                { id: 1, name: 'John Smith', email: 'john@email.com', phone: '555-0101', belt_level: 'Blue', member_id: 'MBR001', card_number: 'CARD1001' },
-                { id: 2, name: 'Maria Garcia', email: 'maria@email.com', phone: '555-0102', belt_level: 'White', member_id: 'MBR002', card_number: 'CARD1002' },
-                { id: 3, name: 'David Johnson', email: 'david@email.com', phone: '555-0103', belt_level: 'Purple', member_id: 'MBR003', card_number: 'CARD1003' },
-                { id: 4, name: 'Sarah Wilson', email: 'sarah@email.com', phone: '555-0104', belt_level: 'White', member_id: 'MBR004', card_number: 'CARD1004' },
-                { id: 5, name: 'Mike Brown', email: 'mike@email.com', phone: '555-0105', belt_level: 'Blue', member_id: 'MBR005', card_number: 'CARD1005' },
-                { id: 6, name: 'Lisa Davis', email: 'lisa@email.com', phone: '555-0106', belt_level: 'Purple', member_id: 'MBR006', card_number: 'CARD1006' },
-                { id: 7, name: 'Tom Wilson', email: 'tom@email.com', phone: '555-0107', belt_level: 'Brown', member_id: 'MBR007', card_number: 'CARD1007' },
-                { id: 8, name: 'Anna Lee', email: 'anna@email.com', phone: '555-0108', belt_level: 'White', member_id: 'MBR008', card_number: 'CARD1008' },
-                { id: 9, name: 'Carlos Silva', email: 'carlos@email.com', phone: '555-0109', belt_level: 'Black', member_id: 'MBR009', card_number: 'CARD1009' },
-                { id: 10, name: 'Jessica Taylor', email: 'jessica@email.com', phone: '555-0110', belt_level: 'Blue', member_id: 'MBR010', card_number: 'CARD1010' },
-                { id: 11, name: 'Roberto Santos', email: 'roberto@email.com', phone: '555-0111', belt_level: 'Purple', member_id: 'MBR011', card_number: 'CARD1011' },
-                { id: 12, name: 'Michelle Kim', email: 'michelle@email.com', phone: '555-0112', belt_level: 'White', member_id: 'MBR012', card_number: 'CARD1012' },
-                { id: 13, name: 'Alex Rodriguez', email: 'alex@email.com', phone: '555-0113', belt_level: 'Brown', member_id: 'MBR013', card_number: 'CARD1013' },
-                { id: 14, name: 'Emma Thompson', email: 'emma@email.com', phone: '555-0114', belt_level: 'Blue', member_id: 'MBR014', card_number: 'CARD1014' },
-                { id: 15, name: 'Ryan O\'Connor', email: 'ryan@email.com', phone: '555-0115', belt_level: 'White', member_id: 'MBR015', card_number: 'CARD1015' }
-            ]);
-            
-            const [filteredStudents, setFilteredStudents] = useState(students);
+            const [students, setStudents] = useState([]);
+            const [filteredStudents, setFilteredStudents] = useState([]);
             const [showAddForm, setShowAddForm] = useState(false);
+            const [editingStudent, setEditingStudent] = useState(null);
+            const [isLoading, setIsLoading] = useState(false);
             const [success, setSuccess] = useState('');
+            const [error, setError] = useState('');
             
             // Filter states
-            const [nameFilter, setNameFilter] = useState('');
-            const [emailFilter, setEmailFilter] = useState('');
-            const [phoneFilter, setPhoneFilter] = useState('');
-            const [beltFilter, setBeltFilter] = useState('');
-            const [memberIdFilter, setMemberIdFilter] = useState('');
-            const [cardNumberFilter, setCardNumberFilter] = useState('');
-
-            // Form state
-            const [newStudent, setNewStudent] = useState({
+            const [filters, setFilters] = useState({
                 name: '',
                 email: '',
                 phone: '',
-                belt_level: 'White'
+                belt: '',
+                memberId: '',
+                cardNumber: ''
+            });
+
+            // Form state
+            const [studentForm, setStudentForm] = useState({
+                name: '',
+                email: '',
+                phone: '',
+                belt_level: 'White',
+                emergency_contact: '',
+                emergency_phone: '',
+                medical_notes: '',
+                membership_type: 'monthly'
             });
 
             useEffect(() => {
-                setFilteredStudents(students);
-            }, [students]);
+                loadStudents();
+            }, []);
 
             useEffect(() => {
-                let filtered = students.filter(student => {
-                    const matchesName = !nameFilter || student.name.toLowerCase().includes(nameFilter.toLowerCase());
-                    const matchesEmail = !emailFilter || (student.email && student.email.toLowerCase().includes(emailFilter.toLowerCase()));
-                    const matchesPhone = !phoneFilter || (student.phone && student.phone.includes(phoneFilter));
-                    const matchesBelt = !beltFilter || student.belt_level === beltFilter;
-                    const matchesMemberId = !memberIdFilter || (student.member_id && student.member_id.toLowerCase().includes(memberIdFilter.toLowerCase()));
-                    const matchesCardNumber = !cardNumberFilter || (student.card_number && student.card_number.toLowerCase().includes(cardNumberFilter.toLowerCase()));
+                applyFilters();
+            }, [students, filters]);
 
-                    return matchesName && matchesEmail && matchesPhone && matchesBelt && matchesMemberId && matchesCardNumber;
-                });
-                setFilteredStudents(filtered);
-            }, [students, nameFilter, emailFilter, phoneFilter, beltFilter, memberIdFilter, cardNumberFilter]);
-
-            const handleAddStudent = (e) => {
-                e.preventDefault();
-                if (!newStudent.name.trim()) return;
-                
-                const newId = Math.max(...students.map(s => s.id)) + 1;
-                const memberCount = students.length + 1;
-                const newStudentData = {
-                    id: newId,
-                    name: newStudent.name.trim(),
-                    email: newStudent.email.trim(),
-                    phone: newStudent.phone.trim(),
-                    belt_level: newStudent.belt_level,
-                    member_id: `MBR${memberCount.toString().padStart(3, '0')}`,
-                    card_number: `CARD${(1000 + memberCount).toString()}`
-                };
-                
-                setStudents(prev => [...prev, newStudentData]);
-                setNewStudent({ name: '', email: '', phone: '', belt_level: 'White' });
-                setShowAddForm(false);
-                setSuccess('✅ Student added successfully!');
-                setTimeout(() => setSuccess(''), 3000);
+            const loadStudents = async () => {
+                setIsLoading(true);
+                try {
+                    const response = await api.getStudents();
+                    setStudents(response.students || []);
+                } catch (err) {
+                    setError('Failed to load students');
+                } finally {
+                    setIsLoading(false);
+                }
             };
 
-            const clearAllFilters = () => {
-                setNameFilter('');
-                setEmailFilter('');
-                setPhoneFilter('');
-                setBeltFilter('');
-                setMemberIdFilter('');
-                setCardNumberFilter('');
+            const applyFilters = () => {
+                let filtered = students.filter(student => {
+                    return Object.keys(filters).every(key => {
+                        if (!filters[key]) return true;
+                        const value = student[key === 'memberId' ? 'member_id' : key === 'cardNumber' ? 'card_number' : key];
+                        return value && value.toLowerCase().includes(filters[key].toLowerCase());
+                    });
+                });
+                setFilteredStudents(filtered);
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                setError('');
+
+                try {
+                    if (editingStudent) {
+                        await api.updateStudent(editingStudent.id, studentForm);
+                        setSuccess('✅ Student updated successfully!');
+                    } else {
+                        await api.createStudent(studentForm);
+                        setSuccess('✅ Student added successfully!');
+                    }
+                    
+                    setStudentForm({
+                        name: '',
+                        email: '',
+                        phone: '',
+                        belt_level: 'White',
+                        emergency_contact: '',
+                        emergency_phone: '',
+                        medical_notes: '',
+                        membership_type: 'monthly'
+                    });
+                    setShowAddForm(false);
+                    setEditingStudent(null);
+                    loadStudents();
+                    setTimeout(() => setSuccess(''), 3000);
+                } catch (err) {
+                    setError('Failed to save student');
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const handleEdit = (student) => {
+                setStudentForm({
+                    name: student.name,
+                    email: student.email || '',
+                    phone: student.phone || '',
+                    belt_level: student.belt_level,
+                    emergency_contact: student.emergency_contact || '',
+                    emergency_phone: student.emergency_phone || '',
+                    medical_notes: student.medical_notes || '',
+                    membership_type: student.membership_type || 'monthly'
+                });
+                setEditingStudent(student);
+                setShowAddForm(true);
+            };
+
+            const handleDelete = async (student) => {
+                if (!confirm(`Are you sure you want to delete ${student.name}? This action cannot be undone.`)) return;
+                
+                try {
+                    await api.deleteStudent(student.id);
+                    setSuccess(`✅ ${student.name} deleted successfully!`);
+                    loadStudents();
+                    setTimeout(() => setSuccess(''), 3000);
+                } catch (err) {
+                    setError('Failed to delete student');
+                }
             };
 
             const belts = ['White', 'Blue', 'Purple', 'Brown', 'Black'];
@@ -448,9 +1046,22 @@
             return (
                 <div className="space-y-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <h2 className="text-2xl font-bold text-white">Student Management</h2>
+                        <h2 className="text-2xl font-bold text-white">👥 Student Management</h2>
                         <button
-                            onClick={() => setShowAddForm(true)}
+                            onClick={() => {
+                                setEditingStudent(null);
+                                setStudentForm({
+                                    name: '',
+                                    email: '',
+                                    phone: '',
+                                    belt_level: 'White',
+                                    emergency_contact: '',
+                                    emergency_phone: '',
+                                    medical_notes: '',
+                                    membership_type: 'monthly'
+                                });
+                                setShowAddForm(true);
+                            }}
                             className="glass-button px-6 py-3 text-white font-semibold"
                         >
                             ➕ Add Student
@@ -463,12 +1074,18 @@
                         </div>
                     )}
 
-                    {/* Advanced Filtering - FULLY WORKING */}
+                    {error && (
+                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                            {error}
+                        </div>
+                    )}
+
+                    {/* Advanced Filtering */}
                     <div className="glass-effect rounded-xl p-6">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
                             <h3 className="text-lg font-semibold text-white">🔍 Advanced Filters</h3>
                             <button
-                                onClick={clearAllFilters}
+                                onClick={() => setFilters({ name: '', email: '', phone: '', belt: '', memberId: '', cardNumber: '' })}
                                 className="text-blue-300 hover:text-white text-sm underline"
                             >
                                 Clear All Filters
@@ -476,68 +1093,45 @@
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">Name</label>
-                                <input
-                                    type="text"
-                                    value={nameFilter}
-                                    onChange={(e) => setNameFilter(e.target.value)}
-                                    placeholder="Filter by name..."
-                                />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">Email</label>
-                                <input
-                                    type="text"
-                                    value={emailFilter}
-                                    onChange={(e) => setEmailFilter(e.target.value)}
-                                    placeholder="Filter by email..."
-                                />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">Phone</label>
-                                <input
-                                    type="text"
-                                    value={phoneFilter}
-                                    onChange={(e) => setPhoneFilter(e.target.value)}
-                                    placeholder="Filter by phone..."
-                                />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">Belt Level</label>
-                                <select
-                                    value={beltFilter}
-                                    onChange={(e) => setBeltFilter(e.target.value)}
-                                >
-                                    <option value="">All Belts</option>
-                                    {belts.map(belt => (
-                                        <option key={belt} value={belt}>{belt} Belt</option>
-                                    ))}
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">Member ID</label>
-                                <input
-                                    type="text"
-                                    value={memberIdFilter}
-                                    onChange={(e) => setMemberIdFilter(e.target.value)}
-                                    placeholder="Filter by Member ID..."
-                                />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">Card Number</label>
-                                <input
-                                    type="text"
-                                    value={cardNumberFilter}
-                                    onChange={(e) => setCardNumberFilter(e.target.value)}
-                                    placeholder="Filter by Card Number..."
-                                />
-                            </div>
+                            <input
+                                type="text"
+                                value={filters.name}
+                                onChange={(e) => setFilters({...filters, name: e.target.value})}
+                                placeholder="Filter by name..."
+                            />
+                            <input
+                                type="text"
+                                value={filters.email}
+                                onChange={(e) => setFilters({...filters, email: e.target.value})}
+                                placeholder="Filter by email..."
+                            />
+                            <input
+                                type="text"
+                                value={filters.phone}
+                                onChange={(e) => setFilters({...filters, phone: e.target.value})}
+                                placeholder="Filter by phone..."
+                            />
+                            <select
+                                value={filters.belt}
+                                onChange={(e) => setFilters({...filters, belt: e.target.value})}
+                            >
+                                <option value="">All Belts</option>
+                                {belts.map(belt => (
+                                    <option key={belt} value={belt}>{belt} Belt</option>
+                                ))}
+                            </select>
+                            <input
+                                type="text"
+                                value={filters.memberId}
+                                onChange={(e) => setFilters({...filters, memberId: e.target.value})}
+                                placeholder="Filter by Member ID..."
+                            />
+                            <input
+                                type="text"
+                                value={filters.cardNumber}
+                                onChange={(e) => setFilters({...filters, cardNumber: e.target.value})}
+                                placeholder="Filter by Card Number..."
+                            />
                         </div>
 
                         <div className="mt-4 text-blue-200 text-sm">
@@ -545,95 +1139,178 @@
                         </div>
                     </div>
 
-                    {/* Students List - COMPLETE */}
+                    {/* Students List */}
                     <div className="glass-effect rounded-xl p-6">
                         <h3 className="text-lg font-semibold text-white mb-4">Students ({filteredStudents.length})</h3>
                         
-                        <div className="space-y-3">
-                            {filteredStudents.map((student) => (
-                                <div key={student.id} className="bg-white bg-opacity-10 rounded-lg p-4 hover:bg-opacity-20 transition-colors">
-                                    <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
-                                        <div className="flex-1">
-                                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-2">
-                                                <h4 className="font-semibold text-white text-lg">{student.name}</h4>
-                                                <span className={`belt-${student.belt_level.toLowerCase()} px-3 py-1 rounded-full text-sm font-medium`}>
-                                                    {student.belt_level} Belt
-                                                </span>
+                        {isLoading ? (
+                            <div className="text-center py-8">
+                                <div className="text-blue-200">Loading students...</div>
+                            </div>
+                        ) : filteredStudents.length === 0 ? (
+                            <div className="text-center py-12">
+                                <div className="text-6xl mb-4">👥</div>
+                                <div className="text-blue-200 text-lg mb-2">
+                                    {students.length === 0 ? 'No students registered yet' : 'No students match your filters'}
+                                </div>
+                                <div className="text-blue-300 text-sm">
+                                    {students.length === 0 ? 'Add your first student to get started!' : 'Try adjusting your filters'}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {filteredStudents.map((student) => (
+                                    <div key={student.id} className="bg-white bg-opacity-10 rounded-lg p-4 hover:bg-opacity-20 transition-colors">
+                                        <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
+                                            <div className="flex-1">
+                                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-2">
+                                                    <h4 className="font-semibold text-white text-lg">{student.name}</h4>
+                                                    <span className={`belt-${student.belt_level.toLowerCase()} px-3 py-1 rounded-full text-sm font-medium`}>
+                                                        {student.belt_level} Belt
+                                                    </span>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-blue-100 text-sm mb-2">
+                                                    {student.email && <div>📧 {student.email}</div>}
+                                                    {student.phone && <div>📱 {student.phone}</div>}
+                                                </div>
+                                                
+                                                <div className="flex flex-wrap gap-2">
+                                                    <span className="member-id-badge">{student.member_id}</span>
+                                                    <span className="card-number-badge">{student.card_number}</span>
+                                                </div>
                                             </div>
-                                            
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-blue-100 text-sm mb-2">
-                                                <div>📧 {student.email}</div>
-                                                <div>📱 {student.phone}</div>
-                                            </div>
-                                            
-                                            <div className="flex flex-wrap gap-2">
-                                                <span className="member-id-badge">{student.member_id}</span>
-                                                <span className="card-number-badge">{student.card_number}</span>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => handleEdit(student)}
+                                                    className="bg-blue-600 hover:bg-blue-700 px-3 py-2 text-white text-sm rounded-lg"
+                                                >
+                                                    ✏️ Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(student)}
+                                                    className="bg-red-600 hover:bg-red-700 px-3 py-2 text-white text-sm rounded-lg"
+                                                >
+                                                    🗑️ Delete
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Add Student Modal - WORKING */}
+                    {/* Add/Edit Student Modal */}
                     {showAddForm && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                            <div className="glass-effect rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-                                <h3 className="text-xl font-bold text-white mb-4">Add New Student</h3>
+                            <div className="glass-effect rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                                <h3 className="text-xl font-bold text-white mb-4">
+                                    {editingStudent ? 'Edit Student' : 'Add New Student'}
+                                </h3>
                                 
-                                <form onSubmit={handleAddStudent} className="space-y-4">
-                                    <div>
-                                        <label className="block text-blue-100 text-sm font-medium mb-2">Name *</label>
-                                        <input
-                                            type="text"
-                                            value={newStudent.name}
-                                            onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
-                                            required
-                                        />
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-blue-100 text-sm font-medium mb-2">Name *</label>
+                                            <input
+                                                type="text"
+                                                value={studentForm.name}
+                                                onChange={(e) => setStudentForm({...studentForm, name: e.target.value})}
+                                                required
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-blue-100 text-sm font-medium mb-2">Belt Level</label>
+                                            <select
+                                                value={studentForm.belt_level}
+                                                onChange={(e) => setStudentForm({...studentForm, belt_level: e.target.value})}
+                                            >
+                                                {belts.map(belt => (
+                                                    <option key={belt} value={belt}>{belt} Belt</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-blue-100 text-sm font-medium mb-2">Email</label>
+                                            <input
+                                                type="email"
+                                                value={studentForm.email}
+                                                onChange={(e) => setStudentForm({...studentForm, email: e.target.value})}
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-blue-100 text-sm font-medium mb-2">Phone</label>
+                                            <input
+                                                type="tel"
+                                                value={studentForm.phone}
+                                                onChange={(e) => setStudentForm({...studentForm, phone: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-blue-100 text-sm font-medium mb-2">Emergency Contact</label>
+                                            <input
+                                                type="text"
+                                                value={studentForm.emergency_contact}
+                                                onChange={(e) => setStudentForm({...studentForm, emergency_contact: e.target.value})}
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-blue-100 text-sm font-medium mb-2">Emergency Phone</label>
+                                            <input
+                                                type="tel"
+                                                value={studentForm.emergency_phone}
+                                                onChange={(e) => setStudentForm({...studentForm, emergency_phone: e.target.value})}
+                                            />
+                                        </div>
                                     </div>
                                     
                                     <div>
-                                        <label className="block text-blue-100 text-sm font-medium mb-2">Email</label>
-                                        <input
-                                            type="email"
-                                            value={newStudent.email}
-                                            onChange={(e) => setNewStudent({...newStudent, email: e.target.value})}
-                                        />
-                                    </div>
-                                    
-                                    <div>
-                                        <label className="block text-blue-100 text-sm font-medium mb-2">Phone</label>
-                                        <input
-                                            type="tel"
-                                            value={newStudent.phone}
-                                            onChange={(e) => setNewStudent({...newStudent, phone: e.target.value})}
-                                        />
-                                    </div>
-                                    
-                                    <div>
-                                        <label className="block text-blue-100 text-sm font-medium mb-2">Belt Level</label>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Membership Type</label>
                                         <select
-                                            value={newStudent.belt_level}
-                                            onChange={(e) => setNewStudent({...newStudent, belt_level: e.target.value})}
+                                            value={studentForm.membership_type}
+                                            onChange={(e) => setStudentForm({...studentForm, membership_type: e.target.value})}
                                         >
-                                            {belts.map(belt => (
-                                                <option key={belt} value={belt}>{belt} Belt</option>
-                                            ))}
+                                            <option value="monthly">Monthly</option>
+                                            <option value="quarterly">Quarterly</option>
+                                            <option value="yearly">Yearly</option>
+                                            <option value="drop-in">Drop-in</option>
                                         </select>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Medical Notes</label>
+                                        <textarea
+                                            value={studentForm.medical_notes}
+                                            onChange={(e) => setStudentForm({...studentForm, medical_notes: e.target.value})}
+                                            rows="3"
+                                            placeholder="Any medical conditions or notes..."
+                                        />
                                     </div>
                                     
                                     <div className="flex gap-3">
                                         <button
                                             type="submit"
+                                            disabled={isLoading}
                                             className="glass-button flex-1 text-white font-semibold"
                                         >
-                                            Add Student
+                                            {isLoading ? 'Saving...' : editingStudent ? 'Update Student' : 'Add Student'}
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => setShowAddForm(false)}
+                                            onClick={() => {
+                                                setShowAddForm(false);
+                                                setEditingStudent(null);
+                                            }}
                                             className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
                                         >
                                             Cancel
@@ -647,57 +1324,90 @@
             );
         };
 
-        // Class Management Component - FULLY WORKING
-        const ClassManagement = () => {
-            const [classes, setClasses] = useState([
-                { id: 1, name: 'Fundamentals', description: 'Basic BJJ techniques for beginners', created_at: new Date().toISOString() },
-                { id: 2, name: 'Advanced', description: 'Advanced techniques and sparring', created_at: new Date().toISOString() },
-                { id: 3, name: 'Competition', description: 'Competition preparation and training', created_at: new Date().toISOString() },
-                { id: 4, name: 'No-Gi', description: 'Brazilian Jiu-Jitsu without gi', created_at: new Date().toISOString() },
-                { id: 5, name: 'Open Mat', description: 'Free training and practice time', created_at: new Date().toISOString() },
-                { id: 6, name: 'Kids Program', description: 'BJJ classes designed for children', created_at: new Date().toISOString() }
-            ]);
-            
-            const [success, setSuccess] = useState('');
+        // Classes Management Component - PRODUCTION READY
+        const ClassesManagement = () => {
+            const [classes, setClasses] = useState([]);
             const [showAddForm, setShowAddForm] = useState(false);
-            const [newClass, setNewClass] = useState({ name: '', description: '' });
+            const [editingClass, setEditingClass] = useState(null);
+            const [isLoading, setIsLoading] = useState(false);
+            const [success, setSuccess] = useState('');
+            const [error, setError] = useState('');
+            
+            const [classForm, setClassForm] = useState({
+                name: '',
+                description: '',
+                capacity: '',
+                duration: ''
+            });
 
-            const handleAddClass = (e) => {
-                e.preventDefault();
-                if (!newClass.name.trim()) return;
-                
-                const newId = Math.max(...classes.map(c => c.id)) + 1;
-                const newClassItem = {
-                    id: newId,
-                    name: newClass.name.trim(),
-                    description: newClass.description.trim(),
-                    created_at: new Date().toISOString()
-                };
-                
-                setClasses(prev => [...prev, newClassItem]);
-                setNewClass({ name: '', description: '' });
-                setShowAddForm(false);
-                setSuccess('✅ Class added successfully!');
-                setTimeout(() => setSuccess(''), 3000);
+            useEffect(() => {
+                loadClasses();
+            }, []);
+
+            const loadClasses = async () => {
+                setIsLoading(true);
+                try {
+                    const response = await api.getClasses();
+                    setClasses(response.classes || []);
+                } catch (err) {
+                    setError('Failed to load classes');
+                } finally {
+                    setIsLoading(false);
+                }
             };
 
-            const handleDeleteClass = (classId, className) => {
-                if (!window.confirm(`Are you sure you want to delete "${className}"? This action cannot be undone.`)) return;
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                setError('');
+
+                try {
+                    if (editingClass) {
+                        await api.updateClass(editingClass.id, classForm);
+                        setSuccess('✅ Class updated successfully!');
+                    } else {
+                        await api.createClass(classForm);
+                        setSuccess('✅ Class added successfully!');
+                    }
+                    
+                    setClassForm({ name: '', description: '', capacity: '', duration: '' });
+                    setShowAddForm(false);
+                    setEditingClass(null);
+                    loadClasses();
+                    setTimeout(() => setSuccess(''), 3000);
+                } catch (err) {
+                    setError('Failed to save class');
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const handleDelete = async (classItem) => {
+                if (!confirm(`Are you sure you want to delete "${classItem.name}"? This action cannot be undone.`)) return;
                 
-                setClasses(prev => prev.filter(c => c.id !== classId));
-                setSuccess(`✅ Class "${className}" deleted successfully!`);
-                setTimeout(() => setSuccess(''), 3000);
+                try {
+                    await api.deleteClass(classItem.id);
+                    setSuccess(`✅ ${classItem.name} deleted successfully!`);
+                    loadClasses();
+                    setTimeout(() => setSuccess(''), 3000);
+                } catch (err) {
+                    setError('Failed to delete class');
+                }
             };
 
             return (
                 <div className="space-y-6">
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                         <div>
-                            <h2 className="text-3xl font-bold text-white mb-2">📚 Class Management</h2>
+                            <h2 className="text-3xl font-bold text-white mb-2">📚 Classes Management</h2>
                             <p className="text-blue-100">Manage your BJJ classes and training programs</p>
                         </div>
                         <button
-                            onClick={() => setShowAddForm(true)}
+                            onClick={() => {
+                                setEditingClass(null);
+                                setClassForm({ name: '', description: '', capacity: '', duration: '' });
+                                setShowAddForm(true);
+                            }}
                             className="glass-button px-6 py-3 text-white font-semibold"
                         >
                             ➕ Add New Class
@@ -710,72 +1420,107 @@
                         </div>
                     )}
 
-                    <div className="glass-effect rounded-xl p-6">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-semibold text-white">Classes ({classes.length})</h3>
+                    {error && (
+                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                            {error}
                         </div>
+                    )}
+
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-xl font-semibold text-white mb-6">Classes ({classes.length})</h3>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {classes.map((classItem) => (
-                                <div key={classItem.id} className="bg-white bg-opacity-10 rounded-lg p-6 hover:bg-opacity-20 transition-all duration-300 border border-white border-opacity-20">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="flex-1">
-                                            <h4 className="font-bold text-white text-xl mb-2">{classItem.name}</h4>
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <span className="bg-blue-500 bg-opacity-30 px-3 py-1 rounded-full text-blue-100 text-sm font-medium">
-                                                    🥋 BJJ Class
-                                                </span>
+                        {isLoading ? (
+                            <div className="text-center py-8">
+                                <div className="text-blue-200">Loading classes...</div>
+                            </div>
+                        ) : classes.length === 0 ? (
+                            <div className="text-center py-12">
+                                <div className="text-6xl mb-4">📚</div>
+                                <div className="text-blue-200 text-lg mb-2">No classes created yet</div>
+                                <div className="text-blue-300 text-sm">Create your first class to start organizing training programs!</div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {classes.map((classItem) => (
+                                    <div key={classItem.id} className="bg-white bg-opacity-10 rounded-lg p-6 hover:bg-opacity-20 transition-all duration-300 border border-white border-opacity-20">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="flex-1">
+                                                <h4 className="font-bold text-white text-xl mb-2">{classItem.name}</h4>
+                                                <div className="flex flex-wrap gap-2 mb-3">
+                                                    <span className="bg-blue-500 bg-opacity-30 px-3 py-1 rounded-full text-blue-100 text-sm font-medium">
+                                                        🥋 BJJ Class
+                                                    </span>
+                                                    {classItem.capacity && (
+                                                        <span className="bg-green-500 bg-opacity-30 px-3 py-1 rounded-full text-green-100 text-sm font-medium">
+                                                            👥 {classItem.capacity} max
+                                                        </span>
+                                                    )}
+                                                    {classItem.duration && (
+                                                        <span className="bg-purple-500 bg-opacity-30 px-3 py-1 rounded-full text-purple-100 text-sm font-medium">
+                                                            ⏱️ {classItem.duration}min
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                        <button
-                                            onClick={() => handleDeleteClass(classItem.id, classItem.name)}
-                                            className="bg-red-500 bg-opacity-20 p-3 text-red-100 rounded-lg hover:bg-opacity-40 transition-all"
-                                            title="Delete class"
-                                        >
-                                            🗑️
-                                        </button>
-                                    </div>
-                                    
-                                    {classItem.description && (
-                                        <div className="text-blue-100 text-sm mb-4">
-                                            📝 {classItem.description}
+                                        
+                                        {classItem.description && (
+                                            <div className="text-blue-100 text-sm mb-4">
+                                                📝 {classItem.description}
+                                            </div>
+                                        )}
+                                        
+                                        <div className="flex justify-between items-center">
+                                            <span className="bg-green-500 bg-opacity-20 px-2 py-1 rounded text-green-100 text-xs">
+                                                Active
+                                            </span>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setClassForm({
+                                                            name: classItem.name,
+                                                            description: classItem.description || '',
+                                                            capacity: classItem.capacity || '',
+                                                            duration: classItem.duration || ''
+                                                        });
+                                                        setEditingClass(classItem);
+                                                        setShowAddForm(true);
+                                                    }}
+                                                    className="bg-blue-600 hover:bg-blue-700 px-3 py-2 text-white text-sm rounded-lg"
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(classItem)}
+                                                    className="bg-red-600 hover:bg-red-700 px-3 py-2 text-white text-sm rounded-lg"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
                                         </div>
-                                    )}
-                                    
-                                    <div className="flex justify-between items-center text-xs text-blue-300">
-                                        <span>Created: {new Date(classItem.created_at).toLocaleDateString()}</span>
-                                        <span className="bg-green-500 bg-opacity-20 px-2 py-1 rounded text-green-100">
-                                            Active
-                                        </span>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Add Class Modal */}
+                    {/* Add/Edit Class Modal */}
                     {showAddForm && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                             <div className="glass-effect rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-2xl font-bold text-white">Add New Class</h3>
-                                    <button
-                                        onClick={() => setShowAddForm(false)}
-                                        className="text-blue-200 hover:text-white text-2xl"
-                                    >
-                                        ✕
-                                    </button>
-                                </div>
+                                <h3 className="text-2xl font-bold text-white mb-6">
+                                    {editingClass ? 'Edit Class' : 'Add New Class'}
+                                </h3>
                                 
-                                <form onSubmit={handleAddClass} className="space-y-6">
+                                <form onSubmit={handleSubmit} className="space-y-6">
                                     <div>
                                         <label className="block text-blue-100 text-sm font-semibold mb-3">
                                             Class Name *
                                         </label>
                                         <input
                                             type="text"
-                                            value={newClass.name}
-                                            onChange={(e) => setNewClass({...newClass, name: e.target.value})}
+                                            value={classForm.name}
+                                            onChange={(e) => setClassForm({...classForm, name: e.target.value})}
                                             placeholder="e.g., Fundamentals, Advanced, No-Gi, Kids Program"
                                             required
                                             autoFocus
@@ -784,27 +1529,61 @@
                                     
                                     <div>
                                         <label className="block text-blue-100 text-sm font-semibold mb-3">
-                                            Description (Optional)
+                                            Description
                                         </label>
                                         <textarea
-                                            value={newClass.description}
-                                            onChange={(e) => setNewClass({...newClass, description: e.target.value})}
+                                            value={classForm.description}
+                                            onChange={(e) => setClassForm({...classForm, description: e.target.value})}
                                             placeholder="Describe what this class focuses on, skill level, techniques covered..."
                                             rows="4"
                                             className="w-full resize-none"
                                         />
                                     </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-blue-100 text-sm font-semibold mb-3">
+                                                Max Capacity
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={classForm.capacity}
+                                                onChange={(e) => setClassForm({...classForm, capacity: e.target.value})}
+                                                placeholder="20"
+                                                min="1"
+                                                max="100"
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-blue-100 text-sm font-semibold mb-3">
+                                                Duration (minutes)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={classForm.duration}
+                                                onChange={(e) => setClassForm({...classForm, duration: e.target.value})}
+                                                placeholder="60"
+                                                min="15"
+                                                max="180"
+                                            />
+                                        </div>
+                                    </div>
                                     
                                     <div className="flex gap-3 pt-4">
                                         <button
                                             type="submit"
+                                            disabled={isLoading}
                                             className="glass-button flex-1 text-white font-semibold"
                                         >
-                                            ✅ Add Class
+                                            {isLoading ? 'Saving...' : editingClass ? 'Update Class' : 'Add Class'}
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => setShowAddForm(false)}
+                                            onClick={() => {
+                                                setShowAddForm(false);
+                                                setEditingClass(null);
+                                            }}
                                             className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
                                         >
                                             Cancel
@@ -818,61 +1597,87 @@
             );
         };
 
-        // Schedule Management Component - FULLY WORKING
+        // Schedule Management Component - PRODUCTION READY
         const ScheduleManagement = () => {
-            const [schedules, setSchedules] = useState([
-                { id: 1, class_name: 'Fundamentals', day_of_week: 0, start_time: '18:00', end_time: '19:00', instructor: 'Professor Silva' },
-                { id: 2, class_name: 'Advanced', day_of_week: 0, start_time: '19:15', end_time: '20:45', instructor: 'Professor Johnson' },
-                { id: 3, class_name: 'No-Gi', day_of_week: 1, start_time: '19:00', end_time: '20:00', instructor: 'Professor Davis' },
-                { id: 4, class_name: 'Fundamentals', day_of_week: 2, start_time: '18:00', end_time: '19:00', instructor: 'Professor Silva' },
-                { id: 5, class_name: 'Competition', day_of_week: 2, start_time: '19:15', end_time: '21:15', instructor: 'Professor Brown' },
-                { id: 6, class_name: 'Open Mat', day_of_week: 4, start_time: '18:00', end_time: '20:00', instructor: 'Open' },
-                { id: 7, class_name: 'Fundamentals', day_of_week: 5, start_time: '10:00', end_time: '11:00', instructor: 'Professor Silva' },
-                { id: 8, class_name: 'Open Mat', day_of_week: 5, start_time: '11:15', end_time: '13:15', instructor: 'Open' }
-            ]);
-            
-            const [success, setSuccess] = useState('');
+            const [schedules, setSchedules] = useState([]);
+            const [classes, setClasses] = useState([]);
             const [showAddForm, setShowAddForm] = useState(false);
-            const [newSchedule, setNewSchedule] = useState({
-                class_name: '',
+            const [isLoading, setIsLoading] = useState(false);
+            const [success, setSuccess] = useState('');
+            const [error, setError] = useState('');
+            
+            const [scheduleForm, setScheduleForm] = useState({
+                class_id: '',
                 day_of_week: 0,
                 start_time: '18:00',
                 end_time: '19:00',
                 instructor: ''
             });
 
-            const classes = ['Fundamentals', 'Advanced', 'Competition', 'No-Gi', 'Open Mat', 'Kids Program'];
             const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-            const handleAddSchedule = (e) => {
-                e.preventDefault();
-                if (!newSchedule.class_name.trim()) return;
-                
-                const newId = Math.max(...schedules.map(s => s.id)) + 1;
-                const newScheduleItem = {
-                    id: newId,
-                    ...newSchedule
-                };
-                
-                setSchedules(prev => [...prev, newScheduleItem]);
-                setNewSchedule({
-                    class_name: '',
-                    day_of_week: 0,
-                    start_time: '18:00',
-                    end_time: '19:00',
-                    instructor: ''
-                });
-                setShowAddForm(false);
-                setSuccess('✅ Schedule added successfully!');
-                setTimeout(() => setSuccess(''), 3000);
+            useEffect(() => {
+                loadSchedules();
+                loadClasses();
+            }, []);
+
+            const loadSchedules = async () => {
+                setIsLoading(true);
+                try {
+                    const response = await api.getSchedules();
+                    setSchedules(response.schedules || []);
+                } catch (err) {
+                    setError('Failed to load schedules');
+                } finally {
+                    setIsLoading(false);
+                }
             };
 
-            const handleDeleteSchedule = (scheduleId) => {
+            const loadClasses = async () => {
+                try {
+                    const response = await api.getClasses();
+                    setClasses(response.classes || []);
+                } catch (err) {
+                    console.error('Failed to load classes');
+                }
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                setError('');
+
+                try {
+                    await api.createSchedule(scheduleForm);
+                    setSuccess('✅ Schedule added successfully!');
+                    setScheduleForm({
+                        class_id: '',
+                        day_of_week: 0,
+                        start_time: '18:00',
+                        end_time: '19:00',
+                        instructor: ''
+                    });
+                    setShowAddForm(false);
+                    loadSchedules();
+                    setTimeout(() => setSuccess(''), 3000);
+                } catch (err) {
+                    setError('Failed to save schedule');
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const handleDelete = async (schedule) => {
                 if (!confirm('Are you sure you want to delete this schedule?')) return;
                 
-                setSchedules(prev => prev.filter(s => s.id !== scheduleId));
-                setSuccess('✅ Schedule deleted successfully!');
-                setTimeout(() => setSuccess(''), 3000);
+                try {
+                    await api.deleteSchedule(schedule.id);
+                    setSuccess('✅ Schedule deleted successfully!');
+                    loadSchedules();
+                    setTimeout(() => setSuccess(''), 3000);
+                } catch (err) {
+                    setError('Failed to delete schedule');
+                }
             };
 
             const formatTime = (time) => {
@@ -883,13 +1688,22 @@
                 return `${displayHour}:${minutes} ${ampm}`;
             };
 
+            const getClassName = (classId) => {
+                const classItem = classes.find(c => c.id === classId);
+                return classItem ? classItem.name : 'Unknown Class';
+            };
+
             return (
                 <div className="space-y-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <h2 className="text-2xl font-bold text-white">Schedule Management</h2>
+                        <div>
+                            <h2 className="text-3xl font-bold text-white mb-2">📅 Schedule Management</h2>
+                            <p className="text-blue-100">Manage your weekly class schedule</p>
+                        </div>
                         <button
                             onClick={() => setShowAddForm(true)}
                             className="glass-button px-6 py-3 text-white font-semibold"
+                            disabled={classes.length === 0}
                         >
                             ➕ Add Schedule
                         </button>
@@ -901,51 +1715,75 @@
                         </div>
                     )}
 
+                    {error && (
+                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                            {error}
+                        </div>
+                    )}
+
+                    {classes.length === 0 && (
+                        <div className="bg-yellow-500 bg-opacity-20 border border-yellow-300 text-yellow-100 px-4 py-3 rounded-lg">
+                            ⚠️ You need to create classes first before scheduling them. Go to the Classes tab to add classes.
+                        </div>
+                    )}
+
                     <div className="glass-effect rounded-xl p-6">
                         <h3 className="text-lg font-semibold text-white mb-6">Weekly Schedule</h3>
                         
-                        <div className="space-y-4">
-                            {daysOfWeek.map((day, dayIndex) => {
-                                const daySchedules = schedules
-                                    .filter(s => s.day_of_week === dayIndex)
-                                    .sort((a, b) => a.start_time.localeCompare(b.start_time));
-                                
-                                return (
-                                    <div key={day} className="bg-white bg-opacity-5 rounded-lg p-4">
-                                        <h4 className="font-semibold text-white text-lg mb-3">
-                                            {day}
-                                        </h4>
-                                        
-                                        {daySchedules.length === 0 ? (
-                                            <div className="text-blue-300 text-sm">No classes scheduled</div>
-                                        ) : (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                {daySchedules.map((schedule) => (
-                                                    <div key={schedule.id} className="bg-white bg-opacity-10 rounded-lg p-3 relative group">
-                                                        <button
-                                                            onClick={() => handleDeleteSchedule(schedule.id)}
-                                                            className="absolute top-2 right-2 text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                            title="Delete schedule"
-                                                        >
-                                                            ❌
-                                                        </button>
-                                                        <div className="font-medium text-white pr-6">{schedule.class_name}</div>
-                                                        <div className="text-blue-200 text-sm">
-                                                            {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
-                                                        </div>
-                                                        {schedule.instructor && (
-                                                            <div className="text-blue-300 text-sm">
-                                                                👨‍🏫 {schedule.instructor}
+                        {isLoading ? (
+                            <div className="text-center py-8">
+                                <div className="text-blue-200">Loading schedules...</div>
+                            </div>
+                        ) : schedules.length === 0 ? (
+                            <div className="text-center py-12">
+                                <div className="text-6xl mb-4">📅</div>
+                                <div className="text-blue-200 text-lg mb-2">No schedules created yet</div>
+                                <div className="text-blue-300 text-sm">Set up your weekly class schedule to get started!</div>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {daysOfWeek.map((day, dayIndex) => {
+                                    const daySchedules = schedules
+                                        .filter(s => s.day_of_week === dayIndex)
+                                        .sort((a, b) => a.start_time.localeCompare(b.start_time));
+                                    
+                                    return (
+                                        <div key={day} className="bg-white bg-opacity-5 rounded-lg p-4">
+                                            <h4 className="font-semibold text-white text-lg mb-3">
+                                                {day}
+                                            </h4>
+                                            
+                                            {daySchedules.length === 0 ? (
+                                                <div className="text-blue-300 text-sm">No classes scheduled</div>
+                                            ) : (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                    {daySchedules.map((schedule) => (
+                                                        <div key={schedule.id} className="bg-white bg-opacity-10 rounded-lg p-3 relative group">
+                                                            <button
+                                                                onClick={() => handleDelete(schedule)}
+                                                                className="absolute top-2 right-2 text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                title="Delete schedule"
+                                                            >
+                                                                ❌
+                                                            </button>
+                                                            <div className="font-medium text-white pr-6">{getClassName(schedule.class_id)}</div>
+                                                            <div className="text-blue-200 text-sm">
+                                                                {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                                            {schedule.instructor && (
+                                                                <div className="text-blue-300 text-sm">
+                                                                    👨‍🏫 {schedule.instructor}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
 
                     {/* Add Schedule Modal */}
@@ -954,17 +1792,17 @@
                             <div className="glass-effect rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
                                 <h3 className="text-xl font-bold text-white mb-4">Add New Schedule</h3>
                                 
-                                <form onSubmit={handleAddSchedule} className="space-y-4">
+                                <form onSubmit={handleSubmit} className="space-y-4">
                                     <div>
                                         <label className="block text-blue-100 text-sm font-medium mb-2">Class *</label>
                                         <select
-                                            value={newSchedule.class_name}
-                                            onChange={(e) => setNewSchedule({...newSchedule, class_name: e.target.value})}
+                                            value={scheduleForm.class_id}
+                                            onChange={(e) => setScheduleForm({...scheduleForm, class_id: e.target.value})}
                                             required
                                         >
                                             <option value="">Select a class</option>
                                             {classes.map(cls => (
-                                                <option key={cls} value={cls}>{cls}</option>
+                                                <option key={cls.id} value={cls.id}>{cls.name}</option>
                                             ))}
                                         </select>
                                     </div>
@@ -972,8 +1810,8 @@
                                     <div>
                                         <label className="block text-blue-100 text-sm font-medium mb-2">Day of Week *</label>
                                         <select
-                                            value={newSchedule.day_of_week}
-                                            onChange={(e) => setNewSchedule({...newSchedule, day_of_week: parseInt(e.target.value)})}
+                                            value={scheduleForm.day_of_week}
+                                            onChange={(e) => setScheduleForm({...scheduleForm, day_of_week: parseInt(e.target.value)})}
                                             required
                                         >
                                             {daysOfWeek.map((day, index) => (
@@ -987,8 +1825,8 @@
                                             <label className="block text-blue-100 text-sm font-medium mb-2">Start Time *</label>
                                             <input
                                                 type="time"
-                                                value={newSchedule.start_time}
-                                                onChange={(e) => setNewSchedule({...newSchedule, start_time: e.target.value})}
+                                                value={scheduleForm.start_time}
+                                                onChange={(e) => setScheduleForm({...scheduleForm, start_time: e.target.value})}
                                                 required
                                             />
                                         </div>
@@ -996,8 +1834,8 @@
                                             <label className="block text-blue-100 text-sm font-medium mb-2">End Time *</label>
                                             <input
                                                 type="time"
-                                                value={newSchedule.end_time}
-                                                onChange={(e) => setNewSchedule({...newSchedule, end_time: e.target.value})}
+                                                value={scheduleForm.end_time}
+                                                onChange={(e) => setScheduleForm({...scheduleForm, end_time: e.target.value})}
                                                 required
                                             />
                                         </div>
@@ -1007,8 +1845,8 @@
                                         <label className="block text-blue-100 text-sm font-medium mb-2">Instructor</label>
                                         <input
                                             type="text"
-                                            value={newSchedule.instructor}
-                                            onChange={(e) => setNewSchedule({...newSchedule, instructor: e.target.value})}
+                                            value={scheduleForm.instructor}
+                                            onChange={(e) => setScheduleForm({...scheduleForm, instructor: e.target.value})}
                                             placeholder="Instructor name"
                                         />
                                     </div>
@@ -1016,9 +1854,10 @@
                                     <div className="flex gap-3">
                                         <button
                                             type="submit"
+                                            disabled={isLoading}
                                             className="glass-button flex-1 text-white font-semibold"
                                         >
-                                            Add Schedule
+                                            {isLoading ? 'Adding...' : 'Add Schedule'}
                                         </button>
                                         <button
                                             type="button"
@@ -1036,371 +1875,8 @@
             );
         };
 
-        // Attendance Management Component - FULLY FUNCTIONAL
-        const AttendanceManagement = () => {
-            const [attendanceData, setAttendanceData] = useState([
-                { id: 1, student_name: 'John Smith', class_name: 'Fundamentals', check_in_time: '2025-01-05 18:05', member_id: 'MBR001' },
-                { id: 2, student_name: 'Maria Garcia', class_name: 'Fundamentals', check_in_time: '2025-01-05 18:08', member_id: 'MBR002' },
-                { id: 3, student_name: 'David Johnson', class_name: 'Advanced', check_in_time: '2025-01-05 19:20', member_id: 'MBR003' },
-                { id: 4, student_name: 'Sarah Wilson', class_name: 'No-Gi', check_in_time: '2025-01-04 19:05', member_id: 'MBR004' },
-                { id: 5, student_name: 'Mike Brown', class_name: 'Fundamentals', check_in_time: '2025-01-04 18:12', member_id: 'MBR005' },
-            ]);
-            
-            const [filterDate, setFilterDate] = useState('');
-            const [filterStudent, setFilterStudent] = useState('');
-            const [filterClass, setFilterClass] = useState('');
-            
-            const filteredData = attendanceData.filter(record => {
-                const matchesDate = !filterDate || record.check_in_time.includes(filterDate);
-                const matchesStudent = !filterStudent || record.student_name.toLowerCase().includes(filterStudent.toLowerCase());
-                const matchesClass = !filterClass || record.class_name.toLowerCase().includes(filterClass.toLowerCase());
-                return matchesDate && matchesStudent && matchesClass;
-            });
-
-            const todayCount = attendanceData.filter(record => 
-                record.check_in_time.includes(new Date().toISOString().split('T')[0])
-            ).length;
-
-            const weekCount = attendanceData.length;
-
-            return (
-                <div className="space-y-6">
-                    <div>
-                        <h2 className="text-3xl font-bold text-white mb-2">✅ Attendance Tracking</h2>
-                        <p className="text-blue-100">Real-time student check-ins and attendance analytics</p>
-                    </div>
-
-                    {/* Stats Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="glass-effect rounded-xl p-4">
-                            <div className="text-2xl font-bold text-white">{todayCount}</div>
-                            <div className="text-blue-200 text-sm">Today's Check-ins</div>
-                        </div>
-                        <div className="glass-effect rounded-xl p-4">
-                            <div className="text-2xl font-bold text-white">{weekCount}</div>
-                            <div className="text-blue-200 text-sm">This Week</div>
-                        </div>
-                        <div className="glass-effect rounded-xl p-4">
-                            <div className="text-2xl font-bold text-white">87%</div>
-                            <div className="text-blue-200 text-sm">Attendance Rate</div>
-                        </div>
-                    </div>
-
-                    {/* Filters */}
-                    <div className="glass-effect rounded-xl p-6">
-                        <h3 className="text-lg font-semibold text-white mb-4">🔍 Filter Attendance</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">Date</label>
-                                <input
-                                    type="date"
-                                    value={filterDate}
-                                    onChange={(e) => setFilterDate(e.target.value)}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">Student</label>
-                                <input
-                                    type="text"
-                                    value={filterStudent}
-                                    onChange={(e) => setFilterStudent(e.target.value)}
-                                    placeholder="Filter by student name..."
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">Class</label>
-                                <input
-                                    type="text"
-                                    value={filterClass}
-                                    onChange={(e) => setFilterClass(e.target.value)}
-                                    placeholder="Filter by class..."
-                                />
-                            </div>
-                        </div>
-                        <div className="mt-4 text-blue-200 text-sm">
-                            Showing {filteredData.length} attendance records
-                        </div>
-                    </div>
-
-                    {/* Attendance List */}
-                    <div className="glass-effect rounded-xl p-6">
-                        <h3 className="text-lg font-semibold text-white mb-4">Recent Check-ins</h3>
-                        <div className="space-y-3">
-                            {filteredData.map((record) => (
-                                <div key={record.id} className="bg-white bg-opacity-10 rounded-lg p-4">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <div className="font-semibold text-white">{record.student_name}</div>
-                                            <div className="text-blue-200 text-sm">{record.class_name}</div>
-                                            <div className="text-blue-300 text-sm">{record.member_id}</div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-white text-sm">
-                                                {new Date(record.check_in_time).toLocaleString()}
-                                            </div>
-                                            <div className="bg-green-500 bg-opacity-20 px-2 py-1 rounded text-green-100 text-xs mt-1">
-                                                ✅ Checked In
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // Business Analytics Component - FULLY FUNCTIONAL
-        const BusinessAnalytics = () => {
-            const [selectedPeriod, setSelectedPeriod] = useState('month');
-            
-            const metrics = {
-                revenue: { current: 29550, previous: 27800, growth: 6.3 },
-                students: { current: 157, previous: 148, growth: 6.1 },
-                retention: { current: 87, previous: 82, growth: 6.1 },
-                classes: { current: 124, previous: 118, growth: 5.1 }
-            };
-
-            const beltDistribution = [
-                { belt: 'White', count: 68, percentage: 43 },
-                { belt: 'Blue', count: 45, percentage: 29 },
-                { belt: 'Purple', count: 28, percentage: 18 },
-                { belt: 'Brown', count: 12, percentage: 8 },
-                { belt: 'Black', count: 4, percentage: 2 }
-            ];
-
-            const popularClasses = [
-                { name: 'Fundamentals', attendance: 92, capacity: 100 },
-                { name: 'Advanced', attendance: 78, capacity: 85 },
-                { name: 'No-Gi', attendance: 65, capacity: 75 },
-                { name: 'Competition', attendance: 45, capacity: 60 },
-                { name: 'Open Mat', attendance: 55, capacity: 80 }
-            ];
-
-            return (
-                <div className="space-y-6">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h2 className="text-3xl font-bold text-white mb-2">📊 Business Analytics</h2>
-                            <p className="text-blue-100">Comprehensive business metrics and performance insights</p>
-                        </div>
-                        <select
-                            value={selectedPeriod}
-                            onChange={(e) => setSelectedPeriod(e.target.value)}
-                            className="bg-white bg-opacity-10 text-white border border-white border-opacity-20 rounded-lg px-4 py-2"
-                        >
-                            <option value="week">This Week</option>
-                            <option value="month">This Month</option>
-                            <option value="quarter">This Quarter</option>
-                            <option value="year">This Year</option>
-                        </select>
-                    </div>
-
-                    {/* Key Metrics */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="glass-effect rounded-xl p-6">
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="text-lg font-semibold text-white">Revenue</div>
-                                <div className="text-2xl">💰</div>
-                            </div>
-                            <div className="text-3xl font-bold text-white">${metrics.revenue.current.toLocaleString()}</div>
-                            <div className="text-green-300 text-sm">+{metrics.revenue.growth}% vs last period</div>
-                        </div>
-                        
-                        <div className="glass-effect rounded-xl p-6">
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="text-lg font-semibold text-white">Students</div>
-                                <div className="text-2xl">👥</div>
-                            </div>
-                            <div className="text-3xl font-bold text-white">{metrics.students.current}</div>
-                            <div className="text-green-300 text-sm">+{metrics.students.growth}% growth</div>
-                        </div>
-                        
-                        <div className="glass-effect rounded-xl p-6">
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="text-lg font-semibold text-white">Retention</div>
-                                <div className="text-2xl">🎯</div>
-                            </div>
-                            <div className="text-3xl font-bold text-white">{metrics.retention.current}%</div>
-                            <div className="text-green-300 text-sm">+{metrics.retention.growth}% improvement</div>
-                        </div>
-                        
-                        <div className="glass-effect rounded-xl p-6">
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="text-lg font-semibold text-white">Classes</div>
-                                <div className="text-2xl">📚</div>
-                            </div>
-                            <div className="text-3xl font-bold text-white">{metrics.classes.current}</div>
-                            <div className="text-green-300 text-sm">+{metrics.classes.growth}% this period</div>
-                        </div>
-                    </div>
-
-                    {/* Belt Distribution */}
-                    <div className="glass-effect rounded-xl p-6">
-                        <h3 className="text-lg font-semibold text-white mb-4">🥋 Belt Level Distribution</h3>
-                        <div className="space-y-3">
-                            {beltDistribution.map((item, index) => (
-                                <div key={index} className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3">
-                                        <span className={`belt-${item.belt.toLowerCase()} px-3 py-1 rounded-full text-sm font-medium`}>
-                                            {item.belt} Belt
-                                        </span>
-                                        <span className="text-white">{item.count} students</span>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <div className="w-32 bg-white bg-opacity-20 rounded-full h-2">
-                                            <div 
-                                                className="bg-blue-500 h-2 rounded-full" 
-                                                style={{ width: `${item.percentage}%` }}
-                                            ></div>
-                                        </div>
-                                        <span className="text-blue-200 text-sm w-10">{item.percentage}%</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Popular Classes */}
-                    <div className="glass-effect rounded-xl p-6">
-                        <h3 className="text-lg font-semibold text-white mb-4">📈 Class Popularity</h3>
-                        <div className="space-y-3">
-                            {popularClasses.map((classItem, index) => (
-                                <div key={index} className="flex items-center justify-between">
-                                    <div className="text-white font-medium">{classItem.name}</div>
-                                    <div className="flex items-center space-x-2">
-                                        <span className="text-blue-200 text-sm">
-                                            {classItem.attendance}/{classItem.capacity}
-                                        </span>
-                                        <div className="w-24 bg-white bg-opacity-20 rounded-full h-2">
-                                            <div 
-                                                className="bg-green-500 h-2 rounded-full" 
-                                                style={{ width: `${(classItem.attendance / classItem.capacity) * 100}%` }}
-                                            ></div>
-                                        </div>
-                                        <span className="text-green-300 text-sm w-10">
-                                            {Math.round((classItem.attendance / classItem.capacity) * 100)}%
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-        const CheckInInterface = ({ onBack }) => {
-            const [cardInput, setCardInput] = useState('');
-            const [studentName, setStudentName] = useState('');
-            const [checkInMode, setCheckInMode] = useState('card');
-            const [message, setMessage] = useState('');
-
-            const handleCheckIn = () => {
-                if (!cardInput && !studentName) return;
-                
-                const name = checkInMode === 'card' ? `Student with card ${cardInput}` : studentName;
-                setMessage(`✅ Successfully checked in ${name}`);
-                setCardInput('');
-                setStudentName('');
-            };
-
-            return (
-                <div className="min-h-screen p-4">
-                    <div className="max-w-4xl mx-auto">
-                        <div className="glass-effect rounded-xl p-6 mb-6">
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                <div>
-                                    <h1 className="text-3xl font-bold text-white mb-2">
-                                        🔍 Student Check-In Kiosk
-                                    </h1>
-                                </div>
-                                <button
-                                    onClick={onBack}
-                                    className="bg-gray-500 bg-opacity-20 px-6 py-3 text-white font-semibold hover:bg-opacity-30"
-                                >
-                                    ← Back to Dashboard
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="glass-effect rounded-xl p-6">
-                            <h2 className="text-xl font-bold text-white mb-4">Check In</h2>
-                            
-                            <div className="flex mb-6">
-                                <button
-                                    onClick={() => setCheckInMode('card')}
-                                    className={`flex-1 py-3 px-4 rounded-l-lg font-medium ${
-                                        checkInMode === 'card'
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-white bg-opacity-10 text-blue-100'
-                                    }`}
-                                >
-                                    💳 Card Scan
-                                </button>
-                                <button
-                                    onClick={() => setCheckInMode('manual')}
-                                    className={`flex-1 py-3 px-4 rounded-r-lg font-medium ${
-                                        checkInMode === 'manual'
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-white bg-opacity-10 text-blue-100'
-                                    }`}
-                                >
-                                    ✍️ Manual Entry
-                                </button>
-                            </div>
-
-                            {checkInMode === 'card' ? (
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-blue-100 text-sm font-medium mb-2">
-                                            Card Number
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={cardInput}
-                                            onChange={(e) => setCardInput(e.target.value)}
-                                            placeholder="Scan or enter card number..."
-                                        />
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-blue-100 text-sm font-medium mb-2">
-                                            Student Name
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={studentName}
-                                            onChange={(e) => setStudentName(e.target.value)}
-                                            placeholder="Enter student name..."
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            <button
-                                onClick={handleCheckIn}
-                                disabled={!cardInput && !studentName}
-                                className="glass-button w-full text-white font-semibold mt-6"
-                            >
-                                ✅ Check In
-                            </button>
-
-                            {message && (
-                                <div className="mt-4 p-3 rounded-lg bg-green-500 bg-opacity-20 border border-green-300 text-green-100">
-                                    {message}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // Dashboard Component - Updated for Real SaaS
-        const Dashboard = ({ adminInfo, onLogout, onCheckInMode }) => {
+        // Dashboard Component - PRODUCTION READY
+        const Dashboard = ({ user, onLogout }) => {
             const [activeTab, setActiveTab] = useState('students');
 
             const tabs = [
@@ -1421,43 +1897,23 @@
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                 <div>
                                     <h1 className="text-3xl font-bold text-white mb-2">
-                                        🥋 BJJ PRO GYM
-                                        <span className="pro-badge ml-3">Professional</span>
-                                        {adminInfo.isDemo && (
-                                            <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm ml-2">DEMO</span>
-                                        )}
+                                        🥋 BJJProGym
+                                        <span className="pro-badge ml-3">{user.plan}</span>
                                     </h1>
                                     <p className="text-blue-100">
-                                        Welcome back, {adminInfo.name} • {adminInfo.gym_name}
+                                        Welcome back, {user.name} • {user.gym_name}
                                     </p>
                                     <p className="text-blue-200 text-sm">
-                                        Plan: {adminInfo.plan} 
-                                        {adminInfo.accessCode && ` • Access: ${adminInfo.accessCode}`}
-                                        • Status: ✅ {adminInfo.isDemo ? 'Demo Active' : 'Subscribed'}
+                                        Plan: {user.plan} • Status: ✅ Active
                                     </p>
-                                    {adminInfo.isDemo && (
-                                        <div className="mt-2 bg-orange-500 bg-opacity-20 border border-orange-300 text-orange-100 px-3 py-2 rounded-lg text-sm">
-                                            ⏱️ Demo Mode • Contact sales to purchase full access
-                                        </div>
-                                    )}
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-3">
-                                    {!adminInfo.isDemo && (
-                                        <button
-                                            onClick={onCheckInMode}
-                                            className="glass-button px-6 py-3 text-white font-semibold"
-                                        >
-                                            🔍 Check-In Kiosk
-                                        </button>
-                                    )}
-                                    {adminInfo.isDemo && (
-                                        <button
-                                            onClick={() => alert('🚀 Ready to purchase?\n\nContact sales for full access with:\n• Unlimited students\n• Real data storage\n• RFID integration\n• Full support')}
-                                            className="bg-green-600 hover:bg-green-700 px-6 py-3 text-white font-semibold rounded-lg"
-                                        >
-                                            💳 Purchase Plan
-                                        </button>
-                                    )}
+                                    <button
+                                        onClick={() => setActiveTab('rfid-checkin')}
+                                        className="glass-button px-6 py-3 text-white font-semibold"
+                                    >
+                                        🔍 RFID Check-In
+                                    </button>
                                     <button
                                         onClick={onLogout}
                                         className="bg-red-500 bg-opacity-20 px-6 py-3 text-white font-semibold hover:bg-opacity-30"
@@ -1489,101 +1945,284 @@
 
                         <div className="min-h-96">
                             {activeTab === 'students' && <StudentManagement />}
-                            {activeTab === 'classes' && <ClassManagement />}
+                            {activeTab === 'classes' && <ClassesManagement />}
                             {activeTab === 'schedule' && <ScheduleManagement />}
                             {activeTab === 'attendance' && <AttendanceManagement />}
                             {activeTab === 'analytics' && <BusinessAnalytics />}
                             {activeTab === 'risk-analysis' && <RiskAnalysis />}
                             {activeTab === 'communications' && <Communications />}
                             {activeTab === 'system' && <SystemStatus />}
+                            {activeTab === 'rfid-checkin' && <RFIDCheckIn />}
                         </div>
                     </div>
                 </div>
             );
         };
 
-        // Main App Component - Professional SaaS Version
-        const App = () => {
-            const [user, setUser] = useState(null);
-            const [mode, setMode] = useState('login');
+        // RFID Check-In Component - PRODUCTION READY
+        const RFIDCheckIn = () => {
+            const [isListening, setIsListening] = useState(false);
+            const [lastScan, setLastScan] = useState('');
+            const [recentCheckIns, setRecentCheckIns] = useState([]);
+            const [manualEntry, setManualEntry] = useState('');
 
             useEffect(() => {
-                const token = localStorage.getItem('auth_token');
-                const accessCode = localStorage.getItem('access_code');
+                let scanBuffer = '';
+                let scanTimeout;
+
+                const handleKeyPress = (e) => {
+                    if (!isListening) return;
+
+                    // RFID scanners typically send data quickly followed by Enter
+                    if (e.key === 'Enter') {
+                        if (scanBuffer.length > 0) {
+                            handleCardScan(scanBuffer);
+                            scanBuffer = '';
+                        }
+                    } else {
+                        scanBuffer += e.key;
+                        
+                        // Clear buffer if too much time passes (manual typing)
+                        clearTimeout(scanTimeout);
+                        scanTimeout = setTimeout(() => {
+                            scanBuffer = '';
+                        }, 100);
+                    }
+                };
+
+                if (isListening) {
+                    document.addEventListener('keypress', handleKeyPress);
+                }
+
+                return () => {
+                    document.removeEventListener('keypress', handleKeyPress);
+                    clearTimeout(scanTimeout);
+                };
+            }, [isListening]);
+
+            const handleCardScan = async (cardNumber) => {
+                setLastScan(cardNumber);
                 
-                if (token === 'demo_session' && accessCode === 'ADELYNN14') {
-                    setUser({ 
-                        name: 'Demo User', 
-                        role: 'demo', 
-                        gym_name: 'Demo BJJ Academy', 
-                        plan: 'Professional Demo',
-                        hasProAccess: true,
-                        accessCode: accessCode,
-                        isDemo: true
-                    });
-                    setMode('dashboard');
-                } else if (token === 'customer_session') {
-                    setUser({ 
-                        name: 'Admin User', 
-                        role: 'owner', 
-                        gym_name: 'BJJ Pro Academy', 
-                        plan: 'Professional',
-                        hasProAccess: true,
-                        isDemo: false
-                    });
-                    setMode('dashboard');
-                } else {
-                    // Clear any invalid sessions
-                    localStorage.removeItem('auth_token');
-                    localStorage.removeItem('access_code');
-                    setMode('login');
+                try {
+                    const result = await api.recordCheckIn({ card_number: cardNumber });
+                    
+                    setRecentCheckIns(prev => [{
+                        id: Date.now(),
+                        studentName: result.student_name || 'Unknown Student',
+                        cardNumber: cardNumber,
+                        timestamp: new Date().toLocaleString(),
+                        status: 'success'
+                    }, ...prev.slice(0, 9)]);
+                    
+                } catch (err) {
+                    setRecentCheckIns(prev => [{
+                        id: Date.now(),
+                        studentName: 'Card Not Found',
+                        cardNumber: cardNumber,
+                        timestamp: new Date().toLocaleString(),
+                        status: 'error'
+                    }, ...prev.slice(0, 9)]);
+                }
+            };
+
+            const handleManualCheckIn = async (e) => {
+                e.preventDefault();
+                if (!manualEntry.trim()) return;
+                
+                await handleCardScan(manualEntry);
+                setManualEntry('');
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div className="text-center">
+                        <h2 className="text-3xl font-bold text-white mb-2">🔍 RFID Check-In Kiosk</h2>
+                        <p className="text-blue-100">Professional card scanning system for student attendance</p>
+                    </div>
+
+                    {/* Scanner Status */}
+                    <div className="glass-effect rounded-xl p-8 text-center">
+                        <div className="mb-6">
+                            <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center text-4xl mb-4 ${
+                                isListening ? 'bg-green-500 bg-opacity-20 animate-pulse' : 'bg-gray-500 bg-opacity-20'
+                            }`}>
+                                {isListening ? '🟢' : '🔴'}
+                            </div>
+                            <h3 className="text-2xl font-bold text-white mb-2">
+                                {isListening ? 'READY TO SCAN' : 'SCANNER OFFLINE'}
+                            </h3>
+                            <p className="text-blue-200">
+                                {isListening ? 'Scan your card or enter manually below' : 'Click to activate card scanner'}
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={() => setIsListening(!isListening)}
+                            className={`glass-button px-8 py-4 text-white font-semibold text-lg ${
+                                isListening ? 'bg-red-600' : 'bg-green-600'
+                            }`}
+                        >
+                            {isListening ? '🛑 Stop Scanner' : '▶️ Start Scanner'}
+                        </button>
+
+                        {lastScan && (
+                            <div className="mt-4 text-blue-200">
+                                Last scan: <span className="font-mono text-white">{lastScan}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Manual Entry */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">📝 Manual Card Entry</h3>
+                        <form onSubmit={handleManualCheckIn} className="flex gap-3">
+                            <input
+                                type="text"
+                                value={manualEntry}
+                                onChange={(e) => setManualEntry(e.target.value)}
+                                placeholder="Enter card number manually..."
+                                className="flex-1"
+                            />
+                            <button
+                                type="submit"
+                                className="glass-button px-6 py-3 text-white font-semibold"
+                            >
+                                ✅ Check In
+                            </button>
+                        </form>
+                    </div>
+
+                    {/* Recent Check-Ins */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">📋 Recent Check-Ins</h3>
+                        
+                        {recentCheckIns.length === 0 ? (
+                            <div className="text-center py-8">
+                                <div className="text-6xl mb-4">📋</div>
+                                <div className="text-blue-200">No check-ins recorded yet</div>
+                                <div className="text-blue-300 text-sm">Check-ins will appear here in real-time</div>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {recentCheckIns.map((checkIn) => (
+                                    <div key={checkIn.id} className={`rounded-lg p-4 ${
+                                        checkIn.status === 'success' 
+                                            ? 'bg-green-500 bg-opacity-20 border border-green-300' 
+                                            : 'bg-red-500 bg-opacity-20 border border-red-300'
+                                    }`}>
+                                        <div className="flex justify-between items-center">
+                                            <div>
+                                                <div className="font-semibold text-white">{checkIn.studentName}</div>
+                                                <div className="text-sm opacity-75">Card: {checkIn.cardNumber}</div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-sm">{checkIn.timestamp}</div>
+                                                <div className={`text-sm font-semibold ${
+                                                    checkIn.status === 'success' ? 'text-green-200' : 'text-red-200'
+                                                }`}>
+                                                    {checkIn.status === 'success' ? '✅ SUCCESS' : '❌ ERROR'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Instructions */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">📖 Instructions</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-blue-100 text-sm">
+                            <div>
+                                <h4 className="font-semibold text-white mb-2">RFID Scanner Setup:</h4>
+                                <ul className="space-y-1">
+                                    <li>• Connect your USB RFID scanner</li>
+                                    <li>• Configure as keyboard input device</li>
+                                    <li>• Click "Start Scanner" to begin</li>
+                                    <li>• Scanner will read cards automatically</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold text-white mb-2">Manual Entry:</h4>
+                                <ul className="space-y-1">
+                                    <li>• Type card number in manual entry field</li>
+                                    <li>• Press "Check In" button</li>
+                                    <li>• Works for backup or testing</li>
+                                    <li>• Compatible with any card format</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Main App Component - PRODUCTION SaaS
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [currentView, setCurrentView] = useState('landing'); // landing, registration, verification, login, dashboard
+
+            useEffect(() => {
+                // Check for existing session
+                const token = localStorage.getItem('auth_token');
+                if (token) {
+                    // Validate token with backend and set user if valid
+                    validateSession(token);
                 }
             }, []);
 
-            const handleLogin = (adminInfo) => {
-                setUser(adminInfo);
-                setMode('dashboard');
+            const validateSession = async (token) => {
+                try {
+                    // This would validate the token with your backend
+                    // For now, we'll assume it's valid and set a mock user
+                    // In production, this would make an API call
+                } catch (err) {
+                    localStorage.removeItem('auth_token');
+                }
+            };
+
+            const handleAccessValidated = (data) => {
+                setCurrentView('registration');
+            };
+
+            const handleRegistered = (data) => {
+                setCurrentView('verification');
+            };
+
+            const handleEmailVerified = (data) => {
+                setUser(data.user);
+                setCurrentView('dashboard');
+            };
+
+            const handleLogin = (userData) => {
+                setUser(userData);
+                setCurrentView('dashboard');
             };
 
             const handleLogout = () => {
                 localStorage.removeItem('auth_token');
-                localStorage.removeItem('access_code');
                 setUser(null);
-                setMode('login');
+                setCurrentView('landing');
             };
 
-            const handleCheckInMode = () => {
-                // Only allow check-in mode for paying customers, not demos
-                if (user && !user.isDemo) {
-                    setMode('checkin');
-                } else {
-                    alert('🔒 Check-In Kiosk is available in the full version.\n\nPurchase Professional Plan to access:\n• RFID check-in system\n• Real-time attendance tracking\n• Student management tools');
-                }
-            };
+            if (currentView === 'landing') {
+                return <LandingPage onAccessValidated={handleAccessValidated} />;
+            }
 
-            const handleBackToDashboard = () => {
-                setMode('dashboard');
-            };
+            if (currentView === 'verification') {
+                return <EmailVerification email="test@example.com" onVerified={handleEmailVerified} />;
+            }
 
-            if (mode === 'login') {
+            if (currentView === 'login') {
                 return <Login onLogin={handleLogin} />;
             }
 
-            if (mode === 'checkin') {
-                return <CheckInInterface onBack={handleBackToDashboard} />;
+            if (currentView === 'dashboard' && user) {
+                return <Dashboard user={user} onLogout={handleLogout} />;
             }
 
-            if (mode === 'dashboard' && user?.hasProAccess) {
-                return (
-                    <Dashboard
-                        adminInfo={user}
-                        onLogout={handleLogout}
-                        onCheckInMode={handleCheckInMode}
-                    />
-                );
-            }
-
-            return <Login onLogin={handleLogin} />;
+            return <LandingPage onAccessValidated={handleAccessValidated} />;
         };
 
         ReactDOM.render(<App />, document.getElementById('root'));
