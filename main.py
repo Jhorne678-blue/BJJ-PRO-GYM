@@ -15,7 +15,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="BJJ PRO GYM API - Professional Edition", version="2.0.0")
+app = FastAPI(title="BJJ PRO GYM API - Professional Edition")
 
 # CORS middleware
 app.add_middleware(
@@ -59,10 +59,11 @@ class CheckInRequest(BaseModel):
 class EmailRequest(BaseModel):
     subject: str
     message: str
-    recipient_type: str = "all_students"
+    notification_type: str = "general"
+    recipient_type: str = "students"
     recipient_count: int = 0
 
-# Database setup
+# Database setup with better error handling
 def get_db_connection():
     try:
         conn = sqlite3.connect('bjj_pro_gym.db', timeout=30.0)
@@ -111,7 +112,7 @@ def init_db():
             cursor.execute('''
                 INSERT INTO gyms (id, gym_name, owner_name, owner_email)
                 VALUES (?, ?, ?, ?)
-            ''', (1, "BJJ Pro Academy", "Demo Owner", "demo@bjjprogym.com"))
+            ''', (1, "Demo BJJ Pro Academy", "Demo Owner", "demo@bjjprogym.com"))
        
         # Create demo admin
         cursor.execute("SELECT COUNT(*) FROM gym_admins WHERE gym_id = 1")
@@ -143,7 +144,6 @@ def init_db():
                 member_id TEXT,
                 card_number TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_attendance TIMESTAMP,
                 FOREIGN KEY (gym_id) REFERENCES gyms (id)
             )''',
             '''CREATE TABLE IF NOT EXISTS schedules (
@@ -193,33 +193,24 @@ def init_db():
        
     except Exception as e:
         logger.error(f"Database initialization failed: {str(e)}")
+        # Don't raise the error - let the app start anyway
 
 def setup_demo_data(cursor):
     try:
-        # Demo students with varied last attendance for risk analysis
+        # Demo students
         demo_students = [
-            ("John Smith", "john.smith@email.com", "555-0101", "Blue", "MBR001", "CARD1001", "2025-01-05"),
-            ("Maria Garcia", "maria.garcia@email.com", "555-0102", "White", "MBR002", "CARD1002", "2025-01-05"),
-            ("David Johnson", "david.johnson@email.com", "555-0103", "Purple", "MBR003", "CARD1003", "2025-01-05"),
-            ("Sarah Wilson", "sarah.wilson@email.com", "555-0104", "White", "MBR004", "CARD1004", "2025-01-04"),
-            ("Mike Brown", "mike.brown@email.com", "555-0105", "Blue", "MBR005", "CARD1005", "2025-01-04"),
-            ("Lisa Davis", "lisa.davis@email.com", "555-0106", "Purple", "MBR006", "CARD1006", "2025-01-03"),
-            ("Tom Wilson", "tom.wilson@email.com", "555-0107", "Brown", "MBR007", "CARD1007", "2025-01-03"),
-            ("Anna Lee", "anna.lee@email.com", "555-0108", "White", "MBR008", "CARD1008", "2024-12-25"),
-            ("Carlos Silva", "carlos.silva@email.com", "555-0109", "Black", "MBR009", "CARD1009", "2025-01-04"),
-            ("Jessica Taylor", "jessica.taylor@email.com", "555-0110", "Blue", "MBR010", "CARD1010", "2025-01-05"),
-            ("Roberto Santos", "roberto.santos@email.com", "555-0111", "Purple", "MBR011", "CARD1011", "2025-01-04"),
-            ("Michelle Kim", "michelle.kim@email.com", "555-0112", "White", "MBR012", "CARD1012", "2024-12-20"),
-            ("Alex Rodriguez", "alex.rodriguez@email.com", "555-0113", "Brown", "MBR013", "CARD1013", "2025-01-02"),
-            ("Emma Thompson", "emma.thompson@email.com", "555-0114", "Blue", "MBR014", "CARD1014", "2024-12-28"),
-            ("Ryan O'Connor", "ryan.oconnor@email.com", "555-0115", "White", "MBR015", "CARD1015", "2024-12-15")
+            ("John Smith", "john.smith@email.com", "555-0101", "Blue", "MBR001", "CARD1001"),
+            ("Maria Garcia", "maria.garcia@email.com", "555-0102", "White", "MBR002", "CARD1002"),
+            ("David Johnson", "david.johnson@email.com", "555-0103", "Purple", "MBR003", "CARD1003"),
+            ("Sarah Wilson", "sarah.wilson@email.com", "555-0104", "White", "MBR004", "CARD1004"),
+            ("Mike Brown", "mike.brown@email.com", "555-0105", "Blue", "MBR005", "CARD1005")
         ]
        
-        for name, email, phone, belt, member_id, card_number, last_attendance in demo_students:
+        for name, email, phone, belt, member_id, card_number in demo_students:
             cursor.execute('''
-                INSERT OR IGNORE INTO students (gym_id, name, email, phone, belt_level, member_id, card_number, last_attendance)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (1, name, email, phone, belt, member_id, card_number, last_attendance))
+                INSERT OR IGNORE INTO students (gym_id, name, email, phone, belt_level, member_id, card_number)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (1, name, email, phone, belt, member_id, card_number))
        
         # Demo classes
         demo_classes = [
@@ -227,8 +218,7 @@ def setup_demo_data(cursor):
             ("Advanced", "Advanced techniques and sparring"),
             ("Competition", "Competition preparation and training"),
             ("No-Gi", "Brazilian Jiu-Jitsu without gi"),
-            ("Open Mat", "Free training and practice time"),
-            ("Kids Program", "BJJ classes designed for children")
+            ("Open Mat", "Free training and practice time")
         ]
        
         for class_name, description in demo_classes:
@@ -236,41 +226,6 @@ def setup_demo_data(cursor):
                 INSERT OR IGNORE INTO classes (gym_id, name, description)
                 VALUES (?, ?, ?)
             ''', (1, class_name, description))
-
-        # Demo schedules
-        demo_schedules = [
-            ("Fundamentals", 0, "18:00", "19:00", "Professor Silva"),
-            ("Advanced", 0, "19:15", "20:45", "Professor Johnson"),
-            ("No-Gi", 1, "19:00", "20:00", "Professor Davis"),
-            ("Fundamentals", 2, "18:00", "19:00", "Professor Silva"),
-            ("Competition", 2, "19:15", "21:15", "Professor Brown"),
-            ("Open Mat", 4, "18:00", "20:00", "Open"),
-            ("Fundamentals", 5, "10:00", "11:00", "Professor Silva"),
-            ("Open Mat", 5, "11:15", "13:15", "Open")
-        ]
-        
-        for class_name, day, start_time, end_time, instructor in demo_schedules:
-            cursor.execute('''
-                INSERT OR IGNORE INTO schedules (gym_id, class_name, day_of_week, start_time, end_time, instructor)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (1, class_name, day, start_time, end_time, instructor))
-
-        # Demo attendance logs
-        demo_attendance = [
-            ("John Smith", 1, "MBR001", "CARD1001", "Fundamentals", "2025-01-05 18:05"),
-            ("Maria Garcia", 2, "MBR002", "CARD1002", "Fundamentals", "2025-01-05 18:08"),
-            ("David Johnson", 3, "MBR003", "CARD1003", "Advanced", "2025-01-05 19:20"),
-            ("Sarah Wilson", 4, "MBR004", "CARD1004", "No-Gi", "2025-01-04 19:05"),
-            ("Mike Brown", 5, "MBR005", "CARD1005", "Fundamentals", "2025-01-04 18:12"),
-            ("Lisa Davis", 6, "MBR006", "CARD1006", "Competition", "2025-01-03 19:18"),
-            ("Tom Wilson", 7, "MBR007", "CARD1007", "Open Mat", "2025-01-03 18:30")
-        ]
-        
-        for student_name, student_id, member_id, card_number, class_name, check_in_time in demo_attendance:
-            cursor.execute('''
-                INSERT OR IGNORE INTO attendance_logs (gym_id, student_name, student_id, member_id, card_number, class_name, check_in_time)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (1, student_name, student_id, member_id, card_number, class_name, check_in_time))
        
     except Exception as e:
         logger.error(f"Demo data setup failed: {str(e)}")
@@ -284,23 +239,14 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-# API Endpoints
-
+# SIMPLE HEALTH CHECK - NO DATABASE DEPENDENCY
 @app.get("/api/health")
 async def health_check():
-    """Simple health check"""
+    """Simple health check that always works"""
     return {
         "status": "healthy",
         "version": "2.0.0-production",
-        "timestamp": datetime.now().isoformat(),
-        "features": [
-            "Student Management",
-            "Class Scheduling", 
-            "RFID Check-in",
-            "Risk Analysis",
-            "Email Communications",
-            "Business Analytics"
-        ]
+        "timestamp": datetime.now().isoformat()
     }
 
 @app.post("/api/login")
@@ -359,7 +305,7 @@ async def get_students(token_data: dict = Depends(verify_token)):
         cursor = conn.cursor()
        
         cursor.execute('''
-            SELECT id, name, email, phone, belt_level, member_id, card_number, created_at, last_attendance
+            SELECT id, name, email, phone, belt_level, member_id, card_number, created_at
             FROM students
             WHERE gym_id = ?
             ORDER BY name
@@ -388,9 +334,9 @@ async def create_student(student: StudentCreate, token_data: dict = Depends(veri
         card_number = f"CARD{count + 1001:04d}"
        
         cursor.execute('''
-            INSERT INTO students (gym_id, name, email, phone, belt_level, member_id, card_number, last_attendance)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (gym_id, student.name, student.email, student.phone, student.belt_level, member_id, card_number, datetime.now().isoformat()))
+            INSERT INTO students (gym_id, name, email, phone, belt_level, member_id, card_number)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (gym_id, student.name, student.email, student.phone, student.belt_level, member_id, card_number))
        
         student_id = cursor.lastrowid
         conn.commit()
@@ -437,6 +383,15 @@ async def create_class(class_data: ClassCreate, token_data: dict = Depends(verif
         conn = get_db_connection()
         cursor = conn.cursor()
        
+        # Check for duplicate class name
+        cursor.execute('''
+            SELECT COUNT(*) FROM classes WHERE gym_id = ? AND LOWER(name) = LOWER(?)
+        ''', (gym_id, class_data.name))
+       
+        if cursor.fetchone()[0] > 0:
+            conn.close()
+            raise HTTPException(status_code=400, detail="Class with this name already exists")
+       
         cursor.execute('''
             INSERT INTO classes (gym_id, name, description)
             VALUES (?, ?, ?)
@@ -448,8 +403,11 @@ async def create_class(class_data: ClassCreate, token_data: dict = Depends(verif
        
         return {
             "message": "Class created successfully",
-            "class_id": class_id
+            "class_id": class_id,
+            "class": class_data.dict()
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error creating class: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to create class")
@@ -462,88 +420,29 @@ async def delete_class(class_id: int, token_data: dict = Depends(verify_token)):
         conn = get_db_connection()
         cursor = conn.cursor()
        
+        # Check if class exists
+        cursor.execute('SELECT name FROM classes WHERE id = ? AND gym_id = ?', (class_id, gym_id))
+        class_result = cursor.fetchone()
+       
+        if not class_result:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Class not found")
+       
+        # Delete the class
         cursor.execute('DELETE FROM classes WHERE id = ? AND gym_id = ?', (class_id, gym_id))
         conn.commit()
         conn.close()
        
-        return {"message": "Class deleted successfully"}
+        logger.info(f"Class deleted: {class_result[0]} (ID: {class_id})")
+        return {"message": f"Class '{class_result[0]}' deleted successfully"}
        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error deleting class: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to delete class")
 
-@app.get("/api/schedules")
-async def get_schedules(token_data: dict = Depends(verify_token)):
-    try:
-        gym_id = token_data["gym_id"]
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT id, class_name, day_of_week, start_time, end_time, instructor, created_at
-            FROM schedules
-            WHERE gym_id = ?
-            ORDER BY day_of_week, start_time
-        ''', (gym_id,))
-        
-        schedules = [dict(row) for row in cursor.fetchall()]
-        conn.close()
-        
-        return {"schedules": schedules}
-    except Exception as e:
-        logger.error(f"Error getting schedules: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve schedules")
-
-@app.post("/api/schedules")
-async def create_schedule(schedule: ScheduleCreate, token_data: dict = Depends(verify_token)):
-    try:
-        gym_id = token_data["gym_id"]
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            INSERT INTO schedules (gym_id, class_name, day_of_week, start_time, end_time, instructor)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (gym_id, schedule.class_name, schedule.day_of_week, schedule.start_time, schedule.end_time, schedule.instructor))
-        
-        schedule_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
-        
-        return {
-            "message": "Schedule created successfully",
-            "schedule_id": schedule_id
-        }
-    except Exception as e:
-        logger.error(f"Error creating schedule: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to create schedule")
-
-@app.get("/api/attendance")
-async def get_attendance(token_data: dict = Depends(verify_token)):
-    try:
-        gym_id = token_data["gym_id"]
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT id, student_name, student_id, member_id, card_number, class_name, check_in_time
-            FROM attendance_logs
-            WHERE gym_id = ?
-            ORDER BY check_in_time DESC
-            LIMIT 100
-        ''', (gym_id,))
-        
-        attendance = [dict(row) for row in cursor.fetchall()]
-        conn.close()
-        
-        return {"attendance": attendance}
-    except Exception as e:
-        logger.error(f"Error getting attendance: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve attendance")
-
+# Current class endpoint for check-ins
 @app.get("/api/current-class")
 async def get_current_class():
     """Get the currently scheduled class based on day/time"""
@@ -572,6 +471,7 @@ async def get_current_class():
         logger.error(f"Error getting current class: {str(e)}")
         return {"class_name": "Open Mat", "instructor": "Open"}
 
+# Check-in endpoint
 @app.post("/api/checkin")
 async def check_in_student(request: CheckInRequest):
     current_class = await get_current_class()
@@ -596,8 +496,8 @@ async def check_in_student(request: CheckInRequest):
         else:
             cursor.execute('''
                 SELECT id, name, member_id, card_number FROM students
-                WHERE gym_id = 1 AND LOWER(name) LIKE LOWER(?)
-            ''', (f'%{request.student_name}%',))
+                WHERE gym_id = 1 AND name = ?
+            ''', (request.student_name,))
             student = cursor.fetchone()
             if student:
                 student_id = student[0]
@@ -615,12 +515,6 @@ async def check_in_student(request: CheckInRequest):
             (gym_id, student_name, student_id, member_id, card_number, class_name, check_in_time)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (1, student_name, student_id, member_id, card_number, current_class["class_name"], datetime.now().isoformat()))
-        
-        # Update student's last attendance
-        if student_id:
-            cursor.execute('''
-                UPDATE students SET last_attendance = ? WHERE id = ?
-            ''', (datetime.now().isoformat(), student_id))
        
         conn.commit()
         conn.close()
@@ -637,156 +531,7 @@ async def check_in_student(request: CheckInRequest):
         logger.error(f"Check-in error: {str(e)}")
         raise HTTPException(status_code=500, detail="Check-in failed")
 
-@app.get("/api/risk-analysis")
-async def get_risk_analysis(token_data: dict = Depends(verify_token)):
-    try:
-        gym_id = token_data["gym_id"]
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT id, name, email, member_id, belt_level, last_attendance,
-                   CASE 
-                       WHEN last_attendance IS NULL THEN 999
-                       ELSE julianday('now') - julianday(last_attendance)
-                   END as days_absent
-            FROM students
-            WHERE gym_id = ?
-            AND (last_attendance IS NULL OR julianday('now') - julianday(last_attendance) >= 3)
-            ORDER BY days_absent DESC
-        ''', (gym_id,))
-        
-        at_risk_students = []
-        for row in cursor.fetchall():
-            student = dict(row)
-            days_absent = int(student['days_absent'])
-            
-            if days_absent >= 14:
-                risk_level = 'high'
-            elif days_absent >= 7:
-                risk_level = 'medium'
-            else:
-                risk_level = 'low'
-                
-            student['risk_level'] = risk_level
-            student['days_absent'] = days_absent
-            at_risk_students.append(student)
-        
-        conn.close()
-        
-        return {"at_risk_students": at_risk_students}
-    except Exception as e:
-        logger.error(f"Error getting risk analysis: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve risk analysis")
-
-@app.post("/api/send-email")
-async def send_email(request: EmailRequest, token_data: dict = Depends(verify_token)):
-    try:
-        gym_id = token_data["gym_id"]
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Determine recipient count based on type
-        if request.recipient_type == "all_students":
-            cursor.execute('SELECT COUNT(*) FROM students WHERE gym_id = ?', (gym_id,))
-            recipient_count = cursor.fetchone()[0]
-        elif request.recipient_type == "at_risk_students":
-            cursor.execute('''
-                SELECT COUNT(*) FROM students 
-                WHERE gym_id = ? 
-                AND (last_attendance IS NULL OR julianday('now') - julianday(last_attendance) >= 7)
-            ''', (gym_id,))
-            recipient_count = cursor.fetchone()[0]
-        else:
-            recipient_count = request.recipient_count
-        
-        # Save email to history
-        cursor.execute('''
-            INSERT INTO email_notifications (gym_id, subject, message, recipient_count, sent_by, notification_type)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (gym_id, request.subject, request.message, recipient_count, token_data["name"], request.recipient_type))
-        
-        conn.commit()
-        conn.close()
-        
-        return {
-            "message": "Email sent successfully",
-            "recipient_count": recipient_count,
-            "subject": request.subject
-        }
-    except Exception as e:
-        logger.error(f"Error sending email: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to send email")
-
-@app.get("/api/email-history")
-async def get_email_history(token_data: dict = Depends(verify_token)):
-    try:
-        gym_id = token_data["gym_id"]
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT id, subject, recipient_count, sent_at, notification_type, sent_by
-            FROM email_notifications
-            WHERE gym_id = ?
-            ORDER BY sent_at DESC
-            LIMIT 50
-        ''', (gym_id,))
-        
-        emails = [dict(row) for row in cursor.fetchall()]
-        conn.close()
-        
-        return {"emails": emails}
-    except Exception as e:
-        logger.error(f"Error getting email history: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve email history")
-
-@app.get("/api/analytics")
-async def get_analytics(token_data: dict = Depends(verify_token)):
-    try:
-        gym_id = token_data["gym_id"]
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Get basic stats
-        cursor.execute('SELECT COUNT(*) FROM students WHERE gym_id = ?', (gym_id,))
-        total_students = cursor.fetchone()[0]
-        
-        cursor.execute('SELECT COUNT(*) FROM classes WHERE gym_id = ?', (gym_id,))
-        total_classes = cursor.fetchone()[0]
-        
-        cursor.execute('SELECT COUNT(*) FROM attendance_logs WHERE gym_id = ?', (gym_id,))
-        total_attendance = cursor.fetchone()[0]
-        
-        # Belt distribution
-        cursor.execute('''
-            SELECT belt_level, COUNT(*) as count
-            FROM students
-            WHERE gym_id = ?
-            GROUP BY belt_level
-        ''', (gym_id,))
-        
-        belt_distribution = [{"belt": row[0], "count": row[1]} for row in cursor.fetchall()]
-        
-        conn.close()
-        
-        return {
-            "total_students": total_students,
-            "total_classes": total_classes,
-            "total_attendance": total_attendance,
-            "belt_distribution": belt_distribution,
-            "revenue_estimate": total_students * 150,  # Estimate $150/month per student
-            "retention_rate": 87  # Placeholder
-        }
-    except Exception as e:
-        logger.error(f"Error getting analytics: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve analytics")
-
-# Initialize database on startup
+# Initialize database on startup (non-blocking)
 @app.on_event("startup")
 async def startup_event():
     logger.info("🚀 Starting BJJ Pro Gym API...")
