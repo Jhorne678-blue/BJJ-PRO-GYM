@@ -1373,14 +1373,600 @@
             );
         };
 
-        // Simple placeholder for other tabs
-        const SimplePlaceholder = ({ title, emoji, description }) => (
-            <div className="glass-effect rounded-xl p-6 text-center">
-                <div className="text-6xl mb-4">{emoji}</div>
-                <h2 className="text-2xl font-bold text-white mb-4">{title}</h2>
-                <p className="text-blue-100">{description}</p>
-            </div>
-        );
+        // Attendance Tracking Component - MOBILE/TABLET OPTIMIZED
+        const AttendanceTracking = () => {
+            const [attendanceLogs, setAttendanceLogs] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+            const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+            const [filterStudent, setFilterStudent] = useState('');
+            const [stats, setStats] = useState({ today: 0, week: 0, month: 0 });
+
+            useEffect(() => {
+                loadAttendance();
+            }, []);
+
+            const loadAttendance = async () => {
+                setIsLoading(true);
+                // Demo attendance data
+                const demoLogs = [
+                    { id: 1, student_name: 'John Smith', class_name: 'Fundamentals', check_in_time: '2024-07-04T18:15:00', member_id: 'MBR001' },
+                    { id: 2, student_name: 'Maria Garcia', class_name: 'Advanced', check_in_time: '2024-07-04T19:20:00', member_id: 'MBR002' },
+                    { id: 3, student_name: 'David Johnson', class_name: 'No-Gi', check_in_time: '2024-07-03T19:00:00', member_id: 'MBR003' },
+                    { id: 4, student_name: 'Sarah Wilson', class_name: 'Fundamentals', check_in_time: '2024-07-03T18:10:00', member_id: 'MBR004' },
+                    { id: 5, student_name: 'Mike Brown', class_name: 'Open Mat', check_in_time: '2024-07-02T18:30:00', member_id: 'MBR005' }
+                ];
+                setAttendanceLogs(demoLogs);
+                setStats({ today: 2, week: 12, month: 45 });
+                setIsLoading(false);
+            };
+
+            const filteredLogs = attendanceLogs.filter(log => {
+                const logDate = new Date(log.check_in_time).toISOString().split('T')[0];
+                const matchesDate = !filterDate || logDate === filterDate;
+                const matchesStudent = !filterStudent || log.student_name.toLowerCase().includes(filterStudent.toLowerCase());
+                return matchesDate && matchesStudent;
+            });
+
+            if (isLoading) {
+                return <div className="text-center py-8 text-blue-100">Loading attendance...</div>;
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div>
+                        <h2 className="text-3xl font-bold text-white mb-2">✅ Attendance Tracking</h2>
+                        <p className="text-blue-100">Monitor student check-ins and attendance patterns</p>
+                    </div>
+
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="glass-effect rounded-xl p-4 text-center">
+                            <div className="text-2xl font-bold text-green-400">{stats.today}</div>
+                            <div className="text-blue-100 text-sm">Today</div>
+                        </div>
+                        <div className="glass-effect rounded-xl p-4 text-center">
+                            <div className="text-2xl font-bold text-blue-400">{stats.week}</div>
+                            <div className="text-blue-100 text-sm">This Week</div>
+                        </div>
+                        <div className="glass-effect rounded-xl p-4 text-center">
+                            <div className="text-2xl font-bold text-purple-400">{stats.month}</div>
+                            <div className="text-blue-100 text-sm">This Month</div>
+                        </div>
+                    </div>
+
+                    {/* Filters */}
+                    <div className="glass-effect rounded-xl p-4">
+                        <h3 className="text-lg font-semibold text-white mb-4">🔍 Filter Attendance</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">Date</label>
+                                <input
+                                    type="date"
+                                    value={filterDate}
+                                    onChange={(e) => setFilterDate(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-blue-100 text-sm font-medium mb-2">Student Name</label>
+                                <input
+                                    type="text"
+                                    value={filterStudent}
+                                    onChange={(e) => setFilterStudent(e.target.value)}
+                                    placeholder="Search by student name..."
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Attendance Logs */}
+                    <div className="glass-effect rounded-xl p-4">
+                        <h3 className="text-lg font-semibold text-white mb-4">Recent Check-Ins ({filteredLogs.length})</h3>
+                        {filteredLogs.length === 0 ? (
+                            <div className="text-center py-8 text-blue-200">No attendance records found</div>
+                        ) : (
+                            <div className="space-y-3">
+                                {filteredLogs.map((log) => (
+                                    <div key={log.id} className="bg-white bg-opacity-10 rounded-lg p-4">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <div className="font-semibold text-white">{log.student_name}</div>
+                                                <div className="text-blue-100 text-sm">{log.class_name}</div>
+                                                <div className="text-blue-300 text-xs">ID: {log.member_id}</div>
+                                            </div>
+                                            <div className="text-right text-sm text-blue-200">
+                                                <div>{new Date(log.check_in_time).toLocaleDateString()}</div>
+                                                <div>{new Date(log.check_in_time).toLocaleTimeString()}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // Business Analytics Component - MOBILE/TABLET OPTIMIZED
+        const BusinessAnalytics = () => {
+            const [analytics, setAnalytics] = useState({});
+            const [isLoading, setIsLoading] = useState(true);
+
+            useEffect(() => {
+                loadAnalytics();
+            }, []);
+
+            const loadAnalytics = async () => {
+                setIsLoading(true);
+                // Demo analytics data
+                setAnalytics({
+                    totalStudents: 156,
+                    activeStudents: 142,
+                    monthlyRevenue: 28450,
+                    retentionRate: 87,
+                    beltDistribution: {
+                        'White': 65,
+                        'Blue': 42,
+                        'Purple': 28,
+                        'Brown': 15,
+                        'Black': 6
+                    },
+                    monthlyGrowth: 12.5,
+                    averageAttendance: 3.2
+                });
+                setIsLoading(false);
+            };
+
+            if (isLoading) {
+                return <div className="text-center py-8 text-blue-100">Loading analytics...</div>;
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div>
+                        <h2 className="text-3xl font-bold text-white mb-2">📊 Business Analytics</h2>
+                        <p className="text-blue-100">Track your gym's performance and growth</p>
+                    </div>
+
+                    {/* Key Metrics */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="glass-effect rounded-xl p-4 text-center">
+                            <div className="text-2xl font-bold text-blue-400">{analytics.totalStudents}</div>
+                            <div className="text-blue-100 text-sm">Total Students</div>
+                        </div>
+                        <div className="glass-effect rounded-xl p-4 text-center">
+                            <div className="text-2xl font-bold text-green-400">${analytics.monthlyRevenue?.toLocaleString()}</div>
+                            <div className="text-blue-100 text-sm">Monthly Revenue</div>
+                        </div>
+                        <div className="glass-effect rounded-xl p-4 text-center">
+                            <div className="text-2xl font-bold text-purple-400">{analytics.retentionRate}%</div>
+                            <div className="text-blue-100 text-sm">Retention Rate</div>
+                        </div>
+                        <div className="glass-effect rounded-xl p-4 text-center">
+                            <div className="text-2xl font-bold text-yellow-400">+{analytics.monthlyGrowth}%</div>
+                            <div className="text-blue-100 text-sm">Growth Rate</div>
+                        </div>
+                    </div>
+
+                    {/* Belt Distribution */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">🥋 Belt Distribution</h3>
+                        <div className="space-y-3">
+                            {Object.entries(analytics.beltDistribution || {}).map(([belt, count]) => (
+                                <div key={belt} className="flex justify-between items-center">
+                                    <span className={`belt-${belt.toLowerCase()} px-3 py-1 rounded-full text-sm font-medium`}>
+                                        {belt} Belt
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <div className="bg-white bg-opacity-20 rounded-full h-2 w-24">
+                                            <div 
+                                                className="bg-blue-500 h-2 rounded-full" 
+                                                style={{ width: `${(count / analytics.totalStudents) * 100}%` }}
+                                            ></div>
+                                        </div>
+                                        <span className="text-white font-semibold w-8">{count}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Revenue Insights */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">💰 Revenue Insights</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                                <div className="text-blue-100 text-sm">Average Revenue Per Student</div>
+                                <div className="text-2xl font-bold text-green-400">
+                                    ${Math.round(analytics.monthlyRevenue / analytics.activeStudents)}
+                                </div>
+                            </div>
+                            <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                                <div className="text-blue-100 text-sm">Projected Annual Revenue</div>
+                                <div className="text-2xl font-bold text-green-400">
+                                    ${(analytics.monthlyRevenue * 12).toLocaleString()}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Risk Analysis Component - MOBILE/TABLET OPTIMIZED
+        const RiskAnalysis = () => {
+            const [riskData, setRiskData] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+
+            useEffect(() => {
+                loadRiskData();
+            }, []);
+
+            const loadRiskData = async () => {
+                setIsLoading(true);
+                // Demo risk analysis data
+                setRiskData([
+                    { id: 1, student_name: 'Alex Thompson', risk_level: 'High', last_attendance: '2024-06-20', days_absent: 14, reason: 'No attendance for 2+ weeks' },
+                    { id: 2, student_name: 'Jessica Chen', risk_level: 'Medium', last_attendance: '2024-06-28', days_absent: 6, reason: 'Declining attendance pattern' },
+                    { id: 3, student_name: 'Robert Miller', risk_level: 'High', last_attendance: '2024-06-15', days_absent: 19, reason: 'Extended absence' },
+                    { id: 4, student_name: 'Emily Davis', risk_level: 'Low', last_attendance: '2024-07-01', days_absent: 3, reason: 'Minor attendance gap' }
+                ]);
+                setIsLoading(false);
+            };
+
+            const getRiskColor = (level) => {
+                switch(level) {
+                    case 'High': return 'text-red-400 bg-red-500 bg-opacity-20';
+                    case 'Medium': return 'text-yellow-400 bg-yellow-500 bg-opacity-20';
+                    case 'Low': return 'text-green-400 bg-green-500 bg-opacity-20';
+                    default: return 'text-blue-400 bg-blue-500 bg-opacity-20';
+                }
+            };
+
+            if (isLoading) {
+                return <div className="text-center py-8 text-blue-100">Analyzing student risks...</div>;
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div>
+                        <h2 className="text-3xl font-bold text-white mb-2">⚠️ Risk Analysis</h2>
+                        <p className="text-blue-100">Identify students at risk of dropping out</p>
+                    </div>
+
+                    {/* Risk Summary */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="glass-effect rounded-xl p-4 text-center">
+                            <div className="text-2xl font-bold text-red-400">
+                                {riskData.filter(s => s.risk_level === 'High').length}
+                            </div>
+                            <div className="text-red-300 text-sm">High Risk</div>
+                        </div>
+                        <div className="glass-effect rounded-xl p-4 text-center">
+                            <div className="text-2xl font-bold text-yellow-400">
+                                {riskData.filter(s => s.risk_level === 'Medium').length}
+                            </div>
+                            <div className="text-yellow-300 text-sm">Medium Risk</div>
+                        </div>
+                        <div className="glass-effect rounded-xl p-4 text-center">
+                            <div className="text-2xl font-bold text-green-400">
+                                {riskData.filter(s => s.risk_level === 'Low').length}
+                            </div>
+                            <div className="text-green-300 text-sm">Low Risk</div>
+                        </div>
+                    </div>
+
+                    {/* At-Risk Students */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">👥 At-Risk Students</h3>
+                        {riskData.length === 0 ? (
+                            <div className="text-center py-8 text-green-200">🎉 No students at risk!</div>
+                        ) : (
+                            <div className="space-y-4">
+                                {riskData.map((student) => (
+                                    <div key={student.id} className="bg-white bg-opacity-10 rounded-lg p-4">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <div className="font-semibold text-white">{student.student_name}</div>
+                                                <div className="text-blue-200 text-sm">{student.reason}</div>
+                                            </div>
+                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRiskColor(student.risk_level)}`}>
+                                                {student.risk_level} Risk
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 text-sm text-blue-300">
+                                            <div>Last Seen: {new Date(student.last_attendance).toLocaleDateString()}</div>
+                                            <div>Days Absent: {student.days_absent}</div>
+                                        </div>
+                                        <div className="mt-3 flex gap-2">
+                                            <button className="bg-blue-600 px-3 py-1 text-white text-sm rounded hover:bg-blue-700">
+                                                📧 Send Email
+                                            </button>
+                                            <button className="bg-green-600 px-3 py-1 text-white text-sm rounded hover:bg-green-700">
+                                                📞 Call Student
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // Communications Component - MOBILE/TABLET OPTIMIZED
+        const Communications = () => {
+            const [emailHistory, setEmailHistory] = useState([]);
+            const [showComposeForm, setShowComposeForm] = useState(false);
+            const [isLoading, setIsLoading] = useState(true);
+            const [newEmail, setNewEmail] = useState({
+                subject: '',
+                message: '',
+                recipient_type: 'all'
+            });
+
+            useEffect(() => {
+                loadEmailHistory();
+            }, []);
+
+            const loadEmailHistory = async () => {
+                setIsLoading(true);
+                // Demo email history
+                setEmailHistory([
+                    { id: 1, subject: 'Welcome to BJJ Pro Gym!', recipients: 5, sent_at: '2024-07-04T10:00:00', type: 'welcome' },
+                    { id: 2, subject: 'Monthly Training Schedule Update', recipients: 142, sent_at: '2024-07-01T09:00:00', type: 'announcement' },
+                    { id: 3, subject: 'Retention Outreach - Missing You!', recipients: 8, sent_at: '2024-06-28T14:30:00', type: 'retention' }
+                ]);
+                setIsLoading(false);
+            };
+
+            const handleSendEmail = async (e) => {
+                e.preventDefault();
+                // Demo send
+                const emailData = {
+                    id: Date.now(),
+                    subject: newEmail.subject,
+                    recipients: newEmail.recipient_type === 'all' ? 142 : 15,
+                    sent_at: new Date().toISOString(),
+                    type: 'custom'
+                };
+                setEmailHistory(prev => [emailData, ...prev]);
+                setNewEmail({ subject: '', message: '', recipient_type: 'all' });
+                setShowComposeForm(false);
+            };
+
+            if (isLoading) {
+                return <div className="text-center py-8 text-blue-100">Loading communications...</div>;
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h2 className="text-3xl font-bold text-white mb-2">📧 Communications</h2>
+                            <p className="text-blue-100">Manage email campaigns and notifications</p>
+                        </div>
+                        <button
+                            onClick={() => setShowComposeForm(true)}
+                            className="bg-blue-600 px-4 py-2 text-white rounded-lg hover:bg-blue-700"
+                        >
+                            ✍️ Compose Email
+                        </button>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button className="glass-effect rounded-xl p-4 text-center hover:bg-opacity-20 transition-colors">
+                            <div className="text-2xl mb-2">🎉</div>
+                            <div className="text-white font-semibold">Welcome Email</div>
+                            <div className="text-blue-200 text-sm">New student onboarding</div>
+                        </button>
+                        <button className="glass-effect rounded-xl p-4 text-center hover:bg-opacity-20 transition-colors">
+                            <div className="text-2xl mb-2">⚠️</div>
+                            <div className="text-white font-semibold">Retention Email</div>
+                            <div className="text-blue-200 text-sm">Re-engage inactive students</div>
+                        </button>
+                        <button className="glass-effect rounded-xl p-4 text-center hover:bg-opacity-20 transition-colors">
+                            <div className="text-2xl mb-2">📢</div>
+                            <div className="text-white font-semibold">Announcement</div>
+                            <div className="text-blue-200 text-sm">Gym updates & news</div>
+                        </button>
+                    </div>
+
+                    {/* Email History */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">📨 Email History</h3>
+                        {emailHistory.length === 0 ? (
+                            <div className="text-center py-8 text-blue-200">No emails sent yet</div>
+                        ) : (
+                            <div className="space-y-3">
+                                {emailHistory.map((email) => (
+                                    <div key={email.id} className="bg-white bg-opacity-10 rounded-lg p-4">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <div className="font-semibold text-white">{email.subject}</div>
+                                                <div className="text-blue-200 text-sm">
+                                                    Sent to {email.recipients} recipients
+                                                </div>
+                                            </div>
+                                            <div className="text-right text-sm text-blue-300">
+                                                <div>{new Date(email.sent_at).toLocaleDateString()}</div>
+                                                <div>{new Date(email.sent_at).toLocaleTimeString()}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Compose Email Modal */}
+                    {showComposeForm && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="glass-effect rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                                <h3 className="text-xl font-bold text-white mb-4">✍️ Compose Email</h3>
+                                <form onSubmit={handleSendEmail} className="space-y-4">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Recipients</label>
+                                        <select
+                                            value={newEmail.recipient_type}
+                                            onChange={(e) => setNewEmail({...newEmail, recipient_type: e.target.value})}
+                                        >
+                                            <option value="all">All Students (142)</option>
+                                            <option value="at_risk">At-Risk Students (8)</option>
+                                            <option value="new">New Students (5)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Subject *</label>
+                                        <input
+                                            type="text"
+                                            value={newEmail.subject}
+                                            onChange={(e) => setNewEmail({...newEmail, subject: e.target.value})}
+                                            placeholder="Email subject..."
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Message *</label>
+                                        <textarea
+                                            value={newEmail.message}
+                                            onChange={(e) => setNewEmail({...newEmail, message: e.target.value})}
+                                            placeholder="Email content..."
+                                            rows="6"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="submit"
+                                            className="bg-blue-600 flex-1 text-white font-semibold py-3 rounded-lg hover:bg-blue-700"
+                                        >
+                                            📧 Send Email
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowComposeForm(false)}
+                                            className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30 py-3 rounded-lg"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // System Status Component - MOBILE/TABLET OPTIMIZED  
+        const SystemStatus = () => {
+            const [systemData, setSystemData] = useState({});
+            const [isLoading, setIsLoading] = useState(true);
+
+            useEffect(() => {
+                loadSystemData();
+            }, []);
+
+            const loadSystemData = async () => {
+                setIsLoading(true);
+                // Demo system data
+                setSystemData({
+                    status: 'healthy',
+                    uptime: '99.9%',
+                    lastBackup: '2024-07-04T02:00:00',
+                    databaseSize: '2.4 MB',
+                    activeUsers: 3,
+                    totalStorage: '15.2 MB',
+                    apiCalls: 1247,
+                    version: '2.0.0-production'
+                });
+                setIsLoading(false);
+            };
+
+            if (isLoading) {
+                return <div className="text-center py-8 text-blue-100">Loading system status...</div>;
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div>
+                        <h2 className="text-3xl font-bold text-white mb-2">🔧 System Status</h2>
+                        <p className="text-blue-100">Monitor system health and performance</p>
+                    </div>
+
+                    {/* System Health */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">🟢 System Health</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-green-400">{systemData.status === 'healthy' ? '✅' : '❌'}</div>
+                                <div className="text-blue-100 text-sm">Status</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-green-400">{systemData.uptime}</div>
+                                <div className="text-blue-100 text-sm">Uptime</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-blue-400">{systemData.activeUsers}</div>
+                                <div className="text-blue-100 text-sm">Active Users</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-purple-400">{systemData.version}</div>
+                                <div className="text-blue-100 text-sm">Version</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Database Info */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">💾 Database</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                                <div className="text-blue-100 text-sm">Database Size</div>
+                                <div className="text-xl font-bold text-white">{systemData.databaseSize}</div>
+                            </div>
+                            <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                                <div className="text-blue-100 text-sm">Last Backup</div>
+                                <div className="text-xl font-bold text-white">
+                                    {new Date(systemData.lastBackup).toLocaleDateString()}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Performance Metrics */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">📈 Performance</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                                <div className="text-blue-100 text-sm">API Calls Today</div>
+                                <div className="text-xl font-bold text-green-400">{systemData.apiCalls}</div>
+                            </div>
+                            <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                                <div className="text-blue-100 text-sm">Storage Used</div>
+                                <div className="text-xl font-bold text-blue-400">{systemData.totalStorage}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="glass-effect rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">⚡ Quick Actions</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <button className="bg-blue-600 p-3 text-white rounded-lg hover:bg-blue-700">
+                                💾 Create Backup
+                            </button>
+                            <button className="bg-green-600 p-3 text-white rounded-lg hover:bg-green-700">
+                                🔄 Check Updates
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
 
         // Main Dashboard Component
         const Dashboard = ({ adminInfo, onLogout, onCheckInMode }) => {
@@ -1456,11 +2042,11 @@
                             {activeTab === 'students' && <StudentManagement />}
                             {activeTab === 'classes' && <ClassManagement />}
                             {activeTab === 'schedule' && <ScheduleManagement />}
-                            {activeTab === 'attendance' && <SimplePlaceholder title="Attendance Tracking" emoji="✅" description="View and manage student check-ins and attendance records." />}
-                            {activeTab === 'analytics' && <SimplePlaceholder title="Business Analytics" emoji="📊" description="View business metrics, student progress, and gym performance." />}
-                            {activeTab === 'risk-analysis' && <SimplePlaceholder title="Risk Analysis" emoji="⚠️" description="Identify students at risk of dropping out and retention strategies." />}
-                            {activeTab === 'communications' && <SimplePlaceholder title="Communications" emoji="📧" description="Send emails and manage communication with students." />}
-                            {activeTab === 'system' && <SimplePlaceholder title="System Status" emoji="🔧" description="Monitor system health, backups, and configuration." />}
+                            {activeTab === 'attendance' && <AttendanceTracking />}
+                            {activeTab === 'analytics' && <BusinessAnalytics />}
+                            {activeTab === 'risk-analysis' && <RiskAnalysis />}
+                            {activeTab === 'communications' && <Communications />}
+                            {activeTab === 'system' && <SystemStatus />}
                         </div>
                     </div>
                 </div>
