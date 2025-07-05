@@ -1,4 +1,8 @@
-<!DOCTYPE html>
+// Login Component - PROFESSIONAL ACCESS CONTROL
+        const Login = ({ onLogin }) => {
+            const [cardCode, setCardCode] = useState('');
+            const [password, setPassword] = useState('');
+            const [access<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -241,20 +245,39 @@
             }
         };
 
-        // Login Component
+        // Login Component - PROFESSIONAL ACCESS CONTROL
         const Login = ({ onLogin }) => {
-            const [cardCode, setCardCode] = useState('');
-            const [password, setPassword] = useState('');
+            const [accessCode, setAccessCode] = useState('');
             const [isLoading, setIsLoading] = useState(false);
             const [error, setError] = useState('');
+            const [showAdminLogin, setShowAdminLogin] = useState(false);
+            const [adminCredentials, setAdminCredentials] = useState({ username: '', password: '' });
 
-            const handleLogin = async (e) => {
+            const handleAccessCodeSubmit = async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                setError('');
+
+                // Check for valid access code
+                if (accessCode.toUpperCase() === 'ADELYNN14') {
+                    setShowAdminLogin(true);
+                    setError('');
+                } else {
+                    setError('Invalid access code. Contact your administrator for Professional access.');
+                }
+                setIsLoading(false);
+            };
+
+            const handleAdminLogin = async (e) => {
                 e.preventDefault();
                 setIsLoading(true);
                 setError('');
 
                 try {
-                    const payload = { card_code: cardCode, password: password };
+                    const payload = { 
+                        card_code: adminCredentials.username, 
+                        password: adminCredentials.password 
+                    };
                     
                     const response = await apiCall('/login', {
                         method: 'POST',
@@ -262,21 +285,24 @@
                     });
 
                     localStorage.setItem('auth_token', response.access_token);
-                    onLogin(response.admin_info);
+                    localStorage.setItem('access_code', accessCode);
+                    onLogin({
+                        ...response.admin_info,
+                        hasProAccess: true,
+                        accessCode: accessCode
+                    });
                 } catch (error) {
-                    setError('Login failed - check credentials');
+                    setError('Login failed. Please check your credentials and try again.');
                 } finally {
                     setIsLoading(false);
                 }
             };
 
-            const quickDemo = () => {
-                setCardCode('ADMIN001');
-                setPassword('admin123');
-                setTimeout(() => {
-                    const event = { preventDefault: () => {} };
-                    handleLogin(event);
-                }, 100);
+            const resetAccess = () => {
+                setShowAdminLogin(false);
+                setAccessCode('');
+                setAdminCredentials({ username: '', password: '' });
+                setError('');
             };
 
             return (
@@ -285,65 +311,115 @@
                         <div className="text-center mb-8">
                             <h1 className="text-3xl font-bold text-white mb-2">🥋 BJJ PRO GYM</h1>
                             <div className="pro-badge mx-auto mb-4">Professional Edition</div>
-                            <p className="text-blue-100">Professional Brazilian Jiu-Jitsu Management</p>
+                            <p className="text-blue-100">Professional Brazilian Jiu-Jitsu Management System</p>
                         </div>
 
-                        <form onSubmit={handleLogin} className="space-y-6">
+                        {!showAdminLogin ? (
+                            /* ACCESS CODE SCREEN */
                             <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">
-                                    Card Code / Username
-                                </label>
-                                <input
-                                    type="text"
-                                    value={cardCode}
-                                    onChange={(e) => setCardCode(e.target.value)}
-                                    placeholder="Enter card code or username"
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">
-                                    Password
-                                </label>
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="Enter password"
-                                    required
-                                />
-                            </div>
-
-                            {error && (
-                                <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
-                                    {error}
+                                <div className="text-center mb-6">
+                                    <div className="text-4xl mb-3">🔐</div>
+                                    <h2 className="text-xl font-semibold text-white mb-2">Professional Access Required</h2>
+                                    <p className="text-blue-200 text-sm">Enter your access code to continue</p>
                                 </div>
-                            )}
 
-                            <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="glass-button w-full text-white font-semibold"
-                            >
-                                {isLoading ? 'Logging in...' : 'Login'}
-                            </button>
-                        </form>
+                                <form onSubmit={handleAccessCodeSubmit} className="space-y-6">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">
+                                            Professional Access Code
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={accessCode}
+                                            onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+                                            placeholder="Enter your access code"
+                                            required
+                                            autoFocus
+                                            style={{ textTransform: 'uppercase', letterSpacing: '2px', textAlign: 'center' }}
+                                        />
+                                    </div>
 
-                        <div className="mt-6 space-y-3">
-                            <button
-                                onClick={quickDemo}
-                                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold"
-                            >
-                                🚀 Quick Demo (Auto-fill)
-                            </button>
-                        </div>
+                                    {error && (
+                                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg text-center">
+                                            {error}
+                                        </div>
+                                    )}
 
-                        <div className="mt-6 text-center text-blue-200 text-sm">
-                            <p>Demo Credentials:</p>
-                            <p><strong>Card:</strong> ADMIN001</p>
-                            <p><strong>Password:</strong> admin123</p>
-                        </div>
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading}
+                                        className="glass-button w-full text-white font-semibold"
+                                    >
+                                        {isLoading ? 'Verifying...' : '🔓 Verify Access Code'}
+                                    </button>
+                                </form>
+
+                                <div className="mt-6 text-center text-blue-300 text-xs">
+                                    <p>BJJ Pro Gym Professional Edition</p>
+                                    <p>Authorized Users Only • v2.0.0</p>
+                                </div>
+                            </div>
+                        ) : (
+                            /* ADMIN LOGIN SCREEN */
+                            <div>
+                                <div className="text-center mb-6">
+                                    <div className="text-green-400 mb-2">✅ Access Code Verified</div>
+                                    <h2 className="text-xl font-semibold text-white mb-2">Admin Login</h2>
+                                    <p className="text-blue-200 text-sm">Professional access granted with code: {accessCode}</p>
+                                </div>
+
+                                <form onSubmit={handleAdminLogin} className="space-y-6">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">
+                                            Admin Username
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={adminCredentials.username}
+                                            onChange={(e) => setAdminCredentials({...adminCredentials, username: e.target.value})}
+                                            placeholder="Enter admin username"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">
+                                            Password
+                                        </label>
+                                        <input
+                                            type="password"
+                                            value={adminCredentials.password}
+                                            onChange={(e) => setAdminCredentials({...adminCredentials, password: e.target.value})}
+                                            placeholder="Enter password"
+                                            required
+                                        />
+                                    </div>
+
+                                    {error && (
+                                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading}
+                                        className="glass-button w-full text-white font-semibold"
+                                    >
+                                        {isLoading ? 'Logging in...' : '🚀 Enter Dashboard'}
+                                    </button>
+                                </form>
+
+                                <div className="mt-4 text-center">
+                                    <button
+                                        onClick={resetAccess}
+                                        className="text-blue-300 hover:text-white text-sm underline"
+                                    >
+                                        ← Use Different Access Code
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -386,14 +462,10 @@
                     setIsLoading(true);
                     const response = await apiCall('/students');
                     setStudents(response.students || []);
+                    setError('');
                 } catch (error) {
-                    setError('Failed to load students');
-                    // Demo fallback data
-                    setStudents([
-                        { id: 1, name: 'John Smith', email: 'john@email.com', phone: '555-0101', belt_level: 'Blue', member_id: 'MBR001', card_number: 'CARD1001' },
-                        { id: 2, name: 'Maria Garcia', email: 'maria@email.com', phone: '555-0102', belt_level: 'White', member_id: 'MBR002', card_number: 'CARD1002' },
-                        { id: 3, name: 'David Johnson', email: 'david@email.com', phone: '555-0103', belt_level: 'Purple', member_id: 'MBR003', card_number: 'CARD1003' }
-                    ]);
+                    setError('Unable to connect to server. Please check your connection and try again.');
+                    setStudents([]);
                 } finally {
                     setIsLoading(false);
                 }
@@ -685,16 +757,9 @@
                     const response = await apiCall('/classes');
                     setClasses(response.classes || []);
                 } catch (error) {
-                    console.log('API failed, using demo data');
-                    setError('Backend not connected - showing demo data');
-                    setClasses([
-                        { id: 1, name: 'Fundamentals', description: 'Basic BJJ techniques for beginners', created_at: new Date().toISOString() },
-                        { id: 2, name: 'Advanced', description: 'Advanced techniques and sparring', created_at: new Date().toISOString() },
-                        { id: 3, name: 'Competition', description: 'Competition preparation and training', created_at: new Date().toISOString() },
-                        { id: 4, name: 'No-Gi', description: 'Brazilian Jiu-Jitsu without gi', created_at: new Date().toISOString() },
-                        { id: 5, name: 'Open Mat', description: 'Free training and practice time', created_at: new Date().toISOString() },
-                        { id: 6, name: 'Kids Program', description: 'Brazilian Jiu-Jitsu for children ages 6-12', created_at: new Date().toISOString() }
-                    ]);
+                    console.log('API connection failed');
+                    setError('Unable to connect to server. Please check your connection and try again.');
+                    setClasses([]);
                 } finally {
                     setIsLoading(false);
                 }
@@ -727,33 +792,27 @@
                     
                     setTimeout(() => setSuccess(''), 3000);
                 } catch (error) {
-                    // Fallback for demo mode
-                    const newId = classes.length > 0 ? Math.max(...classes.map(c => c.id)) + 1 : 1;
-                    const newClassItem = {
-                        id: newId,
-                        name: newClass.name.trim(),
-                        description: newClass.description.trim() || '',
-                        created_at: new Date().toISOString()
-                    };
-                    setClasses(prev => [...prev, newClassItem]);
-                    setNewClass({ name: '', description: '' });
-                    setShowAddForm(false);
-                    setSuccess('✅ Class added to demo data!');
-                    setTimeout(() => setSuccess(''), 3000);
+                    setError('Failed to add class. Please check your connection and try again.');
                 }
             };
 
-            const handleDeleteClass = (classId, className) => {
+            const handleDeleteClass = async (classId, className) => {
                 console.log('Delete clicked for:', className); // Debug log
                 if (!window.confirm(`Are you sure you want to delete "${className}"? This action cannot be undone.`)) return;
                 
                 setError('');
                 setSuccess('');
                 
-                // Always use fallback for demo - works immediately
-                setClasses(prev => prev.filter(c => c.id !== classId));
-                setSuccess(`✅ Class "${className}" deleted successfully!`);
-                setTimeout(() => setSuccess(''), 3000);
+                try {
+                    await apiCall(`/classes/${classId}`, {
+                        method: 'DELETE'
+                    });
+                    setSuccess(`✅ Class "${className}" deleted successfully!`);
+                    await loadClasses();
+                    setTimeout(() => setSuccess(''), 3000);
+                } catch (error) {
+                    setError('Failed to delete class. Please check your connection and try again.');
+                }
             };
 
             if (isLoading) {
@@ -965,18 +1024,9 @@
                     setSchedules(response.schedules || []);
                     setError('');
                 } catch (error) {
-                    console.log('API failed, using demo schedule data');
-                    setError('Backend not connected - showing demo data');
-                    setSchedules([
-                        { id: 1, class_name: 'Fundamentals', day_of_week: 0, start_time: '18:00', end_time: '19:00', instructor: 'Professor Silva' },
-                        { id: 2, class_name: 'Advanced', day_of_week: 0, start_time: '19:15', end_time: '20:45', instructor: 'Professor Johnson' },
-                        { id: 3, class_name: 'No-Gi', day_of_week: 1, start_time: '19:00', end_time: '20:00', instructor: 'Professor Davis' },
-                        { id: 4, class_name: 'Fundamentals', day_of_week: 2, start_time: '18:00', end_time: '19:00', instructor: 'Professor Silva' },
-                        { id: 5, class_name: 'Competition', day_of_week: 2, start_time: '19:15', end_time: '21:15', instructor: 'Professor Brown' },
-                        { id: 6, class_name: 'Open Mat', day_of_week: 4, start_time: '18:00', end_time: '20:00', instructor: 'Open' },
-                        { id: 7, class_name: 'Fundamentals', day_of_week: 5, start_time: '10:00', end_time: '11:00', instructor: 'Professor Silva' },
-                        { id: 8, class_name: 'Open Mat', day_of_week: 5, start_time: '11:15', end_time: '13:15', instructor: 'Open' }
-                    ]);
+                    console.log('API connection failed');
+                    setError('Unable to connect to server. Please check your connection and try again.');
+                    setSchedules([]);
                 } finally {
                     setIsLoading(false);
                 }
@@ -987,14 +1037,8 @@
                     const response = await apiCall('/classes');
                     setClasses(response.classes || []);
                 } catch (error) {
-                    console.log('Classes API failed, using demo classes for schedule');
-                    setClasses([
-                        { id: 1, name: 'Fundamentals' },
-                        { id: 2, name: 'Advanced' },
-                        { id: 3, name: 'Competition' },
-                        { id: 4, name: 'No-Gi' },
-                        { id: 5, name: 'Open Mat' }
-                    ]);
+                    console.log('Classes API connection failed');
+                    setClasses([]);
                 }
             };
 
@@ -1027,22 +1071,7 @@
                     
                     setTimeout(() => setSuccess(''), 3000);
                 } catch (error) {
-                    const newId = Math.max(...schedules.map(s => s.id)) + 1;
-                    const newScheduleItem = {
-                        id: newId,
-                        ...newSchedule
-                    };
-                    setSchedules(prev => [...prev, newScheduleItem]);
-                    setNewSchedule({
-                        class_name: '',
-                        day_of_week: 0,
-                        start_time: '18:00',
-                        end_time: '19:00',
-                        instructor: ''
-                    });
-                    setShowAddForm(false);
-                    setSuccess('✅ Schedule added to demo data!');
-                    setTimeout(() => setSuccess(''), 3000);
+                    setError('Failed to add schedule. Please check your connection and try again.');
                 }
             };
 
@@ -1057,9 +1086,7 @@
                     await loadSchedules();
                     setTimeout(() => setSuccess(''), 3000);
                 } catch (error) {
-                    setSchedules(prev => prev.filter(s => s.id !== scheduleId));
-                    setSuccess('✅ Schedule removed from demo!');
-                    setTimeout(() => setSuccess(''), 3000);
+                    setError('Failed to delete schedule. Please check your connection and try again.');
                 }
             };
 
@@ -1280,8 +1307,9 @@
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                 <div>
                                     <h1 className="text-3xl font-bold text-white mb-2">
-                                        🔍 Student Check-In Kiosk
+                                        🔍 Professional Check-In Kiosk
                                     </h1>
+                                    <p className="text-blue-100">BJJ Pro Gym Professional Edition</p>
                                 </div>
                                 <button
                                     onClick={onBack}
@@ -1387,16 +1415,15 @@
 
             const loadAttendance = async () => {
                 setIsLoading(true);
-                // Demo attendance data
-                const demoLogs = [
-                    { id: 1, student_name: 'John Smith', class_name: 'Fundamentals', check_in_time: '2024-07-04T18:15:00', member_id: 'MBR001' },
-                    { id: 2, student_name: 'Maria Garcia', class_name: 'Advanced', check_in_time: '2024-07-04T19:20:00', member_id: 'MBR002' },
-                    { id: 3, student_name: 'David Johnson', class_name: 'No-Gi', check_in_time: '2024-07-03T19:00:00', member_id: 'MBR003' },
-                    { id: 4, student_name: 'Sarah Wilson', class_name: 'Fundamentals', check_in_time: '2024-07-03T18:10:00', member_id: 'MBR004' },
-                    { id: 5, student_name: 'Mike Brown', class_name: 'Open Mat', check_in_time: '2024-07-02T18:30:00', member_id: 'MBR005' }
-                ];
-                setAttendanceLogs(demoLogs);
-                setStats({ today: 2, week: 12, month: 45 });
+                try {
+                    const response = await apiCall('/attendance');
+                    setAttendanceLogs(response.logs || []);
+                    setStats(response.stats || { today: 0, week: 0, month: 0 });
+                } catch (error) {
+                    console.log('Attendance API connection failed');
+                    setAttendanceLogs([]);
+                    setStats({ today: 0, week: 0, month: 0 });
+                }
                 setIsLoading(false);
             };
 
@@ -1498,22 +1525,13 @@
 
             const loadAnalytics = async () => {
                 setIsLoading(true);
-                // Demo analytics data
-                setAnalytics({
-                    totalStudents: 156,
-                    activeStudents: 142,
-                    monthlyRevenue: 28450,
-                    retentionRate: 87,
-                    beltDistribution: {
-                        'White': 65,
-                        'Blue': 42,
-                        'Purple': 28,
-                        'Brown': 15,
-                        'Black': 6
-                    },
-                    monthlyGrowth: 12.5,
-                    averageAttendance: 3.2
-                });
+                try {
+                    const response = await apiCall('/analytics');
+                    setAnalytics(response.analytics || {});
+                } catch (error) {
+                    console.log('Analytics API connection failed');
+                    setAnalytics({});
+                }
                 setIsLoading(false);
             };
 
@@ -1604,13 +1622,13 @@
 
             const loadRiskData = async () => {
                 setIsLoading(true);
-                // Demo risk analysis data
-                setRiskData([
-                    { id: 1, student_name: 'Alex Thompson', risk_level: 'High', last_attendance: '2024-06-20', days_absent: 14, reason: 'No attendance for 2+ weeks' },
-                    { id: 2, student_name: 'Jessica Chen', risk_level: 'Medium', last_attendance: '2024-06-28', days_absent: 6, reason: 'Declining attendance pattern' },
-                    { id: 3, student_name: 'Robert Miller', risk_level: 'High', last_attendance: '2024-06-15', days_absent: 19, reason: 'Extended absence' },
-                    { id: 4, student_name: 'Emily Davis', risk_level: 'Low', last_attendance: '2024-07-01', days_absent: 3, reason: 'Minor attendance gap' }
-                ]);
+                try {
+                    const response = await apiCall('/risk-analysis');
+                    setRiskData(response.risks || []);
+                } catch (error) {
+                    console.log('Risk analysis API connection failed');
+                    setRiskData([]);
+                }
                 setIsLoading(false);
             };
 
@@ -1700,6 +1718,7 @@
             const [emailHistory, setEmailHistory] = useState([]);
             const [showComposeForm, setShowComposeForm] = useState(false);
             const [isLoading, setIsLoading] = useState(true);
+            const [error, setError] = useState('');
             const [newEmail, setNewEmail] = useState({
                 subject: '',
                 message: '',
@@ -1712,28 +1731,38 @@
 
             const loadEmailHistory = async () => {
                 setIsLoading(true);
-                // Demo email history
-                setEmailHistory([
-                    { id: 1, subject: 'Welcome to BJJ Pro Gym!', recipients: 5, sent_at: '2024-07-04T10:00:00', type: 'welcome' },
-                    { id: 2, subject: 'Monthly Training Schedule Update', recipients: 142, sent_at: '2024-07-01T09:00:00', type: 'announcement' },
-                    { id: 3, subject: 'Retention Outreach - Missing You!', recipients: 8, sent_at: '2024-06-28T14:30:00', type: 'retention' }
-                ]);
+                try {
+                    const response = await apiCall('/communications/history');
+                    setEmailHistory(response.emails || []);
+                } catch (error) {
+                    console.log('Communications API connection failed');
+                    setEmailHistory([]);
+                }
                 setIsLoading(false);
             };
 
             const handleSendEmail = async (e) => {
                 e.preventDefault();
-                // Demo send
-                const emailData = {
-                    id: Date.now(),
-                    subject: newEmail.subject,
-                    recipients: newEmail.recipient_type === 'all' ? 142 : 15,
-                    sent_at: new Date().toISOString(),
-                    type: 'custom'
-                };
-                setEmailHistory(prev => [emailData, ...prev]);
-                setNewEmail({ subject: '', message: '', recipient_type: 'all' });
-                setShowComposeForm(false);
+                setError('');
+                try {
+                    const response = await apiCall('/communications/send', {
+                        method: 'POST',
+                        body: JSON.stringify(newEmail)
+                    });
+                    
+                    const emailData = {
+                        id: response.id || Date.now(),
+                        subject: newEmail.subject,
+                        recipients: response.recipients || 0,
+                        sent_at: new Date().toISOString(),
+                        type: 'custom'
+                    };
+                    setEmailHistory(prev => [emailData, ...prev]);
+                    setNewEmail({ subject: '', message: '', recipient_type: 'all' });
+                    setShowComposeForm(false);
+                } catch (error) {
+                    setError('Failed to send email. Please check your connection and try again.');
+                }
             };
 
             if (isLoading) {
@@ -1754,6 +1783,12 @@
                             ✍️ Compose Email
                         </button>
                     </div>
+
+                    {error && (
+                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                            {error}
+                        </div>
+                    )}
 
                     {/* Quick Actions */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1872,17 +1907,16 @@
 
             const loadSystemData = async () => {
                 setIsLoading(true);
-                // Demo system data
-                setSystemData({
-                    status: 'healthy',
-                    uptime: '99.9%',
-                    lastBackup: '2024-07-04T02:00:00',
-                    databaseSize: '2.4 MB',
-                    activeUsers: 3,
-                    totalStorage: '15.2 MB',
-                    apiCalls: 1247,
-                    version: '2.0.0-production'
-                });
+                try {
+                    const response = await apiCall('/system/status');
+                    setSystemData(response.system || {});
+                } catch (error) {
+                    console.log('System status API connection failed');
+                    setSystemData({
+                        status: 'disconnected',
+                        message: 'Unable to connect to server'
+                    });
+                }
                 setIsLoading(false);
             };
 
@@ -1998,7 +2032,7 @@
                                         Welcome back, {adminInfo.name} • {adminInfo.gym_name}
                                     </p>
                                     <p className="text-blue-200 text-sm">
-                                        Plan: {adminInfo.plan} • Status: ✅ Connected - 2.0.0-production
+                                        Plan: {adminInfo.plan} • Access: {adminInfo.accessCode} • Status: ✅ Active
                                     </p>
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-3">
@@ -2060,9 +2094,23 @@
 
             useEffect(() => {
                 const token = localStorage.getItem('auth_token');
-                if (token) {
-                    setUser({ name: 'Admin User', role: 'owner', gym_name: 'Demo BJJ Pro Academy', plan: 'professional' });
+                const accessCode = localStorage.getItem('access_code');
+                
+                // Only auto-login if both token AND valid access code exist
+                if (token && accessCode === 'ADELYNN14') {
+                    setUser({ 
+                        name: 'Admin User', 
+                        role: 'owner', 
+                        gym_name: 'Demo BJJ Pro Academy', 
+                        plan: 'Professional',
+                        hasProAccess: true,
+                        accessCode: accessCode
+                    });
                     setMode('dashboard');
+                } else {
+                    // Clear invalid sessions
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('access_code');
                 }
             }, []);
 
@@ -2073,6 +2121,7 @@
 
             const handleLogout = () => {
                 localStorage.removeItem('auth_token');
+                localStorage.removeItem('access_code');
                 setUser(null);
                 setMode('login');
             };
@@ -2085,7 +2134,8 @@
                 setMode('dashboard');
             };
 
-            if (mode === 'login') {
+            // Only show content if user has valid professional access
+            if (mode === 'login' || !user?.hasProAccess) {
                 return <Login onLogin={handleLogin} />;
             }
 
