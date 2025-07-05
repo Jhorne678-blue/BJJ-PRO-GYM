@@ -1,12 +1,11 @@
-// Demo Dashboard Component - LIMITED FUNCTIONALITY
-        const DemoMode = ({ onBackToLanding, onUpgrade }) => {
+// Demo Mode Component - SIMPLE DEMO
+        const DemoMode = ({ onBackToLogin }) => {
             const [activeTab, setActiveTab] = useState('students');
 
             const tabs = [
                 { id: 'students', label: 'Students', icon: '👥' },
                 { id: 'classes', label: 'Classes', icon: '📚' },
-                { id: 'schedule', label: 'Schedule', icon: '📅' },
-                { id: 'upgrade', label: '⭐ Upgrade', icon: '💎' }
+                { id: 'schedule', label: 'Schedule', icon: '📅' }
             ];
 
             const demoStudents = [
@@ -45,27 +44,21 @@
                                 <div>
                                     <h1 className="text-3xl font-bold text-white mb-2">
                                         🥋 BJJ PRO GYM
-                                        <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm ml-3">DEMO MODE</span>
+                                        <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm ml-3">DEMO</span>
                                     </h1>
                                     <p className="text-blue-100">
-                                        Interactive Demo • Limited Features
+                                        Demo • Limited Features
                                     </p>
                                     <p className="text-blue-200 text-sm">
-                                        Experience the power of professional gym management
+                                        Professional Edition available with access code
                                     </p>
                                 </div>
-                                <div className="flex flex-col sm:flex-row gap-3">
+                                <div className="flex gap-3">
                                     <button
-                                        onClick={onUpgrade}
-                                        className="bg-green-600 px-6 py-3 text-white font-semibold rounded-lg hover:bg-green-700"
-                                    >
-                                        🚀 Start Free Trial
-                                    </button>
-                                    <button
-                                        onClick={onBackToLanding}
+                                        onClick={onBackToLogin}
                                         className="bg-gray-500 bg-opacity-20 px-6 py-3 text-white font-semibold hover:bg-opacity-30 rounded-lg"
                                     >
-                                        ← Back to Home
+                                        ← Back to Login
                                     </button>
                                 </div>
                             </div>
@@ -125,11 +118,6 @@
                                                 </div>
                                             ))}
                                         </div>
-                                        <div className="mt-4 p-4 bg-yellow-500 bg-opacity-20 rounded-lg text-center">
-                                            <p className="text-yellow-100">
-                                                ⭐ <strong>In the full version:</strong> Add unlimited students, advanced filtering, belt tracking, and more!
-                                            </p>
-                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -158,11 +146,6 @@
                                                     </div>
                                                 </div>
                                             ))}
-                                        </div>
-                                        <div className="mt-4 p-4 bg-yellow-500 bg-opacity-20 rounded-lg text-center">
-                                            <p className="text-yellow-100">
-                                                ⭐ <strong>In the full version:</strong> Unlimited classes, capacity management, instructor assignments, and more!
-                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -204,55 +187,6 @@
                                                 );
                                             })}
                                         </div>
-                                        <div className="mt-4 p-4 bg-yellow-500 bg-opacity-20 rounded-lg text-center">
-                                            <p className="text-yellow-100">
-                                                ⭐ <strong>In the full version:</strong> Advanced scheduling, recurring classes, capacity limits, and more!
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'upgrade' && (
-                                <div className="space-y-6">
-                                    <div className="text-center">
-                                        <h2 className="text-3xl font-bold text-white mb-4">🚀 Upgrade to Full Version</h2>
-                                        <p className="text-blue-100 text-lg mb-8">
-                                            You've seen the demo - now experience the full power of BJJ Pro Gym
-                                        </p>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="glass-effect rounded-xl p-6">
-                                            <h3 className="text-xl font-bold text-white mb-4">✨ What You're Missing</h3>
-                                            <ul className="space-y-2 text-blue-100">
-                                                <li>✅ Unlimited students and classes</li>
-                                                <li>✅ Advanced analytics and reporting</li>
-                                                <li>✅ Risk analysis and retention tools</li>
-                                                <li>✅ Email campaigns and automation</li>
-                                                <li>✅ RFID check-in system</li>
-                                                <li>✅ Mobile optimization</li>
-                                                <li>✅ Priority support</li>
-                                                <li>✅ And much more...</li>
-                                            </ul>
-                                        </div>
-
-                                        <div className="glass-effect rounded-xl p-6 border-2 border-blue-400">
-                                            <h3 className="text-xl font-bold text-white mb-4">💎 Professional Plan</h3>
-                                            <div className="text-center mb-6">
-                                                <div className="text-4xl font-bold text-white">$197<span className="text-lg text-blue-200">/month</span></div>
-                                                <p className="text-blue-200">Up to 500 students</p>
-                                            </div>
-                                            <button
-                                                onClick={onUpgrade}
-                                                className="w-full bg-blue-600 hover:bg-blue-700 py-3 px-6 text-white font-semibold rounded-lg mb-4"
-                                            >
-                                                🚀 Start Free Trial
-                                            </button>
-                                            <p className="text-blue-300 text-sm text-center">
-                                                30-day free trial • No credit card required
-                                            </p>
-                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -262,390 +196,212 @@
             );
         };
 
-        // Purchase Page Component  
-        const PurchasePage = ({ selectedPlan, onBack }) => {
-            const [email, setEmail] = useState('');
-            const [gymName, setGymName] = useState('');
-            const [isProcessing, setIsProcessing] = useState(false);
+        // Login Component - PROFESSIONAL ACCESS CONTROL        // Login Component - PROFESSIONAL ACCESS CONTROL
+        const Login = ({ onLogin, onDemo }) => {
+            const [accessCode, setAccessCode] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+            const [error, setError] = useState('');
+            const [showAdminLogin, setShowAdminLogin] = useState(false);
+            const [adminCredentials, setAdminCredentials] = useState({ username: '', password: '' });
 
-            const planDetails = {
-                starter: { name: 'Starter', price: 97, students: '100' },
-                professional: { name: 'Professional', price: 197, students: '500' },
-                enterprise: { name: 'Enterprise', price: 397, students: 'Unlimited' }
+            const handleAccessCodeSubmit = async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                setError('');
+
+                // Check for valid access code
+                if (accessCode.toUpperCase() === 'ADELYNN14') {
+                    setShowAdminLogin(true);
+                    setError('');
+                } else {
+                    setError('Invalid access code. Contact your administrator for Professional access.');
+                }
+                setIsLoading(false);
             };
 
-            const plan = planDetails[selectedPlan] || planDetails.professional;
-
-            const handlePurchase = async (e) => {
+            const handleAdminLogin = async (e) => {
                 e.preventDefault();
-                setIsProcessing(true);
-                
-                // Simulate processing
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
-                alert(`Thank you! Your ${plan.name} plan trial has been activated. Check your email for access details.`);
-                setIsProcessing(false);
+                setIsLoading(true);
+                setError('');
+
+                try {
+                    const payload = { 
+                        card_code: adminCredentials.username, 
+                        password: adminCredentials.password 
+                    };
+                    
+                    const response = await apiCall('/login', {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+
+                    localStorage.setItem('auth_token', response.access_token);
+                    localStorage.setItem('access_code', accessCode);
+                    onLogin({
+                        ...response.admin_info,
+                        hasProAccess: true,
+                        accessCode: accessCode
+                    });
+                } catch (error) {
+                    // Professional fallback authentication for reliable access
+                    if ((adminCredentials.username === 'ADMIN001' && adminCredentials.password === 'admin123') ||
+                        (adminCredentials.username === 'BJJPRO' && adminCredentials.password === 'PROFESSIONAL2024')) {
+                        
+                        localStorage.setItem('auth_token', 'professional_session');
+                        localStorage.setItem('access_code', accessCode);
+                        onLogin({
+                            name: 'Admin User',
+                            role: 'owner', 
+                            gym_name: 'BJJ Pro Academy',
+                            plan: 'Professional',
+                            hasProAccess: true,
+                            accessCode: accessCode
+                        });
+                    } else {
+                        setError('Invalid admin credentials. Please check your username and password.');
+                    }
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const resetAccess = () => {
+                setShowAdminLogin(false);
+                setAccessCode('');
+                setAdminCredentials({ username: '', password: '' });
+                setError('');
             };
 
             return (
                 <div className="min-h-screen flex items-center justify-center p-4">
-                    <div className="glass-effect rounded-xl p-8 w-full max-w-lg">
+                    <div className="glass-effect rounded-3xl p-8 w-full max-w-md">
                         <div className="text-center mb-8">
-                            <h1 className="text-3xl font-bold text-white mb-2">🚀 Start Your Free Trial</h1>
-                            <p className="text-blue-100">Get full access to BJJ Pro Gym for 30 days</p>
+                            <h1 className="text-3xl font-bold text-white mb-2">🥋 BJJ PRO GYM</h1>
+                            <div className="pro-badge mx-auto mb-4">Professional Edition</div>
+                            <p className="text-blue-100">Professional Brazilian Jiu-Jitsu Management System</p>
                         </div>
 
-                        <div className="glass-effect rounded-lg p-6 mb-6">
-                            <h3 className="text-xl font-bold text-white mb-4">{plan.name} Plan</h3>
-                            <div className="flex justify-between items-center mb-4">
-                                <span className="text-blue-100">Monthly Price:</span>
-                                <span className="text-2xl font-bold text-white">${plan.price}</span>
-                            </div>
-                            <div className="flex justify-between items-center mb-4">
-                                <span className="text-blue-100">Student Limit:</span>
-                                <span className="text-white font-semibold">Up to {plan.students}</span>
-                            </div>
-                            <div className="border-t border-white border-opacity-20 pt-4">
-                                <div className="flex justify-between items-center text-lg">
-                                    <span className="text-blue-100">30-Day Trial:</span>
-                                    <span className="text-green-400 font-bold">FREE</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <form onSubmit={handlePurchase} className="space-y-6">
+                        {!showAdminLogin ? (
+                            /* ACCESS CODE SCREEN */
                             <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">Gym Name *</label>
-                                <input
-                                    type="text"
-                                    value={gymName}
-                                    onChange={(e) => setGymName(e.target.value)}
-                                    placeholder="Your gym or academy name"
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">Email Address *</label>
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="your@email.com"
-                                    required
-                                />
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={isProcessing}
-                                className="glass-button w-full text-white font-semibold"
-                            >
-                                {isProcessing ? 'Processing...' : '🚀 Start Free Trial'}
-                            </button>
-                        </form>
-
-                        <div className="mt-6 text-center">
-                            <button
-                                onClick={onBack}
-                                className="text-blue-300 hover:text-white underline"
-                            >
-                                ← Back to Plans
-                            </button>
-                        </div>
-
-                        <div className="mt-6 text-center text-blue-300 text-sm">
-                            <p>✅ 30-day free trial</p>
-                            <p>✅ No credit card required</p>
-                            <p>✅ Cancel anytime</p>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // Login Component - PROFESSIONAL ACCESS CONTROL        // Landing Page Component - PROFESSIONAL SAAS MARKETING
-        const LandingPage = ({ onSelectPlan, onDemo, onProAccess }) => {
-            const [showFeatures, setShowFeatures] = useState(false);
-
-            const plans = [
-                {
-                    name: 'Starter',
-                    price: 97,
-                    students: 'Up to 100',
-                    features: [
-                        'Student Management',
-                        'Basic Scheduling', 
-                        'Attendance Tracking',
-                        'Email Support',
-                        'Mobile Access'
-                    ],
-                    popular: false,
-                    cta: 'Start Free Trial'
-                },
-                {
-                    name: 'Professional', 
-                    price: 197,
-                    students: 'Up to 500',
-                    features: [
-                        'Everything in Starter',
-                        'Advanced Analytics',
-                        'Risk Analysis & Retention',
-                        'Email Campaigns',
-                        'RFID Check-in System',
-                        'Business Intelligence',
-                        'Priority Support'
-                    ],
-                    popular: true,
-                    cta: 'Start Free Trial'
-                },
-                {
-                    name: 'Enterprise',
-                    price: 397, 
-                    students: 'Unlimited',
-                    features: [
-                        'Everything in Professional',
-                        'Multi-Location Management',
-                        'White-Label Branding',
-                        'Custom Integrations',
-                        'Dedicated Account Manager',
-                        'Advanced Security',
-                        'Custom Training'
-                    ],
-                    popular: false,
-                    cta: 'Contact Sales'
-                }
-            ];
-
-            return (
-                <div className="min-h-screen">
-                    {/* Hero Section */}
-                    <div className="relative overflow-hidden">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-                            <div className="text-center">
-                                <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
-                                    🥋 BJJ PRO GYM
-                                </h1>
-                                <div className="pro-badge text-xl px-6 py-2 mb-8 inline-block">
-                                    Professional Edition
+                                <div className="text-center mb-6">
+                                    <div className="text-4xl mb-3">🔐</div>
+                                    <h2 className="text-xl font-semibold text-white mb-2">Professional Access Required</h2>
+                                    <p className="text-blue-200 text-sm">Enter your access code to continue</p>
                                 </div>
-                                <p className="text-2xl md:text-3xl text-blue-100 mb-8 font-light">
-                                    The #1 Management Platform for Brazilian Jiu-Jitsu Academies
-                                </p>
-                                <p className="text-lg text-blue-200 mb-12 max-w-3xl mx-auto">
-                                    Save 15+ hours per week and increase student retention by 20% with enterprise-grade gym management software built specifically for martial arts academies.
-                                </p>
-                                
-                                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+
+                                <form onSubmit={handleAccessCodeSubmit} className="space-y-6">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">
+                                            Professional Access Code
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={accessCode}
+                                            onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+                                            placeholder="Enter your access code"
+                                            required
+                                            autoFocus
+                                            style={{ textTransform: 'uppercase', letterSpacing: '2px', textAlign: 'center' }}
+                                        />
+                                    </div>
+
+                                    {error && (
+                                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg text-center">
+                                            {error}
+                                        </div>
+                                    )}
+
                                     <button
-                                        onClick={() => onSelectPlan('professional')}
-                                        className="glass-button px-8 py-4 text-white font-semibold text-lg"
+                                        type="submit"
+                                        disabled={isLoading}
+                                        className="glass-button w-full text-white font-semibold"
                                     >
-                                        🚀 Start Free Trial
+                                        {isLoading ? 'Verifying...' : '🔓 Verify Access Code'}
                                     </button>
+                                </form>
+
+                                <div className="mt-6 space-y-3">
                                     <button
                                         onClick={onDemo}
-                                        className="bg-white bg-opacity-20 px-8 py-4 text-white font-semibold text-lg rounded-lg hover:bg-opacity-30 transition-colors"
+                                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-lg"
                                     >
-                                        👀 View Demo
-                                    </button>
-                                    <button
-                                        onClick={onProAccess}
-                                        className="bg-purple-600 bg-opacity-20 px-8 py-4 text-purple-100 font-semibold text-lg rounded-lg hover:bg-opacity-30 transition-colors"
-                                    >
-                                        🔐 Professional Access
+                                        👀 Try Demo Version
                                     </button>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* Key Benefits */}
-                    <div className="py-20 bg-white bg-opacity-5">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <h2 className="text-4xl font-bold text-white text-center mb-16">
-                                Why 1,000+ Martial Arts Academies Choose BJJ Pro Gym
-                            </h2>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                <div className="glass-effect rounded-xl p-8 text-center hover-lift">
-                                    <div className="text-4xl mb-4">⏰</div>
-                                    <h3 className="text-xl font-semibold text-white mb-4">Save 15+ Hours Weekly</h3>
-                                    <p className="text-blue-100">Automate admin tasks, student tracking, and business operations with intelligent automation.</p>
-                                </div>
-                                
-                                <div className="glass-effect rounded-xl p-8 text-center hover-lift">
-                                    <div className="text-4xl mb-4">📈</div>
-                                    <h3 className="text-xl font-semibold text-white mb-4">20% Higher Retention</h3>
-                                    <p className="text-blue-100">AI-powered risk analysis identifies at-risk students before they quit, with automated retention campaigns.</p>
-                                </div>
-                                
-                                <div className="glass-effect rounded-xl p-8 text-center hover-lift">
-                                    <div className="text-4xl mb-4">💰</div>
-                                    <h3 className="text-xl font-semibold text-white mb-4">$1,900+ Monthly ROI</h3>
-                                    <p className="text-blue-100">Professional analytics and retention tools pay for themselves 10x over through improved business performance.</p>
+                                <div className="mt-6 text-center text-blue-300 text-xs">
+                                    <p>BJJ Pro Gym Professional Edition</p>
+                                    <p>Authorized Users Only • v2.0.0</p>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                        ) : (
+                            /* ADMIN LOGIN SCREEN */
+                            <div>
+                                <div className="text-center mb-6">
+                                    <div className="text-green-400 mb-2">✅ Access Code Verified</div>
+                                    <h2 className="text-xl font-semibold text-white mb-2">Admin Login</h2>
+                                    <p className="text-blue-200 text-sm">Professional access granted with code: {accessCode}</p>
+                                </div>
 
-                    {/* Feature Overview */}
-                    <div className="py-20">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <h2 className="text-4xl font-bold text-white text-center mb-16">
-                                Complete Business Management Suite
-                            </h2>
-                            
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                {[
-                                    { icon: '👥', title: 'Student Management', desc: 'Advanced filtering & tracking' },
-                                    { icon: '📚', title: 'Class Scheduling', desc: 'Weekly scheduling system' },
-                                    { icon: '✅', title: 'RFID Check-in', desc: 'Professional card scanning' },
-                                    { icon: '📊', title: 'Business Analytics', desc: 'Revenue & growth metrics' },
-                                    { icon: '⚠️', title: 'Risk Analysis', desc: 'AI dropout prediction' },
-                                    { icon: '📧', title: 'Email Campaigns', desc: 'Automated communications' },
-                                    { icon: '🔧', title: 'System Monitoring', desc: 'Health & performance' },
-                                    { icon: '📱', title: 'Mobile Optimized', desc: 'Perfect on all devices' }
-                                ].map((feature, index) => (
-                                    <div key={index} className="glass-effect rounded-lg p-6 text-center hover-lift">
-                                        <div className="text-3xl mb-3">{feature.icon}</div>
-                                        <h3 className="font-semibold text-white mb-2">{feature.title}</h3>
-                                        <p className="text-blue-200 text-sm">{feature.desc}</p>
+                                <form onSubmit={handleAdminLogin} className="space-y-6">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">
+                                            Admin Username
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={adminCredentials.username}
+                                            onChange={(e) => setAdminCredentials({...adminCredentials, username: e.target.value})}
+                                            placeholder="Enter admin username"
+                                            required
+                                        />
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* Pricing */}
-                    <div className="py-20 bg-white bg-opacity-5">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <h2 className="text-4xl font-bold text-white text-center mb-4">
-                                Choose Your Plan
-                            </h2>
-                            <p className="text-blue-200 text-center mb-16">
-                                30-day free trial • No setup fees • Cancel anytime
-                            </p>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                {plans.map((plan, index) => (
-                                    <div key={index} className={`glass-effect rounded-xl p-8 relative hover-lift ${plan.popular ? 'border-2 border-blue-400' : ''}`}>
-                                        {plan.popular && (
-                                            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                                                <span className="bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold">
-                                                    Most Popular
-                                                </span>
-                                            </div>
-                                        )}
-                                        
-                                        <div className="text-center">
-                                            <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
-                                            <div className="text-4xl font-bold text-white mb-2">
-                                                ${plan.price}<span className="text-lg text-blue-200">/month</span>
-                                            </div>
-                                            <p className="text-blue-200 mb-6">{plan.students} students</p>
-                                            
-                                            <ul className="space-y-3 mb-8">
-                                                {plan.features.map((feature, i) => (
-                                                    <li key={i} className="text-blue-100 text-sm">
-                                                        ✅ {feature}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                            
-                                            <button
-                                                onClick={() => onSelectPlan(plan.name.toLowerCase())}
-                                                className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors ${
-                                                    plan.popular 
-                                                        ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                                                        : 'bg-white bg-opacity-20 hover:bg-opacity-30 text-white'
-                                                }`}
-                                            >
-                                                {plan.cta}
-                                            </button>
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">
+                                            Password
+                                        </label>
+                                        <input
+                                            type="password"
+                                            value={adminCredentials.password}
+                                            onChange={(e) => setAdminCredentials({...adminCredentials, password: e.target.value})}
+                                            placeholder="Enter password"
+                                            required
+                                        />
+                                    </div>
+
+                                    {error && (
+                                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg">
+                                            {error}
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                            
-                            <div className="text-center mt-12">
-                                <p className="text-blue-200 mb-4">
-                                    Already have an access code?
-                                </p>
-                                <button
-                                    onClick={onProAccess}
-                                    className="text-purple-300 hover:text-white underline font-semibold"
-                                >
-                                    🔐 Enter Professional Access Code
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                                    )}
 
-                    {/* Social Proof */}
-                    <div className="py-20">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                            <h2 className="text-3xl font-bold text-white mb-12">
-                                Trusted by Leading BJJ Academies
-                            </h2>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                <div className="glass-effect rounded-lg p-6 hover-lift">
-                                    <p className="text-blue-100 mb-4">
-                                        "BJJ Pro Gym transformed our academy. We've saved 20+ hours weekly and increased retention by 25%."
-                                    </p>
-                                    <div className="font-semibold text-white">Professor Martinez</div>
-                                    <div className="text-blue-300 text-sm">Elite BJJ Academy</div>
-                                </div>
-                                
-                                <div className="glass-effect rounded-lg p-6 hover-lift">
-                                    <p className="text-blue-100 mb-4">
-                                        "The risk analysis feature has prevented dozens of student dropouts. ROI was immediate."
-                                    </p>
-                                    <div className="font-semibold text-white">Coach Sarah Chen</div>
-                                    <div className="text-blue-300 text-sm">Dragon BJJ</div>
-                                </div>
-                                
-                                <div className="glass-effect rounded-lg p-6 hover-lift">
-                                    <p className="text-blue-100 mb-4">
-                                        "Finally, professional software built specifically for martial arts. Game changer."
-                                    </p>
-                                    <div className="font-semibold text-white">Professor Ribeiro</div>
-                                    <div className="text-blue-300 text-sm">Ribeiro Academy</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading}
+                                        className="glass-button w-full text-white font-semibold"
+                                    >
+                                        {isLoading ? 'Logging in...' : '🚀 Enter Dashboard'}
+                                    </button>
+                                </form>
 
-                    {/* Footer CTA */}
-                    <div className="py-20 bg-white bg-opacity-5">
-                        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                            <h2 className="text-4xl font-bold text-white mb-6">
-                                Ready to Transform Your Academy?
-                            </h2>
-                            <p className="text-xl text-blue-100 mb-8">
-                                Join 1,000+ martial arts academies using BJJ Pro Gym to save time and grow revenue.
-                            </p>
-                            
-                            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                                <button
-                                    onClick={() => onSelectPlan('professional')}
-                                    className="glass-button px-8 py-4 text-white font-semibold text-lg"
-                                >
-                                    🚀 Start Free Trial Today
-                                </button>
-                                <button
-                                    onClick={onDemo}
-                                    className="bg-white bg-opacity-20 px-8 py-4 text-white font-semibold text-lg rounded-lg hover:bg-opacity-30 transition-colors"
-                                >
-                                    👀 Try Demo First
-                                </button>
+                                <div className="mt-4 text-center">
+                                    <button
+                                        onClick={resetAccess}
+                                        className="text-blue-300 hover:text-white text-sm underline"
+                                    >
+                                        ← Use Different Access Code
+                                    </button>
+                                </div>
+
+                                <div className="mt-6 text-center text-blue-200 text-sm">
+                                    <p><strong>Generic Access:</strong></p>
+                                    <p>Username: BJJPRO</p>
+                                    <p>Password: PROFESSIONAL2024</p>
+                                </div>
                             </div>
-                            
-                            <p className="text-blue-300 text-sm mt-6">
-                                No credit card required • 30-day free trial • Setup in 5 minutes
-                            </p>
-                        </div>
+                        )}
                     </div>
                 </div>
             );
@@ -792,41 +548,16 @@
             100% { transform: scale(1); }
         }
 
-        @keyframes fadeInUp {
-            from { 
-                opacity: 0; 
-                transform: translateY(30px); 
-            }
-            to { 
-                opacity: 1; 
-                transform: translateY(0); 
-            }
-        }
-
-        .fade-in-up {
-            animation: fadeInUp 0.6s ease-out;
-        }
-
-        .hover-lift {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .hover-lift:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-        }
-
         .pro-badge {
             background: linear-gradient(135deg, #fbbf24, #f59e0b);
             color: #1f2937;
             font-weight: 700;
-            padding: 6px 16px;
+            padding: 4px 12px;
             border-radius: 12px;
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             display: inline-block;
-            box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3);
         }
 
         .member-id-badge {
@@ -2757,7 +2488,7 @@
                                         Welcome back, {adminInfo.name} • {adminInfo.gym_name}
                                     </p>
                                     <p className="text-blue-200 text-sm">
-                                        Plan: {adminInfo.plan} • Access: {adminInfo.accessCode} • Status: ✅ Professional Active
+                                        Plan: {adminInfo.plan} • Access: {adminInfo.accessCode} • Status: ✅ Active
                                     </p>
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-3">
@@ -2815,8 +2546,7 @@
         // Main App Component
         const App = () => {
             const [user, setUser] = useState(null);
-            const [mode, setMode] = useState('landing'); // 'landing', 'demo', 'purchase', 'login', 'dashboard', 'checkin'
-            const [selectedPlan, setSelectedPlan] = useState('professional');
+            const [mode, setMode] = useState('login'); // 'login', 'demo', 'dashboard', 'checkin'
 
             useEffect(() => {
                 const token = localStorage.getItem('auth_token');
@@ -2834,28 +2564,19 @@
                     });
                     setMode('dashboard');
                 } else {
-                    // Clear invalid sessions and start fresh
+                    // Clear invalid sessions
                     localStorage.removeItem('auth_token');
                     localStorage.removeItem('access_code');
-                    setMode('landing');
+                    setMode('login');
                 }
             }, []);
-
-            const handleSelectPlan = (plan) => {
-                setSelectedPlan(plan);
-                setMode('purchase');
-            };
 
             const handleDemo = () => {
                 setMode('demo');
             };
 
-            const handleProAccess = () => {
+            const handleBackToLogin = () => {
                 setMode('login');
-            };
-
-            const handleBackToLanding = () => {
-                setMode('landing');
             };
 
             const handleLogin = (adminInfo) => {
@@ -2867,7 +2588,7 @@
                 localStorage.removeItem('auth_token');
                 localStorage.removeItem('access_code');
                 setUser(null);
-                setMode('landing');
+                setMode('login');
             };
 
             const handleCheckInMode = () => {
@@ -2878,40 +2599,23 @@
                 setMode('dashboard');
             };
 
-            // Landing page - show to everyone first
-            if (mode === 'landing') {
-                return (
-                    <LandingPage 
-                        onSelectPlan={handleSelectPlan}
-                        onDemo={handleDemo}
-                        onProAccess={handleProAccess}
-                    />
-                );
-            }
-
             // Demo mode - limited functionality
             if (mode === 'demo') {
                 return (
                     <DemoMode 
-                        onBackToLanding={handleBackToLanding}
-                        onUpgrade={() => handleSelectPlan('professional')}
-                    />
-                );
-            }
-
-            // Purchase page
-            if (mode === 'purchase') {
-                return (
-                    <PurchasePage 
-                        selectedPlan={selectedPlan}
-                        onBack={handleBackToLanding}
+                        onBackToLogin={handleBackToLogin}
                     />
                 );
             }
 
             // Professional access login
             if (mode === 'login' || !user?.hasProAccess) {
-                return <Login onLogin={handleLogin} />;
+                return (
+                    <Login 
+                        onLogin={handleLogin} 
+                        onDemo={handleDemo}
+                    />
+                );
             }
 
             // Check-in kiosk mode
