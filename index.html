@@ -60,6 +60,33 @@
             font-family: 'Inter', sans-serif !important;
         }
 
+        /* CHECKBOX STYLING */
+        input[type="checkbox"] {
+            width: 18px !important;
+            height: 18px !important;
+            min-height: 18px !important;
+            background-color: white !important;
+            border: 2px solid #e5e7eb !important;
+            border-radius: 4px !important;
+            cursor: pointer !important;
+            position: relative !important;
+        }
+
+        input[type="checkbox"]:checked {
+            background-color: #3b82f6 !important;
+            border-color: #3b82f6 !important;
+        }
+
+        input[type="checkbox"]:checked::after {
+            content: '✓' !important;
+            position: absolute !important;
+            top: -2px !important;
+            left: 2px !important;
+            color: white !important;
+            font-size: 12px !important;
+            font-weight: bold !important;
+        }
+
         input:focus, textarea:focus, select:focus {
             border-color: #3b82f6 !important;
             outline: none !important;
@@ -225,7 +252,7 @@
                 setIsLoading(false);
             };
 
-        // System Status Component - COMPLETE
+        // System Status Component - COMPLETE & ENHANCED
         const SystemStatus = () => {
             const [systemHealth] = useState({
                 database: 'Healthy',
@@ -234,13 +261,47 @@
                 uptime: '99.9%'
             });
 
+            const [emailSettings, setEmailSettings] = useState({
+                autoScheduleEmail: true,
+                scheduleEmailDay: 'Sunday',
+                scheduleEmailTime: '18:00',
+                emailOnScheduleChange: true,
+                defaultRecipients: 'all'
+            });
+
+            const [showEmailSettings, setShowEmailSettings] = useState(false);
+            const [success, setSuccess] = useState('');
+
+            const handleSaveEmailSettings = (e) => {
+                e.preventDefault();
+                // Save email settings logic here
+                setSuccess('✅ Email settings saved successfully!');
+                setShowEmailSettings(false);
+                setTimeout(() => setSuccess(''), 3000);
+            };
+
             return (
                 <div className="space-y-4">
-                    <div>
-                        <h2 className="text-xl md:text-2xl font-bold text-white mb-1">🔧 System Status</h2>
-                        <p className="text-blue-100 text-sm">Health monitoring, backup management, and configuration settings</p>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-1">🔧 System Status</h2>
+                            <p className="text-blue-100 text-sm">Health monitoring, backup management, and configuration settings</p>
+                        </div>
+                        <button
+                            onClick={() => setShowEmailSettings(true)}
+                            className="glass-button px-4 py-2 text-white font-semibold text-sm"
+                        >
+                            ⚙️ Email Settings
+                        </button>
                     </div>
 
+                    {success && (
+                        <div className="bg-green-500 bg-opacity-20 border border-green-300 text-green-100 px-4 py-3 rounded-lg success-pulse text-sm">
+                            {success}
+                        </div>
+                    )}
+
+                    {/* System Health */}
                     <div className="glass-effect rounded-xl p-4">
                         <h3 className="text-sm font-semibold text-white mb-3">System Health</h3>
                         <div className="space-y-2">
@@ -270,6 +331,137 @@
                             </div>
                         </div>
                     </div>
+
+                    {/* Email Automation Status */}
+                    <div className="glass-effect rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-white mb-3">📧 Email Automation</h3>
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                                <span className="text-blue-100 text-sm">Weekly Schedule Emails</span>
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                    emailSettings.autoScheduleEmail 
+                                        ? 'bg-green-500 bg-opacity-20 text-green-100'
+                                        : 'bg-gray-500 bg-opacity-20 text-gray-100'
+                                }`}>
+                                    {emailSettings.autoScheduleEmail ? '✅ Enabled' : '⏸️ Disabled'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-blue-100 text-sm">Schedule Change Notifications</span>
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                    emailSettings.emailOnScheduleChange 
+                                        ? 'bg-green-500 bg-opacity-20 text-green-100'
+                                        : 'bg-gray-500 bg-opacity-20 text-gray-100'
+                                }`}>
+                                    {emailSettings.emailOnScheduleChange ? '✅ Enabled' : '⏸️ Disabled'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-blue-100 text-sm">Next Weekly Email</span>
+                                <span className="bg-blue-500 bg-opacity-20 px-2 py-1 rounded text-blue-100 text-xs">
+                                    {emailSettings.scheduleEmailDay}s at {emailSettings.scheduleEmailTime}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Email Settings Modal */}
+                    {showEmailSettings && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="glass-effect rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                                <h3 className="text-lg font-bold text-white mb-4">📧 Email Automation Settings</h3>
+                                
+                                <form onSubmit={handleSaveEmailSettings} className="space-y-4">
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="flex items-center space-x-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={emailSettings.autoScheduleEmail}
+                                                    onChange={(e) => setEmailSettings({...emailSettings, autoScheduleEmail: e.target.checked})}
+                                                    className="form-checkbox"
+                                                />
+                                                <span className="text-blue-100 text-sm font-medium">Enable Weekly Schedule Emails</span>
+                                            </label>
+                                            <p className="text-blue-300 text-xs mt-1">Automatically send updated schedule every week</p>
+                                        </div>
+
+                                        {emailSettings.autoScheduleEmail && (
+                                            <div className="grid grid-cols-2 gap-3 ml-6">
+                                                <div>
+                                                    <label className="block text-blue-100 text-sm font-medium mb-2">Day</label>
+                                                    <select
+                                                        value={emailSettings.scheduleEmailDay}
+                                                        onChange={(e) => setEmailSettings({...emailSettings, scheduleEmailDay: e.target.value})}
+                                                    >
+                                                        <option value="Sunday">Sunday</option>
+                                                        <option value="Monday">Monday</option>
+                                                        <option value="Tuesday">Tuesday</option>
+                                                        <option value="Wednesday">Wednesday</option>
+                                                        <option value="Thursday">Thursday</option>
+                                                        <option value="Friday">Friday</option>
+                                                        <option value="Saturday">Saturday</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-blue-100 text-sm font-medium mb-2">Time</label>
+                                                    <input
+                                                        type="time"
+                                                        value={emailSettings.scheduleEmailTime}
+                                                        onChange={(e) => setEmailSettings({...emailSettings, scheduleEmailTime: e.target.value})}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div>
+                                            <label className="flex items-center space-x-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={emailSettings.emailOnScheduleChange}
+                                                    onChange={(e) => setEmailSettings({...emailSettings, emailOnScheduleChange: e.target.checked})}
+                                                    className="form-checkbox"
+                                                />
+                                                <span className="text-blue-100 text-sm font-medium">Email on Schedule Changes</span>
+                                            </label>
+                                            <p className="text-blue-300 text-xs mt-1">Notify when schedule is modified</p>
+                                        </div>
+
+                                        {emailSettings.emailOnScheduleChange && (
+                                            <div className="ml-6">
+                                                <label className="block text-blue-100 text-sm font-medium mb-2">Default Recipients</label>
+                                                <select
+                                                    value={emailSettings.defaultRecipients}
+                                                    onChange={(e) => setEmailSettings({...emailSettings, defaultRecipients: e.target.value})}
+                                                >
+                                                    <option value="all">All (Students + Instructors)</option>
+                                                    <option value="students">Students Only</option>
+                                                    <option value="instructors">Instructors Only</option>
+                                                    <option value="none">None (Manual Selection)</option>
+                                                </select>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex gap-3 pt-4">
+                                        <button
+                                            type="submit"
+                                            className="glass-button flex-1 text-white font-semibold"
+                                        >
+                                            💾 Save Settings
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowEmailSettings(false)}
+                                            className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -883,7 +1075,7 @@
             );
         };
 
-        // Schedule Management Component - COMPLETE
+        // Schedule Management Component - ENHANCED WITH EMAIL NOTIFICATIONS
         const ScheduleManagement = () => {
             const [schedules, setSchedules] = useState([
                 { id: 1, class_name: 'Fundamentals', day_of_week: 0, start_time: '18:00', end_time: '19:00', instructor: 'Professor Silva' },
@@ -898,12 +1090,21 @@
            
             const [success, setSuccess] = useState('');
             const [showAddForm, setShowAddForm] = useState(false);
+            const [showEmailOptions, setShowEmailOptions] = useState(false);
+            const [pendingScheduleChange, setPendingScheduleChange] = useState(null);
+            
             const [newSchedule, setNewSchedule] = useState({
                 class_name: '',
                 day_of_week: 0,
                 start_time: '18:00',
                 end_time: '19:00',
                 instructor: ''
+            });
+
+            const [emailOptions, setEmailOptions] = useState({
+                sendEmail: true,
+                recipients: 'all',
+                customMessage: ''
             });
 
             const classes = ['Fundamentals', 'Advanced', 'Competition', 'No-Gi', 'Open Mat', 'Kids Program'];
@@ -919,17 +1120,77 @@
                     ...newSchedule
                 };
                
-                setSchedules(prev => [...prev, newScheduleItem]);
-                setNewSchedule({
-                    class_name: '',
-                    day_of_week: 0,
-                    start_time: '18:00',
-                    end_time: '19:00',
-                    instructor: ''
+                // Store the pending change and show email options
+                setPendingScheduleChange({
+                    type: 'add',
+                    schedule: newScheduleItem,
+                    message: `New class added: ${newScheduleItem.class_name} on ${daysOfWeek[newScheduleItem.day_of_week]} at ${formatTime(newScheduleItem.start_time)}`
                 });
-                setShowAddForm(false);
-                setSuccess('✅ Schedule added successfully!');
+                setShowEmailOptions(true);
+            };
+
+            const handleDeleteSchedule = (scheduleId, scheduleName) => {
+                if (!window.confirm(`Delete "${scheduleName}" from schedule?`)) return;
+                
+                const scheduleToDelete = schedules.find(s => s.id === scheduleId);
+                setPendingScheduleChange({
+                    type: 'delete',
+                    scheduleId: scheduleId,
+                    schedule: scheduleToDelete,
+                    message: `Class removed: ${scheduleName} on ${daysOfWeek[scheduleToDelete.day_of_week]} at ${formatTime(scheduleToDelete.start_time)}`
+                });
+                setShowEmailOptions(true);
+            };
+
+            const confirmScheduleChange = () => {
+                if (!pendingScheduleChange) return;
+
+                if (pendingScheduleChange.type === 'add') {
+                    setSchedules(prev => [...prev, pendingScheduleChange.schedule]);
+                    setNewSchedule({
+                        class_name: '',
+                        day_of_week: 0,
+                        start_time: '18:00',
+                        end_time: '19:00',
+                        instructor: ''
+                    });
+                    setShowAddForm(false);
+                } else if (pendingScheduleChange.type === 'delete') {
+                    setSchedules(prev => prev.filter(s => s.id !== pendingScheduleChange.scheduleId));
+                }
+
+                // Send email if requested
+                if (emailOptions.sendEmail && emailOptions.recipients !== 'none') {
+                    sendScheduleChangeEmail(pendingScheduleChange, emailOptions);
+                }
+
+                setSuccess('✅ Schedule updated successfully!');
                 setTimeout(() => setSuccess(''), 3000);
+                
+                // Reset
+                setPendingScheduleChange(null);
+                setShowEmailOptions(false);
+                setEmailOptions({
+                    sendEmail: true,
+                    recipients: 'all',
+                    customMessage: ''
+                });
+            };
+
+            const sendScheduleChangeEmail = (change, emailOpts) => {
+                // Simulate email sending
+                const recipientText = {
+                    'all': 'all students and instructors',
+                    'students': 'all students',
+                    'instructors': 'all instructors',
+                    'none': 'no one'
+                };
+
+                console.log('📧 Email sent to:', recipientText[emailOpts.recipients]);
+                console.log('📝 Message:', change.message);
+                console.log('💬 Custom message:', emailOpts.customMessage);
+                
+                setSuccess(`✅ Schedule updated and email sent to ${recipientText[emailOpts.recipients]}!`);
             };
 
             const formatTime = (time) => {
@@ -978,16 +1239,27 @@
                                         ) : (
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                                                 {daySchedules.map((schedule) => (
-                                                    <div key={schedule.id} className="bg-white bg-opacity-10 rounded-lg p-2">
-                                                        <div className="font-medium text-white text-xs">{schedule.class_name}</div>
-                                                        <div className="text-blue-200 text-xs">
-                                                            {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
-                                                        </div>
-                                                        {schedule.instructor && (
-                                                            <div className="text-blue-300 text-xs">
-                                                                👨‍🏫 {schedule.instructor}
+                                                    <div key={schedule.id} className="bg-white bg-opacity-10 rounded-lg p-2 group hover:bg-opacity-20">
+                                                        <div className="flex justify-between items-start">
+                                                            <div className="flex-1">
+                                                                <div className="font-medium text-white text-xs">{schedule.class_name}</div>
+                                                                <div className="text-blue-200 text-xs">
+                                                                    {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
+                                                                </div>
+                                                                {schedule.instructor && (
+                                                                    <div className="text-blue-300 text-xs">
+                                                                        👨‍🏫 {schedule.instructor}
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                        )}
+                                                            <button
+                                                                onClick={() => handleDeleteSchedule(schedule.id, schedule.class_name)}
+                                                                className="opacity-0 group-hover:opacity-100 bg-red-500 bg-opacity-20 p-1 text-red-100 rounded text-xs hover:bg-opacity-40 transition-all"
+                                                                title="Delete class"
+                                                            >
+                                                                🗑️
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
@@ -997,6 +1269,82 @@
                             })}
                         </div>
                     </div>
+
+                    {/* Email Options Modal */}
+                    {showEmailOptions && pendingScheduleChange && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="glass-effect rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+                                <h3 className="text-lg font-bold text-white mb-4">📧 Notify About Schedule Change</h3>
+                                
+                                <div className="space-y-4">
+                                    <div className="bg-blue-500 bg-opacity-20 p-3 rounded-lg">
+                                        <div className="text-blue-100 text-sm font-medium">Change:</div>
+                                        <div className="text-white text-sm">{pendingScheduleChange.message}</div>
+                                    </div>
+
+                                    <div>
+                                        <label className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={emailOptions.sendEmail}
+                                                onChange={(e) => setEmailOptions({...emailOptions, sendEmail: e.target.checked})}
+                                                className="form-checkbox"
+                                            />
+                                            <span className="text-blue-100 text-sm font-medium">Send email notification</span>
+                                        </label>
+                                    </div>
+
+                                    {emailOptions.sendEmail && (
+                                        <>
+                                            <div>
+                                                <label className="block text-blue-100 text-sm font-medium mb-2">Send to:</label>
+                                                <select
+                                                    value={emailOptions.recipients}
+                                                    onChange={(e) => setEmailOptions({...emailOptions, recipients: e.target.value})}
+                                                >
+                                                    <option value="all">All (Students + Instructors)</option>
+                                                    <option value="students">Students Only</option>
+                                                    <option value="instructors">Instructors Only</option>
+                                                    <option value="none">None (Don't Send)</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-blue-100 text-sm font-medium mb-2">
+                                                    Additional Message (Optional)
+                                                </label>
+                                                <textarea
+                                                    value={emailOptions.customMessage}
+                                                    onChange={(e) => setEmailOptions({...emailOptions, customMessage: e.target.value})}
+                                                    placeholder="Add any additional information..."
+                                                    rows="3"
+                                                    className="w-full resize-none"
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={confirmScheduleChange}
+                                            className="glass-button flex-1 text-white font-semibold"
+                                        >
+                                            {emailOptions.sendEmail && emailOptions.recipients !== 'none' ? '📧 Update & Send Email' : '✅ Update Schedule'}
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setShowEmailOptions(false);
+                                                setPendingScheduleChange(null);
+                                            }}
+                                            className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Add Schedule Modal */}
                     {showAddForm && (
