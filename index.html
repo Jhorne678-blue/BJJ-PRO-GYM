@@ -60,33 +60,6 @@
             font-family: 'Inter', sans-serif !important;
         }
 
-        /* CHECKBOX STYLING */
-        input[type="checkbox"] {
-            width: 18px !important;
-            height: 18px !important;
-            min-height: 18px !important;
-            background-color: white !important;
-            border: 2px solid #e5e7eb !important;
-            border-radius: 4px !important;
-            cursor: pointer !important;
-            position: relative !important;
-        }
-
-        input[type="checkbox"]:checked {
-            background-color: #3b82f6 !important;
-            border-color: #3b82f6 !important;
-        }
-
-        input[type="checkbox"]:checked::after {
-            content: '✓' !important;
-            position: absolute !important;
-            top: -2px !important;
-            left: 2px !important;
-            color: white !important;
-            font-size: 12px !important;
-            font-weight: bold !important;
-        }
-
         input:focus, textarea:focus, select:focus {
             border-color: #3b82f6 !important;
             outline: none !important;
@@ -252,7 +225,7 @@
                 setIsLoading(false);
             };
 
-        // System Status Component - COMPLETE & ENHANCED
+        // System Status Component - FIXED (Simple and Stable)
         const SystemStatus = () => {
             const [systemHealth] = useState({
                 database: 'Healthy',
@@ -274,7 +247,6 @@
 
             const handleSaveEmailSettings = (e) => {
                 e.preventDefault();
-                // Save email settings logic here
                 setSuccess('✅ Email settings saved successfully!');
                 setShowEmailSettings(false);
                 setTimeout(() => setSuccess(''), 3000);
@@ -338,28 +310,20 @@
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
                                 <span className="text-blue-100 text-sm">Weekly Schedule Emails</span>
-                                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                    emailSettings.autoScheduleEmail 
-                                        ? 'bg-green-500 bg-opacity-20 text-green-100'
-                                        : 'bg-gray-500 bg-opacity-20 text-gray-100'
-                                }`}>
-                                    {emailSettings.autoScheduleEmail ? '✅ Enabled' : '⏸️ Disabled'}
+                                <span className="bg-green-500 bg-opacity-20 px-2 py-1 rounded text-green-100 text-xs">
+                                    ✅ {emailSettings.scheduleEmailDay}s at {emailSettings.scheduleEmailTime}
                                 </span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-blue-100 text-sm">Schedule Change Notifications</span>
-                                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                    emailSettings.emailOnScheduleChange 
-                                        ? 'bg-green-500 bg-opacity-20 text-green-100'
-                                        : 'bg-gray-500 bg-opacity-20 text-gray-100'
-                                }`}>
-                                    {emailSettings.emailOnScheduleChange ? '✅ Enabled' : '⏸️ Disabled'}
+                                <span className="bg-green-500 bg-opacity-20 px-2 py-1 rounded text-green-100 text-xs">
+                                    ✅ Enabled
                                 </span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-blue-100 text-sm">Next Weekly Email</span>
+                                <span className="text-blue-100 text-sm">Default Recipients</span>
                                 <span className="bg-blue-500 bg-opacity-20 px-2 py-1 rounded text-blue-100 text-xs">
-                                    {emailSettings.scheduleEmailDay}s at {emailSettings.scheduleEmailTime}
+                                    {emailSettings.defaultRecipients === 'all' ? 'All Members' : emailSettings.defaultRecipients}
                                 </span>
                             </div>
                         </div>
@@ -372,75 +336,42 @@
                                 <h3 className="text-lg font-bold text-white mb-4">📧 Email Automation Settings</h3>
                                 
                                 <form onSubmit={handleSaveEmailSettings} className="space-y-4">
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="flex items-center space-x-2">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={emailSettings.autoScheduleEmail}
-                                                    onChange={(e) => setEmailSettings({...emailSettings, autoScheduleEmail: e.target.checked})}
-                                                    className="form-checkbox"
-                                                />
-                                                <span className="text-blue-100 text-sm font-medium">Enable Weekly Schedule Emails</span>
-                                            </label>
-                                            <p className="text-blue-300 text-xs mt-1">Automatically send updated schedule every week</p>
-                                        </div>
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Weekly Schedule Email Day</label>
+                                        <select
+                                            value={emailSettings.scheduleEmailDay}
+                                            onChange={(e) => setEmailSettings({...emailSettings, scheduleEmailDay: e.target.value})}
+                                        >
+                                            <option value="Sunday">Sunday</option>
+                                            <option value="Monday">Monday</option>
+                                            <option value="Tuesday">Tuesday</option>
+                                            <option value="Wednesday">Wednesday</option>
+                                            <option value="Thursday">Thursday</option>
+                                            <option value="Friday">Friday</option>
+                                            <option value="Saturday">Saturday</option>
+                                        </select>
+                                    </div>
 
-                                        {emailSettings.autoScheduleEmail && (
-                                            <div className="grid grid-cols-2 gap-3 ml-6">
-                                                <div>
-                                                    <label className="block text-blue-100 text-sm font-medium mb-2">Day</label>
-                                                    <select
-                                                        value={emailSettings.scheduleEmailDay}
-                                                        onChange={(e) => setEmailSettings({...emailSettings, scheduleEmailDay: e.target.value})}
-                                                    >
-                                                        <option value="Sunday">Sunday</option>
-                                                        <option value="Monday">Monday</option>
-                                                        <option value="Tuesday">Tuesday</option>
-                                                        <option value="Wednesday">Wednesday</option>
-                                                        <option value="Thursday">Thursday</option>
-                                                        <option value="Friday">Friday</option>
-                                                        <option value="Saturday">Saturday</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-blue-100 text-sm font-medium mb-2">Time</label>
-                                                    <input
-                                                        type="time"
-                                                        value={emailSettings.scheduleEmailTime}
-                                                        onChange={(e) => setEmailSettings({...emailSettings, scheduleEmailTime: e.target.value})}
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Email Time</label>
+                                        <input
+                                            type="time"
+                                            value={emailSettings.scheduleEmailTime}
+                                            onChange={(e) => setEmailSettings({...emailSettings, scheduleEmailTime: e.target.value})}
+                                        />
+                                    </div>
 
-                                        <div>
-                                            <label className="flex items-center space-x-2">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={emailSettings.emailOnScheduleChange}
-                                                    onChange={(e) => setEmailSettings({...emailSettings, emailOnScheduleChange: e.target.checked})}
-                                                    className="form-checkbox"
-                                                />
-                                                <span className="text-blue-100 text-sm font-medium">Email on Schedule Changes</span>
-                                            </label>
-                                            <p className="text-blue-300 text-xs mt-1">Notify when schedule is modified</p>
-                                        </div>
-
-                                        {emailSettings.emailOnScheduleChange && (
-                                            <div className="ml-6">
-                                                <label className="block text-blue-100 text-sm font-medium mb-2">Default Recipients</label>
-                                                <select
-                                                    value={emailSettings.defaultRecipients}
-                                                    onChange={(e) => setEmailSettings({...emailSettings, defaultRecipients: e.target.value})}
-                                                >
-                                                    <option value="all">All (Students + Instructors)</option>
-                                                    <option value="students">Students Only</option>
-                                                    <option value="instructors">Instructors Only</option>
-                                                    <option value="none">None (Manual Selection)</option>
-                                                </select>
-                                            </div>
-                                        )}
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Default Recipients for Schedule Changes</label>
+                                        <select
+                                            value={emailSettings.defaultRecipients}
+                                            onChange={(e) => setEmailSettings({...emailSettings, defaultRecipients: e.target.value})}
+                                        >
+                                            <option value="all">All (Students + Instructors)</option>
+                                            <option value="students">Students Only</option>
+                                            <option value="instructors">Instructors Only</option>
+                                            <option value="none">None (Manual Selection)</option>
+                                        </select>
                                     </div>
 
                                     <div className="flex gap-3 pt-4">
@@ -1120,12 +1051,15 @@
                     ...newSchedule
                 };
                
-                // Store the pending change and show email options
+                // Store the pending change and show email options immediately
                 setPendingScheduleChange({
                     type: 'add',
                     schedule: newScheduleItem,
                     message: `New class added: ${newScheduleItem.class_name} on ${daysOfWeek[newScheduleItem.day_of_week]} at ${formatTime(newScheduleItem.start_time)}`
                 });
+                
+                // Close the add form and show email options
+                setShowAddForm(false);
                 setShowEmailOptions(true);
             };
 
@@ -1147,6 +1081,7 @@
 
                 if (pendingScheduleChange.type === 'add') {
                     setSchedules(prev => [...prev, pendingScheduleChange.schedule]);
+                    // Reset the form
                     setNewSchedule({
                         class_name: '',
                         day_of_week: 0,
@@ -1154,7 +1089,6 @@
                         end_time: '19:00',
                         instructor: ''
                     });
-                    setShowAddForm(false);
                 } else if (pendingScheduleChange.type === 'delete') {
                     setSchedules(prev => prev.filter(s => s.id !== pendingScheduleChange.scheduleId));
                 }
@@ -1164,10 +1098,14 @@
                     sendScheduleChangeEmail(pendingScheduleChange, emailOptions);
                 }
 
-                setSuccess('✅ Schedule updated successfully!');
+                const successMessage = emailOptions.sendEmail && emailOptions.recipients !== 'none' 
+                    ? '✅ Schedule updated and email sent!'
+                    : '✅ Schedule updated successfully!';
+                
+                setSuccess(successMessage);
                 setTimeout(() => setSuccess(''), 3000);
                 
-                // Reset
+                // Reset all states
                 setPendingScheduleChange(null);
                 setShowEmailOptions(false);
                 setEmailOptions({
@@ -1333,8 +1271,17 @@
                                         </button>
                                         <button
                                             onClick={() => {
+                                                // If it was an add operation, show the form again
+                                                if (pendingScheduleChange && pendingScheduleChange.type === 'add') {
+                                                    setShowAddForm(true);
+                                                }
                                                 setShowEmailOptions(false);
                                                 setPendingScheduleChange(null);
+                                                setEmailOptions({
+                                                    sendEmail: true,
+                                                    recipients: 'all',
+                                                    customMessage: ''
+                                                });
                                             }}
                                             className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
                                         >
