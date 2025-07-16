@@ -1,4 +1,209 @@
-// System Status Component - MOVED TO TOP LEVEL
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BJJ Pro Gym - Professional Brazilian Jiu-Jitsu Management</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+       
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+       
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #312e81 50%, #1e1b4b 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+       
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+       
+        .glass-button {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(147, 51, 234, 0.8));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+       
+        .glass-button:hover {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(147, 51, 234, 0.9));
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+       
+        /* UNIVERSAL INPUT STYLING - MOBILE OPTIMIZED */
+        input[type="text"], input[type="email"], input[type="tel"], input[type="password"],
+        input[type="time"], input[type="date"], input[type="number"], textarea, select {
+            background-color: white !important;
+            color: #1f2937 !important;
+            border: 2px solid #e5e7eb !important;
+            border-radius: 8px !important;
+            padding: 12px 16px !important;
+            font-size: 16px !important;
+            min-height: 50px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            -webkit-appearance: none !important;
+            font-family: 'Inter', sans-serif !important;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: #3b82f6 !important;
+            outline: none !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+        }
+
+        /* SELECT DROPDOWN STYLING */
+        select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+            background-position: right 12px center !important;
+            background-repeat: no-repeat !important;
+            background-size: 16px 16px !important;
+            padding-right: 40px !important;
+        }
+
+        /* BUTTON STYLING - MOBILE OPTIMIZED */
+        button {
+            min-height: 50px !important;
+            padding: 12px 24px !important;
+            font-size: 16px !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            border: none !important;
+            cursor: pointer !important;
+            font-family: 'Inter', sans-serif !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .pro-badge {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #1f2937;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+        }
+
+        .member-id-badge {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .card-number-badge {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .belt-white { background: linear-gradient(135deg, #ffffff, #f3f4f6); color: #1f2937; }
+        .belt-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; }
+        .belt-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; }
+        .belt-brown { background: linear-gradient(135deg, #92400e, #78350f); color: white; }
+        .belt-black { background: linear-gradient(135deg, #1f2937, #111827); color: white; }
+
+        .success-pulse {
+            animation: successPulse 0.6s ease-out;
+        }
+       
+        @keyframes successPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .risk-high { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .risk-medium { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .risk-low { background: linear-gradient(135deg, #10b981, #059669); }
+
+        /* MOBILE RESPONSIVENESS FIXES */
+        @media (max-width: 768px) {
+            .glass-effect {
+                margin: 8px;
+                border-radius: 12px;
+            }
+            
+            h1 {
+                font-size: 1.8rem !important;
+            }
+            
+            h2 {
+                font-size: 1.5rem !important;
+            }
+            
+            .pro-badge {
+                font-size: 0.6rem;
+                padding: 3px 8px;
+            }
+            
+            button {
+                min-height: 48px !important;
+                font-size: 15px !important;
+            }
+            
+            /* Student card mobile optimization */
+            .student-card {
+                padding: 12px !important;
+                margin-bottom: 8px !important;
+            }
+            
+            .student-card h4 {
+                font-size: 1.1rem !important;
+                margin-bottom: 8px !important;
+            }
+            
+            .student-info {
+                font-size: 0.85rem !important;
+                gap: 4px !important;
+            }
+            
+            .badge-container {
+                flex-wrap: wrap !important;
+                gap: 6px !important;
+                margin-top: 8px !important;
+            }
+        }
+
+        #root {
+            width: 100%;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // System Status Component - FIXED
         const SystemStatus = () => {
             const [success, setSuccess] = useState('');
             const [showEmailSettings, setShowEmailSettings] = useState(false);
@@ -157,7 +362,7 @@
             );
         };
 
-        // Login Component - SECURE VERSION (NO DEMO INFO DISPLAYED)
+        // Login Component - SECURE VERSION
         const Login = ({ onLogin }) => {
             const [accessCode, setAccessCode] = useState('');
             const [isLoading, setIsLoading] = useState(false);
@@ -178,3 +383,593 @@
                 }
                 setIsLoading(false);
             };
+
+            const handleAdminLogin = async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                setError('');
+
+                if ((adminCredentials.username === 'ADMIN001' && adminCredentials.password === 'admin123') ||
+                    (adminCredentials.username === 'BJJPRO' && adminCredentials.password === 'PROFESSIONAL2024')) {
+                   
+                    localStorage.setItem('auth_token', 'professional_session');
+                    localStorage.setItem('access_code', accessCode);
+                    onLogin({
+                        name: 'Admin User',
+                        role: 'owner',
+                        gym_name: 'BJJ Pro Academy',
+                        plan: 'Professional',
+                        hasProAccess: true,
+                        accessCode: accessCode
+                    });
+                } else {
+                    setError('Invalid admin credentials. Please check your username and password.');
+                }
+                setIsLoading(false);
+            };
+
+            const resetAccess = () => {
+                setShowAdminLogin(false);
+                setAccessCode('');
+                setAdminCredentials({ username: '', password: '' });
+                setError('');
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center p-4">
+                    <div className="glass-effect rounded-3xl p-6 w-full max-w-md">
+                        <div className="text-center mb-6">
+                            <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">🥋 BJJ PRO GYM</h1>
+                            <div className="pro-badge mx-auto mb-4">Professional Edition</div>
+                            <p className="text-blue-100 text-sm mb-4">The #1 Brazilian Jiu-Jitsu Academy Management Platform</p>
+                        </div>
+
+                        {!showAdminLogin ? (
+                            <div>
+                                <div className="text-center mb-6">
+                                    <div className="text-4xl mb-3">🔐</div>
+                                    <h2 className="text-lg font-semibold text-white mb-2">Professional Access Required</h2>
+                                    <p className="text-blue-200 text-sm">Enter your access code to continue</p>
+                                </div>
+
+                                <form onSubmit={handleAccessCodeSubmit} className="space-y-4">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">
+                                            Professional Access Code
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={accessCode}
+                                            onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+                                            placeholder="Enter your access code"
+                                            required
+                                            autoFocus
+                                            style={{ textTransform: 'uppercase', letterSpacing: '2px', textAlign: 'center' }}
+                                        />
+                                    </div>
+
+                                    {error && (
+                                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg text-center text-sm">
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading}
+                                        className="glass-button w-full text-white font-semibold"
+                                    >
+                                        {isLoading ? 'Verifying...' : '🔓 Verify Access Code'}
+                                    </button>
+                                </form>
+                            </div>
+                        ) : (
+                            <div>
+                                <div className="text-center mb-6">
+                                    <div className="text-green-400 mb-2 text-sm">✅ Access Code Verified</div>
+                                    <h2 className="text-lg font-semibold text-white mb-2">Admin Login</h2>
+                                    <p className="text-blue-200 text-sm">Professional access granted</p>
+                                </div>
+
+                                <form onSubmit={handleAdminLogin} className="space-y-4">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">
+                                            Admin Username
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={adminCredentials.username}
+                                            onChange={(e) => setAdminCredentials({...adminCredentials, username: e.target.value})}
+                                            placeholder="Enter admin username"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">
+                                            Password
+                                        </label>
+                                        <input
+                                            type="password"
+                                            value={adminCredentials.password}
+                                            onChange={(e) => setAdminCredentials({...adminCredentials, password: e.target.value})}
+                                            placeholder="Enter password"
+                                            required
+                                        />
+                                    </div>
+
+                                    {error && (
+                                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg text-sm">
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading}
+                                        className="glass-button w-full text-white font-semibold"
+                                    >
+                                        {isLoading ? 'Logging in...' : '🚀 Enter Dashboard'}
+                                    </button>
+                                </form>
+
+                                <div className="mt-4 text-center">
+                                    <button
+                                        onClick={resetAccess}
+                                        className="text-blue-300 hover:text-white text-sm underline"
+                                    >
+                                        ← Use Different Access Code
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // Student Management Component - RESTORED
+        const StudentManagement = () => {
+            const [students, setStudents] = useState([
+                { id: 1, name: 'John Smith', email: 'john@email.com', phone: '555-0101', belt_level: 'Blue', member_id: 'MBR001', card_number: 'CARD1001' },
+                { id: 2, name: 'Maria Garcia', email: 'maria@email.com', phone: '555-0102', belt_level: 'White', member_id: 'MBR002', card_number: 'CARD1002' },
+                { id: 3, name: 'David Johnson', email: 'david@email.com', phone: '555-0103', belt_level: 'Purple', member_id: 'MBR003', card_number: 'CARD1003' },
+                { id: 4, name: 'Sarah Wilson', email: 'sarah@email.com', phone: '555-0104', belt_level: 'White', member_id: 'MBR004', card_number: 'CARD1004' },
+                { id: 5, name: 'Mike Brown', email: 'mike@email.com', phone: '555-0105', belt_level: 'Blue', member_id: 'MBR005', card_number: 'CARD1005' },
+                { id: 6, name: 'Lisa Davis', email: 'lisa@email.com', phone: '555-0106', belt_level: 'Purple', member_id: 'MBR006', card_number: 'CARD1006' },
+                { id: 7, name: 'Tom Wilson', email: 'tom@email.com', phone: '555-0107', belt_level: 'Brown', member_id: 'MBR007', card_number: 'CARD1007' },
+                { id: 8, name: 'Anna Lee', email: 'anna@email.com', phone: '555-0108', belt_level: 'White', member_id: 'MBR008', card_number: 'CARD1008' },
+                { id: 9, name: 'Carlos Silva', email: 'carlos@email.com', phone: '555-0109', belt_level: 'Black', member_id: 'MBR009', card_number: 'CARD1009' },
+                { id: 10, name: 'Jessica Taylor', email: 'jessica@email.com', phone: '555-0110', belt_level: 'Blue', member_id: 'MBR010', card_number: 'CARD1010' },
+                { id: 11, name: 'Roberto Santos', email: 'roberto@email.com', phone: '555-0111', belt_level: 'Purple', member_id: 'MBR011', card_number: 'CARD1011' },
+                { id: 12, name: 'Michelle Kim', email: 'michelle@email.com', phone: '555-0112', belt_level: 'White', member_id: 'MBR012', card_number: 'CARD1012' },
+                { id: 13, name: 'Alex Rodriguez', email: 'alex@email.com', phone: '555-0113', belt_level: 'Brown', member_id: 'MBR013', card_number: 'CARD1013' },
+                { id: 14, name: 'Emma Thompson', email: 'emma@email.com', phone: '555-0114', belt_level: 'Blue', member_id: 'MBR014', card_number: 'CARD1014' },
+                { id: 15, name: 'Ryan O\'Connor', email: 'ryan@email.com', phone: '555-0115', belt_level: 'White', member_id: 'MBR015', card_number: 'CARD1015' }
+            ]);
+           
+            const [filteredStudents, setFilteredStudents] = useState(students);
+            const [showAddForm, setShowAddForm] = useState(false);
+            const [success, setSuccess] = useState('');
+           
+            // Filter states
+            const [nameFilter, setNameFilter] = useState('');
+            const [emailFilter, setEmailFilter] = useState('');
+            const [phoneFilter, setPhoneFilter] = useState('');
+            const [beltFilter, setBeltFilter] = useState('');
+            const [memberIdFilter, setMemberIdFilter] = useState('');
+            const [cardNumberFilter, setCardNumberFilter] = useState('');
+
+            // Form state
+            const [newStudent, setNewStudent] = useState({
+                name: '',
+                email: '',
+                phone: '',
+                belt_level: 'White'
+            });
+
+            useEffect(() => {
+                setFilteredStudents(students);
+            }, [students]);
+
+            useEffect(() => {
+                let filtered = students.filter(student => {
+                    const matchesName = !nameFilter || student.name.toLowerCase().includes(nameFilter.toLowerCase());
+                    const matchesEmail = !emailFilter || (student.email && student.email.toLowerCase().includes(emailFilter.toLowerCase()));
+                    const matchesPhone = !phoneFilter || (student.phone && student.phone.includes(phoneFilter));
+                    const matchesBelt = !beltFilter || student.belt_level === beltFilter;
+                    const matchesMemberId = !memberIdFilter || (student.member_id && student.member_id.toLowerCase().includes(memberIdFilter.toLowerCase()));
+                    const matchesCardNumber = !cardNumberFilter || (student.card_number && student.card_number.toLowerCase().includes(cardNumberFilter.toLowerCase()));
+
+                    return matchesName && matchesEmail && matchesPhone && matchesBelt && matchesMemberId && matchesCardNumber;
+                });
+                setFilteredStudents(filtered);
+            }, [students, nameFilter, emailFilter, phoneFilter, beltFilter, memberIdFilter, cardNumberFilter]);
+
+            const handleAddStudent = (e) => {
+                e.preventDefault();
+                if (!newStudent.name.trim()) return;
+               
+                const newId = Math.max(...students.map(s => s.id)) + 1;
+                const memberCount = students.length + 1;
+                const newStudentData = {
+                    id: newId,
+                    name: newStudent.name.trim(),
+                    email: newStudent.email.trim(),
+                    phone: newStudent.phone.trim(),
+                    belt_level: newStudent.belt_level,
+                    member_id: `MBR${memberCount.toString().padStart(3, '0')}`,
+                    card_number: `CARD${(1000 + memberCount).toString()}`
+                };
+               
+                setStudents(prev => [...prev, newStudentData]);
+                setNewStudent({ name: '', email: '', phone: '', belt_level: 'White' });
+                setShowAddForm(false);
+                setSuccess('✅ Student added successfully!');
+                setTimeout(() => setSuccess(''), 3000);
+            };
+
+            const clearAllFilters = () => {
+                setNameFilter('');
+                setEmailFilter('');
+                setPhoneFilter('');
+                setBeltFilter('');
+                setMemberIdFilter('');
+                setCardNumberFilter('');
+            };
+
+            const belts = ['White', 'Blue', 'Purple', 'Brown', 'Black'];
+
+            return (
+                <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h2 className="text-xl md:text-2xl font-bold text-white">👥 Student Management</h2>
+                        <button
+                            onClick={() => setShowAddForm(true)}
+                            className="glass-button px-4 py-2 text-white font-semibold text-sm"
+                        >
+                            ➕ Add Student
+                        </button>
+                    </div>
+
+                    {success && (
+                        <div className="bg-green-500 bg-opacity-20 border border-green-300 text-green-100 px-4 py-3 rounded-lg success-pulse text-sm">
+                            {success}
+                        </div>
+                    )}
+
+                    {/* Advanced Filtering */}
+                    <div className="glass-effect rounded-xl p-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+                            <h3 className="text-sm font-semibold text-white">🔍 Advanced Filters</h3>
+                            <button
+                                onClick={clearAllFilters}
+                                className="text-blue-300 hover:text-white text-xs underline"
+                            >
+                                Clear All
+                            </button>
+                        </div>
+                       
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <div>
+                                <label className="block text-blue-100 text-xs font-medium mb-1">Name</label>
+                                <input
+                                    type="text"
+                                    value={nameFilter}
+                                    onChange={(e) => setNameFilter(e.target.value)}
+                                    placeholder="Filter by name..."
+                                />
+                            </div>
+                           
+                            <div>
+                                <label className="block text-blue-100 text-xs font-medium mb-1">Email</label>
+                                <input
+                                    type="text"
+                                    value={emailFilter}
+                                    onChange={(e) => setEmailFilter(e.target.value)}
+                                    placeholder="Filter by email..."
+                                />
+                            </div>
+                           
+                            <div>
+                                <label className="block text-blue-100 text-xs font-medium mb-1">Phone</label>
+                                <input
+                                    type="text"
+                                    value={phoneFilter}
+                                    onChange={(e) => setPhoneFilter(e.target.value)}
+                                    placeholder="Filter by phone..."
+                                />
+                            </div>
+                           
+                            <div>
+                                <label className="block text-blue-100 text-xs font-medium mb-1">Belt Level</label>
+                                <select
+                                    value={beltFilter}
+                                    onChange={(e) => setBeltFilter(e.target.value)}
+                                >
+                                    <option value="">All Belts</option>
+                                    {belts.map(belt => (
+                                        <option key={belt} value={belt}>{belt} Belt</option>
+                                    ))}
+                                </select>
+                            </div>
+                           
+                            <div>
+                                <label className="block text-blue-100 text-xs font-medium mb-1">Member ID</label>
+                                <input
+                                    type="text"
+                                    value={memberIdFilter}
+                                    onChange={(e) => setMemberIdFilter(e.target.value)}
+                                    placeholder="Filter by Member ID..."
+                                />
+                            </div>
+                           
+                            <div>
+                                <label className="block text-blue-100 text-xs font-medium mb-1">Card Number</label>
+                                <input
+                                    type="text"
+                                    value={cardNumberFilter}
+                                    onChange={(e) => setCardNumberFilter(e.target.value)}
+                                    placeholder="Filter by Card Number..."
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mt-3 text-blue-200 text-xs">
+                            Showing {filteredStudents.length} of {students.length} students
+                        </div>
+                    </div>
+
+                    {/* Students List */}
+                    <div className="glass-effect rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-white mb-4">Students ({filteredStudents.length})</h3>
+                       
+                        <div className="space-y-3">
+                            {filteredStudents.map((student) => (
+                                <div key={student.id} className="student-card bg-white bg-opacity-10 rounded-lg p-3 hover:bg-opacity-20 transition-colors">
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                            <h4 className="font-semibold text-white text-base flex-1">{student.name}</h4>
+                                            <span className={`belt-${student.belt_level.toLowerCase()} px-2 py-1 rounded-full text-xs font-medium self-start`}>
+                                                {student.belt_level} Belt
+                                            </span>
+                                        </div>
+                                       
+                                        <div className="student-info grid grid-cols-1 sm:grid-cols-2 gap-1 text-blue-100 text-xs">
+                                            <div>📧 {student.email}</div>
+                                            <div>📱 {student.phone}</div>
+                                        </div>
+                                       
+                                        <div className="badge-container flex flex-wrap gap-2">
+                                            <span className="member-id-badge">{student.member_id}</span>
+                                            <span className="card-number-badge">{student.card_number}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Add Student Modal */}
+                    {showAddForm && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="glass-effect rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+                                <h3 className="text-lg font-bold text-white mb-4">Add New Student</h3>
+                               
+                                <form onSubmit={handleAddStudent} className="space-y-4">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Name *</label>
+                                        <input
+                                            type="text"
+                                            value={newStudent.name}
+                                            onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
+                                            required
+                                        />
+                                    </div>
+                                   
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Email</label>
+                                        <input
+                                            type="email"
+                                            value={newStudent.email}
+                                            onChange={(e) => setNewStudent({...newStudent, email: e.target.value})}
+                                        />
+                                    </div>
+                                   
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Phone</label>
+                                        <input
+                                            type="tel"
+                                            value={newStudent.phone}
+                                            onChange={(e) => setNewStudent({...newStudent, phone: e.target.value})}
+                                        />
+                                    </div>
+                                   
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Belt Level</label>
+                                        <select
+                                            value={newStudent.belt_level}
+                                            onChange={(e) => setNewStudent({...newStudent, belt_level: e.target.value})}
+                                        >
+                                            {belts.map(belt => (
+                                                <option key={belt} value={belt}>{belt} Belt</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                   
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="submit"
+                                            className="glass-button flex-1 text-white font-semibold"
+                                        >
+                                            Add Student
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAddForm(false)}
+                                            className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Dashboard Component - RESTORED
+        const Dashboard = ({ adminInfo, onLogout, onCheckInMode }) => {
+            const [activeTab, setActiveTab] = useState('students');
+
+            const tabs = [
+                { id: 'students', label: 'Students', icon: '👥' },
+                { id: 'classes', label: 'Classes', icon: '📚' },
+                { id: 'schedule', label: 'Schedule', icon: '📅' },
+                { id: 'attendance', label: 'Attendance', icon: '✅' },
+                { id: 'payments', label: 'Payments', icon: '💰' },
+                { id: 'rfid', label: 'RFID', icon: '📡' },
+                { id: 'analytics', label: 'Analytics', icon: '📊' },
+                { id: 'risk-analysis', label: 'Risk Analysis', icon: '⚠️' },
+                { id: 'communications', label: 'Communications', icon: '📧' },
+                { id: 'system', label: 'System', icon: '🔧' }
+            ];
+
+            return (
+                <div className="min-h-screen p-2 md:p-4">
+                    <div className="max-w-7xl mx-auto">
+                        {/* Header */}
+                        <div className="glass-effect rounded-xl p-4 mb-4">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div>
+                                    <h1 className="text-xl md:text-2xl font-bold text-white mb-1">
+                                        🥋 BJJ PRO GYM
+                                        <span className="pro-badge ml-2">Professional</span>
+                                    </h1>
+                                    <p className="text-blue-100 text-sm">
+                                        Welcome back, {adminInfo.name} • {adminInfo.gym_name}
+                                    </p>
+                                    <p className="text-blue-200 text-xs">
+                                        Plan: {adminInfo.plan} • Status: ✅ Professional Access
+                                    </p>
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <button
+                                        onClick={onCheckInMode}
+                                        className="glass-button px-4 py-2 text-white font-semibold text-sm"
+                                    >
+                                        🔍 Check-In Kiosk
+                                    </button>
+                                    <button
+                                        onClick={onLogout}
+                                        className="bg-red-500 bg-opacity-20 px-4 py-2 text-white font-semibold hover:bg-opacity-30 rounded-lg text-sm"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="glass-effect rounded-xl p-2 mb-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1">
+                                {tabs.map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`px-2 py-2 rounded-lg font-medium transition-colors text-xs ${
+                                            activeTab === tab.id
+                                                ? 'bg-blue-600 text-white'
+                                                : 'text-blue-100 hover:bg-white hover:bg-opacity-10'
+                                        }`}
+                                    >
+                                        <div className="text-base mb-1">{tab.icon}</div>
+                                        <div className="text-xs">{tab.label}</div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="min-h-96">
+                            {activeTab === 'students' && <StudentManagement />}
+                            {activeTab === 'system' && <SystemStatus />}
+                            {activeTab === 'classes' && <div className="text-white">Classes coming soon...</div>}
+                            {activeTab === 'schedule' && <div className="text-white">Schedule coming soon...</div>}
+                            {activeTab === 'attendance' && <div className="text-white">Attendance coming soon...</div>}
+                            {activeTab === 'payments' && <div className="text-white">Payments coming soon...</div>}
+                            {activeTab === 'rfid' && <div className="text-white">RFID coming soon...</div>}
+                            {activeTab === 'analytics' && <div className="text-white">Analytics coming soon...</div>}
+                            {activeTab === 'risk-analysis' && <div className="text-white">Risk Analysis coming soon...</div>}
+                            {activeTab === 'communications' && <div className="text-white">Communications coming soon...</div>}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [mode, setMode] = useState('login');
+
+            useEffect(() => {
+                const token = localStorage.getItem('auth_token');
+                const accessCode = localStorage.getItem('access_code');
+               
+                if (token === 'professional_session' && accessCode === 'ADELYNN14') {
+                    setUser({
+                        name: 'Admin User',
+                        role: 'owner',
+                        gym_name: 'BJJ Pro Academy',
+                        plan: 'Professional',
+                        hasProAccess: true,
+                        accessCode: accessCode
+                    });
+                    setMode('dashboard');
+                }
+            }, []);
+
+            const handleLogin = (adminInfo) => {
+                setUser(adminInfo);
+                setMode('dashboard');
+            };
+
+            const handleLogout = () => {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('access_code');
+                setUser(null);
+                setMode('login');
+            };
+
+            const handleCheckInMode = () => {
+                setMode('checkin');
+            };
+
+            const handleBackToDashboard = () => {
+                setMode('dashboard');
+            };
+
+            if (mode === 'login') {
+                return <Login onLogin={handleLogin} />;
+            }
+
+            if (mode === 'dashboard' && user?.hasProAccess) {
+                return (
+                    <Dashboard
+                        adminInfo={user}
+                        onLogout={handleLogout}
+                        onCheckInMode={handleCheckInMode}
+                    />
+                );
+            }
+
+            return <Login onLogin={handleLogin} />;
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
