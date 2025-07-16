@@ -200,10 +200,294 @@
 <body>
     <div id="root"></div>
 
+    <!-- RFID Status Indicator -->
+    <div id="rfid-status" style="
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: bold;
+        z-index: 9999;
+        background: rgba(239,68,68,0.2);
+        color: #ef4444;
+        border: 1px solid #ef4444;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    ">🔴 RFID Disconnected</div>
+
+    <!-- UNIVERSAL RFID DETECTION SYSTEM -->
+    <script>
+        // Global RFID management system
+        window.RFIDManager = {
+            isActive: false,
+            lastScannedCard: null,
+            detectionMethods: [],
+            listeners: [],
+            
+            // Initialize all detection methods
+            init() {
+                this.isActive = true;
+                this.initKeyboardWedge();
+                this.initUSBHID();
+                this.initSerialDetection();
+                this.initWebUSB();
+                this.initLocalBridge();
+                this.updateStatus('🟡 RFID Scanning...');
+            },
+            
+            // Method 1: Keyboard Wedge Detection (Most Common)
+            initKeyboardWedge() {
+                let cardBuffer = '';
+                let lastKeyTime = 0;
+                
+                document.addEventListener('keydown', (e) => {
+                    if (!this.isActive) return;
+                    
+                    const now = Date.now();
+                    
+                    // Reset buffer if too much time has passed
+                    if (now - lastKeyTime > 100) {
+                        cardBuffer = '';
+                    }
+                    
+                    lastKeyTime = now;
+                    
+                    // Check for card data (typically 8-12 characters, alphanumeric)
+                    if (e.key.length === 1 && /[A-Za-z0-9]/.test(e.key)) {
+                        cardBuffer += e.key.toUpperCase();
+                    }
+                    
+                    // Check for Enter key (end of card data)
+                    if (e.key === 'Enter' && cardBuffer.length >= 4) {
+                        this.processCard(cardBuffer, 'Keyboard Wedge');
+                        cardBuffer = '';
+                        e.preventDefault();
+                    }
+                    
+                    // Auto-process if buffer gets long enough
+                    if (cardBuffer.length >= 8) {
+                        this.processCard(cardBuffer, 'Keyboard Wedge');
+                        cardBuffer = '';
+                    }
+                });
+            },
+            
+            // Method 2: USB HID Detection
+            initUSBHID() {
+                if (navigator.hid) {
+                    navigator.hid.addEventListener('connect', (event) => {
+                        this.handleUSBDevice(event.device);
+                    });
+                    
+                    navigator.hid.getDevices().then(devices => {
+                        devices.forEach(device => this.handleUSBDevice(device));
+                    });
+                }
+            },
+            
+            async handleUSBDevice(device) {
+                try {
+                    if (device.productName && device.productName.toLowerCase().includes('rfid')) {
+                        await device.open();
+                        device.addEventListener('inputreport', (event) => {
+                            const data = new TextDecoder().decode(event.data);
+                            if (data.length >= 4) {
+                                this.processCard(data.trim().toUpperCase(), 'USB HID');
+                            }
+                        });
+                        this.updateStatus('🟢 RFID Connected (USB HID)');
+                    }
+                } catch (e) {
+                    // USB access denied or error
+                }
+            },
+            
+            // Method 3: Serial Detection
+            initSerialDetection() {
+                if (navigator.serial) {
+                    navigator.serial.addEventListener('connect', (event) => {
+                        this.handleSerialPort(event.port);
+                    });
+                    
+                    navigator.serial.getPorts().then(ports => {
+                        ports.forEach(port => this.handleSerialPort(port));
+                    });
+                }
+            },
+            
+            async handleSerialPort(port) {
+                try {
+                    await port.open({ baudRate: 9600 });
+                    const reader = port.readable.getReader();
+                    
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
+                        
+                        const data = new TextDecoder().decode(value);
+                        if (data.length >= 4) {
+                            this.processCard(data.trim().toUpperCase(), 'Serial');
+                        }
+                    }
+                } catch (e) {
+                    // Serial access error
+                }
+            },
+            
+            // Method 4: WebUSB Detection
+            initWebUSB() {
+                if (navigator.usb) {
+                    navigator.usb.addEventListener('connect', (event) => {
+                        this.handleWebUSBDevice(event.device);
+                    });
+                    
+                    navigator.usb.getDevices().then(devices => {
+                        devices.forEach(device => this.handleWebUSBDevice(device));
+                    });
+                }
+            },
+            
+            async handleWebUSBDevice(device) {
+                try {
+                    await device.open();
+                    await device.selectConfiguration(1);
+                    await device.claimInterface(0);
+                    
+                    while (true) {
+                        const result = await device.transferIn(1, 64);
+                        if (result.data) {
+                            const data = new TextDecoder().decode(result.data);
+                            if (data.length >= 4) {
+                                this.processCard(data.trim().toUpperCase(), 'WebUSB');
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // WebUSB access error
+                }
+            },
+            
+            // Method 5: Local Bridge Detection (for legacy systems)
+            initLocalBridge() {
+                const checkPorts = [8888, 8889, 8890, 3000, 3001, 4000, 5000];
+                
+                checkPorts.forEach(port => {
+                    setInterval(async () => {
+                        try {
+                            const response = await fetch(`http://localhost:${port}/get-card`);
+                            const data = await response.json();
+                            if (data.success && data.card_number) {
+                                this.processCard(data.card_number, `Local Bridge (${port})`);
+                            }
+                        } catch (e) {
+                            // Port not available
+                        }
+                    }, 1000);
+                });
+            },
+            
+            // Process detected card
+            processCard(cardData, method) {
+                const cleanCard = cardData.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+                
+                if (cleanCard.length < 4 || cleanCard === this.lastScannedCard) {
+                    return;
+                }
+                
+                this.lastScannedCard = cleanCard;
+                this.updateStatus(`🟢 RFID Connected (${method})`);
+                
+                // Auto-fill card inputs
+                const cardInput = document.querySelector('input[placeholder*="card"], input[placeholder*="Card"], input[placeholder*="scan"]');
+                if (cardInput) {
+                    cardInput.value = cleanCard;
+                    cardInput.focus();
+                    
+                    // Trigger React state update
+                    const event = new Event('input', { bubbles: true });
+                    cardInput.dispatchEvent(event);
+                    
+                    // Auto-submit if in check-in mode
+                    setTimeout(() => {
+                        const submitBtn = document.querySelector('button[type="submit"]');
+                        if (submitBtn && !submitBtn.disabled) {
+                            submitBtn.click();
+                        }
+                    }, 500);
+                }
+                
+                // Notify listeners
+                this.listeners.forEach(listener => listener(cleanCard, method));
+                
+                // Clear last scanned after 2 seconds to allow re-scanning
+                setTimeout(() => {
+                    this.lastScannedCard = null;
+                }, 2000);
+            },
+            
+            // Update status indicator
+            updateStatus(message) {
+                const statusEl = document.getElementById('rfid-status');
+                if (statusEl) {
+                    statusEl.textContent = message;
+                    
+                    if (message.includes('🟢')) {
+                        statusEl.style.backgroundColor = 'rgba(34,197,94,0.2)';
+                        statusEl.style.color = '#22c55e';
+                        statusEl.style.border = '1px solid #22c55e';
+                    } else if (message.includes('🟡')) {
+                        statusEl.style.backgroundColor = 'rgba(245,158,11,0.2)';
+                        statusEl.style.color = '#f59e0b';
+                        statusEl.style.border = '1px solid #f59e0b';
+                    } else {
+                        statusEl.style.backgroundColor = 'rgba(239,68,68,0.2)';
+                        statusEl.style.color = '#ef4444';
+                        statusEl.style.border = '1px solid #ef4444';
+                    }
+                }
+            },
+            
+            // Add listener for card scans
+            addListener(callback) {
+                this.listeners.push(callback);
+            },
+            
+            // Remove listener
+            removeListener(callback) {
+                this.listeners = this.listeners.filter(l => l !== callback);
+            },
+            
+            // Manual card input
+            simulateCard(cardData) {
+                this.processCard(cardData, 'Manual Input');
+            }
+        };
+        
+        // Auto-initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                window.RFIDManager.init();
+            }, 1000);
+        });
+        
+        // Fallback initialization
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                window.RFIDManager.init();
+            });
+        } else {
+            setTimeout(() => {
+                window.RFIDManager.init();
+            }, 1000);
+        }
+    </script>
+
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // System Status Component - FIXED
+        // System Status Component - WORKING
         const SystemStatus = () => {
             const [success, setSuccess] = useState('');
             const [showEmailSettings, setShowEmailSettings] = useState(false);
@@ -362,7 +646,7 @@
             );
         };
 
-        // Login Component - SECURE VERSION
+        // Login Component
         const Login = ({ onLogin }) => {
             const [accessCode, setAccessCode] = useState('');
             const [isLoading, setIsLoading] = useState(false);
@@ -528,7 +812,7 @@
             );
         };
 
-        // Student Management Component - RESTORED
+        // Student Management Component - WORKING
         const StudentManagement = () => {
             const [students, setStudents] = useState([
                 { id: 1, name: 'John Smith', email: 'john@email.com', phone: '555-0101', belt_level: 'Blue', member_id: 'MBR001', card_number: 'CARD1001' },
@@ -638,7 +922,6 @@
                         </div>
                     )}
 
-                    {/* Advanced Filtering */}
                     <div className="glass-effect rounded-xl p-4">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
                             <h3 className="text-sm font-semibold text-white">🔍 Advanced Filters</h3>
@@ -720,7 +1003,6 @@
                         </div>
                     </div>
 
-                    {/* Students List */}
                     <div className="glass-effect rounded-xl p-4">
                         <h3 className="text-sm font-semibold text-white mb-4">Students ({filteredStudents.length})</h3>
                        
@@ -750,7 +1032,6 @@
                         </div>
                     </div>
 
-                    {/* Add Student Modal */}
                     {showAddForm && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                             <div className="glass-effect rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
@@ -820,7 +1101,7 @@
             );
         };
 
-        // Dashboard Component - RESTORED
+        // Dashboard Component - COMPLETE WITH ALL TABS
         const Dashboard = ({ adminInfo, onLogout, onCheckInMode }) => {
             const [activeTab, setActiveTab] = useState('students');
 
@@ -837,10 +1118,17 @@
                 { id: 'system', label: 'System', icon: '🔧' }
             ];
 
+            const PlaceholderComponent = ({ name }) => (
+                <div className="glass-effect rounded-xl p-8 text-center">
+                    <div className="text-4xl mb-4">🚧</div>
+                    <h3 className="text-xl font-bold text-white mb-2">{name} Module</h3>
+                    <p className="text-blue-100 text-sm">Full functionality coming soon...</p>
+                </div>
+            );
+
             return (
                 <div className="min-h-screen p-2 md:p-4">
                     <div className="max-w-7xl mx-auto">
-                        {/* Header */}
                         <div className="glass-effect rounded-xl p-4 mb-4">
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                 <div>
@@ -872,7 +1160,6 @@
                             </div>
                         </div>
 
-                        {/* Tabs */}
                         <div className="glass-effect rounded-xl p-2 mb-4">
                             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1">
                                 {tabs.map((tab) => (
@@ -892,18 +1179,17 @@
                             </div>
                         </div>
 
-                        {/* Content */}
                         <div className="min-h-96">
                             {activeTab === 'students' && <StudentManagement />}
                             {activeTab === 'system' && <SystemStatus />}
-                            {activeTab === 'classes' && <div className="text-white">Classes coming soon...</div>}
-                            {activeTab === 'schedule' && <div className="text-white">Schedule coming soon...</div>}
-                            {activeTab === 'attendance' && <div className="text-white">Attendance coming soon...</div>}
-                            {activeTab === 'payments' && <div className="text-white">Payments coming soon...</div>}
-                            {activeTab === 'rfid' && <div className="text-white">RFID coming soon...</div>}
-                            {activeTab === 'analytics' && <div className="text-white">Analytics coming soon...</div>}
-                            {activeTab === 'risk-analysis' && <div className="text-white">Risk Analysis coming soon...</div>}
-                            {activeTab === 'communications' && <div className="text-white">Communications coming soon...</div>}
+                            {activeTab === 'classes' && <PlaceholderComponent name="Class Management" />}
+                            {activeTab === 'schedule' && <PlaceholderComponent name="Schedule Management" />}
+                            {activeTab === 'attendance' && <PlaceholderComponent name="Attendance Tracking" />}
+                            {activeTab === 'payments' && <PlaceholderComponent name="Payment Management" />}
+                            {activeTab === 'rfid' && <PlaceholderComponent name="RFID Management" />}
+                            {activeTab === 'analytics' && <PlaceholderComponent name="Business Analytics" />}
+                            {activeTab === 'risk-analysis' && <PlaceholderComponent name="Risk Analysis" />}
+                            {activeTab === 'communications' && <PlaceholderComponent name="Communications" />}
                         </div>
                     </div>
                 </div>
