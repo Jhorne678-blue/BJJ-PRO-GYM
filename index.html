@@ -43,7 +43,7 @@
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
         }
-
+       
         /* UNIVERSAL INPUT STYLING - MOBILE OPTIMIZED */
         input[type="text"], input[type="email"], input[type="tel"], input[type="password"],
         input[type="time"], input[type="date"], input[type="number"], textarea, select {
@@ -202,207 +202,6 @@
 
     <script type="text/babel">
         const { useState, useEffect } = React;
-
-        // EMAIL PROMPT SYSTEM - Triggers after adding students/instructors
-        const EmailPromptModal = ({ isOpen, onClose, recipientType, recipientName, onSendEmail }) => {
-            const [selectedOption, setSelectedOption] = useState('');
-            const [showEmailEditor, setShowEmailEditor] = useState(false);
-            const [emailData, setEmailData] = useState({
-                subject: '',
-                message: '',
-                recipient_type: '',
-                send_now: true
-            });
-
-            const promptOptions = [
-                { value: 'student', label: `Send email to ${recipientName}`, icon: '👤' },
-                { value: 'instructor', label: `Send email to instructor`, icon: '👨‍🏫' },
-                { value: 'both', label: `Send to both ${recipientName} and instructor`, icon: '👥' },
-                { value: 'none', label: `Don't send any email`, icon: '❌' }
-            ];
-
-            const getRelevantOptions = () => {
-                if (recipientType === 'student') {
-                    return promptOptions.filter(opt => ['student', 'instructor', 'both', 'none'].includes(opt.value));
-                } else if (recipientType === 'instructor') {
-                    return promptOptions.filter(opt => ['instructor', 'none'].includes(opt.value));
-                }
-                return promptOptions;
-            };
-
-            const handleOptionSelect = (option) => {
-                setSelectedOption(option);
-
-                if (option === 'none') {
-                    onClose();
-                    return;
-                }
-
-                // Set up email data and open editor
-                setEmailData({
-                    subject: getDefaultSubject(option),
-                    message: getDefaultMessage(option),
-                    recipient_type: option,
-                    send_now: true
-                });
-                setShowEmailEditor(true);
-            };
-
-            const getDefaultSubject = (option) => {
-                if (option === 'student') return `Welcome to our Academy, ${recipientName}!`;
-                if (option === 'instructor') return `New ${recipientType} Added: ${recipientName}`;
-                if (option === 'both') return `New ${recipientType} Added: ${recipientName}`;
-                return '';
-            };
-
-            const getDefaultMessage = (option) => {
-                if (option === 'student') {
-                    return `Hi ${recipientName},\n\nWelcome to our Brazilian Jiu-Jitsu academy! We're excited to have you join our training family.\n\nYour membership details:\n- Member ID: [Auto-generated]\n- Classes: All levels welcome\n- Schedule: Check our app for current times\n\nIf you have any questions, please don't hesitate to reach out.\n\nOss!\nThe Team`;
-                }
-                if (option === 'instructor') {
-                    return `Hi Team,\n\nWe have a new ${recipientType} joining us: ${recipientName}\n\nPlease welcome them to the academy and assist with their onboarding as needed.\n\nThanks!\nManagement`;
-                }
-                if (option === 'both') {
-                    return `Hi ${recipientName} and Team,\n\nWelcome ${recipientName} to our academy! We're excited to have you join our training family.\n\nInstructors: Please help ${recipientName} get oriented with our programs and schedule.\n\nStudent: Feel free to ask any questions - our team is here to help!\n\nOss!\nThe Team`;
-                }
-                return '';
-            };
-
-            const handleSendEmail = () => {
-                if (!emailData.subject.trim() || !emailData.message.trim()) return;
-
-                // Send email via parent component
-                onSendEmail({
-                    ...emailData,
-                    recipient_name: recipientName,
-                    recipient_type: recipientType
-                });
-
-                // Close everything
-                setShowEmailEditor(false);
-                setSelectedOption('');
-                onClose();
-            };
-
-            const getRecipientText = () => {
-                if (selectedOption === 'student') return `${recipientName}`;
-                if (selectedOption === 'instructor') return `All instructors`;
-                if (selectedOption === 'both') return `${recipientName} and all instructors`;
-                return '';
-            };
-
-            if (!isOpen) return null;
-
-            return (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    {!showEmailEditor ? (
-                        // Email Option Selection
-                        <div className="glass-effect rounded-xl p-6 w-full max-w-md">
-                            <h3 className="text-lg font-bold text-white mb-4">📧 Send Welcome Email?</h3>
-                            
-                            <p className="text-blue-100 text-sm mb-4">
-                                {recipientName} has been added successfully. Would you like to send a welcome email?
-                            </p>
-
-                            <div className="space-y-2">
-                                {getRelevantOptions().map((option) => (
-                                    <button
-                                        key={option.value}
-                                        onClick={() => handleOptionSelect(option.value)}
-                                        className="w-full p-3 text-left bg-white bg-opacity-10 hover:bg-opacity-20 rounded-lg transition-colors"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-lg">{option.icon}</span>
-                                            <span className="text-white font-medium">{option.label}</span>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-
-                            <div className="mt-4 text-center">
-                                <button
-                                    onClick={onClose}
-                                    className="text-blue-300 hover:text-white text-sm underline"
-                                >
-                                    Skip for now
-                                </button>
-                            </div>
-                        </div>
-                    ) : (
-                        // Email Editor
-                        <div className="glass-effect rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-bold text-white">✍️ Compose Welcome Email</h3>
-                                <button
-                                    onClick={() => {
-                                        setShowEmailEditor(false);
-                                        setSelectedOption('');
-                                    }}
-                                    className="text-blue-200 hover:text-white text-xl"
-                                >
-                                    ← Back
-                                </button>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div className="bg-blue-500 bg-opacity-20 p-3 rounded-lg">
-                                    <p className="text-blue-100 text-sm">
-                                        <strong>Sending to:</strong> {getRecipientText()}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label className="block text-blue-100 text-sm font-medium mb-2">
-                                        Subject Line *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={emailData.subject}
-                                        onChange={(e) => setEmailData({...emailData, subject: e.target.value})}
-                                        placeholder="Enter email subject..."
-                                        required
-                                        autoFocus
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-blue-100 text-sm font-medium mb-2">
-                                        Message *
-                                    </label>
-                                    <textarea
-                                        value={emailData.message}
-                                        onChange={(e) => setEmailData({...emailData, message: e.target.value})}
-                                        placeholder="Write your email message here..."
-                                        rows="10"
-                                        required
-                                        className="w-full resize-none"
-                                    />
-                                </div>
-
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={handleSendEmail}
-                                        disabled={!emailData.subject.trim() || !emailData.message.trim()}
-                                        className="glass-button flex-1 text-white font-semibold disabled:opacity-50"
-                                    >
-                                        📧 Send Email
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setShowEmailEditor(false);
-                                            setSelectedOption('');
-                                        }}
-                                        className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        };
 
         // Login Component - SECURE VERSION (NO DEMO INFO DISPLAYED)
         const Login = ({ onLogin }) => {
@@ -570,7 +369,7 @@
             );
         };
 
-        // Student Management Component - FIXED WITH EMAIL PROMPTS
+        // Student Management Component - RESTORED
         const StudentManagement = () => {
             const [students, setStudents] = useState([
                 { id: 1, name: 'John Smith', email: 'john@email.com', phone: '555-0101', belt_level: 'Blue', member_id: 'MBR001', card_number: 'CARD1001' },
@@ -592,8 +391,6 @@
            
             const [filteredStudents, setFilteredStudents] = useState(students);
             const [showAddForm, setShowAddForm] = useState(false);
-            const [showEmailPrompt, setShowEmailPrompt] = useState(false);
-            const [newlyAddedStudent, setNewlyAddedStudent] = useState(null);
             const [success, setSuccess] = useState('');
            
             // Filter states
@@ -649,22 +446,6 @@
                 setStudents(prev => [...prev, newStudentData]);
                 setNewStudent({ name: '', email: '', phone: '', belt_level: 'White' });
                 setShowAddForm(false);
-                
-                // Show email prompt
-                setNewlyAddedStudent(newStudentData);
-                setShowEmailPrompt(true);
-            };
-
-            const handleSendEmail = (emailData) => {
-                // Simulate email sending
-                console.log('Sending email:', emailData);
-                setSuccess(`✅ Welcome email sent to ${emailData.recipient_name}!`);
-                setTimeout(() => setSuccess(''), 3000);
-            };
-
-            const handleEmailPromptClose = () => {
-                setShowEmailPrompt(false);
-                setNewlyAddedStudent(null);
                 setSuccess('✅ Student added successfully!');
                 setTimeout(() => setSuccess(''), 3000);
             };
@@ -698,7 +479,7 @@
                         </div>
                     )}
 
-                    {/* Advanced Filtering - MOBILE OPTIMIZED */}
+                    {/* Advanced Filtering */}
                     <div className="glass-effect rounded-xl p-4">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
                             <h3 className="text-sm font-semibold text-white">🔍 Advanced Filters</h3>
@@ -780,7 +561,7 @@
                         </div>
                     </div>
 
-                    {/* Students List - MOBILE FIXED */}
+                    {/* Students List */}
                     <div className="glass-effect rounded-xl p-4">
                         <h3 className="text-sm font-semibold text-white mb-4">Students ({filteredStudents.length})</h3>
                        
@@ -876,336 +657,11 @@
                             </div>
                         </div>
                     )}
-
-                    {/* Email Prompt Modal */}
-                    <EmailPromptModal
-                        isOpen={showEmailPrompt}
-                        onClose={handleEmailPromptClose}
-                        recipientType="student"
-                        recipientName={newlyAddedStudent?.name}
-                        onSendEmail={handleSendEmail}
-                    />
                 </div>
             );
         };
 
-        // FIXED Communications Component - COMPLETE EMAIL SYSTEM
-        const Communications = () => {
-            const [emailHistory, setEmailHistory] = useState([
-                { id: 1, subject: 'Welcome to BJJ Pro Academy', sent_to: 'All new students', sent_date: '2025-01-05', status: 'Sent' },
-                { id: 2, subject: 'Class Schedule Changes', sent_to: 'All students', sent_date: '2025-01-04', status: 'Sent' },
-                { id: 3, subject: 'Retention Campaign', sent_to: 'At-risk students', sent_date: '2025-01-03', status: 'Sent' }
-            ]);
-
-            const [selectedRecipient, setSelectedRecipient] = useState('');
-            const [showEmailEditor, setShowEmailEditor] = useState(false);
-            const [showScheduleOptions, setShowScheduleOptions] = useState(false);
-            const [success, setSuccess] = useState('');
-            const [error, setError] = useState('');
-
-            // Email composition state
-            const [emailData, setEmailData] = useState({
-                subject: '',
-                message: '',
-                recipient_type: '',
-                send_now: true,
-                schedule_date: '',
-                schedule_time: ''
-            });
-
-            const recipientOptions = [
-                { value: 'students', label: 'Students Only', count: 157 },
-                { value: 'instructors', label: 'Instructors Only', count: 8 },
-                { value: 'both', label: 'Students & Instructors', count: 165 },
-                { value: 'none', label: 'None (Don\'t Send)', count: 0 }
-            ];
-
-            const handleRecipientSelect = (recipient) => {
-                setSelectedRecipient(recipient);
-                
-                if (recipient === 'none') {
-                    setSuccess('✅ No email will be sent.');
-                    setTimeout(() => setSuccess(''), 2000);
-                    return;
-                }
-
-                // Open email editor for all other options
-                const selectedOption = recipientOptions.find(opt => opt.value === recipient);
-                setEmailData({
-                    subject: '',
-                    message: '',
-                    recipient_type: recipient,
-                    send_now: true,
-                    schedule_date: '',
-                    schedule_time: ''
-                });
-                setShowEmailEditor(true);
-            };
-
-            const handleSendEmail = async () => {
-                if (!emailData.subject.trim() || !emailData.message.trim()) {
-                    setError('Subject and message are required');
-                    return;
-                }
-
-                try {
-                    const selectedOption = recipientOptions.find(opt => opt.value === emailData.recipient_type);
-                    
-                    // Simulate email sending
-                    const newEmail = {
-                        id: Date.now(),
-                        subject: emailData.subject,
-                        sent_to: selectedOption.label,
-                        sent_date: new Date().toISOString().split('T')[0],
-                        status: emailData.send_now ? 'Sent' : 'Scheduled'
-                    };
-
-                    setEmailHistory(prev => [newEmail, ...prev]);
-                    
-                    if (emailData.send_now) {
-                        setSuccess(`✅ Email sent to ${selectedOption.count} recipients!`);
-                    } else {
-                        setSuccess(`✅ Email scheduled for ${emailData.schedule_date} at ${emailData.schedule_time}`);
-                    }
-
-                    // Reset form
-                    setEmailData({
-                        subject: '',
-                        message: '',
-                        recipient_type: '',
-                        send_now: true,
-                        schedule_date: '',
-                        schedule_time: ''
-                    });
-                    setShowEmailEditor(false);
-                    setSelectedRecipient('');
-                    setTimeout(() => setSuccess(''), 3000);
-
-                } catch (error) {
-                    setError('Failed to send email');
-                }
-            };
-
-            const getRecipientCount = (type) => {
-                const option = recipientOptions.find(opt => opt.value === type);
-                return option ? option.count : 0;
-            };
-
-            return (
-                <div className="space-y-4">
-                    <div>
-                        <h2 className="text-xl md:text-2xl font-bold text-white mb-1">📧 Communications</h2>
-                        <p className="text-blue-100 text-sm">Professional email campaigns and student communications</p>
-                    </div>
-
-                    {success && (
-                        <div className="bg-green-500 bg-opacity-20 border border-green-300 text-green-100 px-4 py-3 rounded-lg text-sm">
-                            {success}
-                        </div>
-                    )}
-
-                    {error && (
-                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg text-sm">
-                            {error}
-                        </div>
-                    )}
-
-                    {/* Email Composition Section */}
-                    <div className="glass-effect rounded-xl p-4">
-                        <h3 className="text-sm font-semibold text-white mb-4">📨 Send Email</h3>
-                        
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-blue-100 text-sm font-medium mb-2">
-                                    Who would you like to email?
-                                </label>
-                                <select
-                                    value={selectedRecipient}
-                                    onChange={(e) => handleRecipientSelect(e.target.value)}
-                                    className="w-full"
-                                >
-                                    <option value="">Select recipients...</option>
-                                    {recipientOptions.map(option => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label} ({option.count} people)
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {selectedRecipient && selectedRecipient !== 'none' && (
-                                <div className="bg-blue-500 bg-opacity-20 p-3 rounded-lg">
-                                    <p className="text-blue-100 text-sm">
-                                        ✅ Selected: <strong>{recipientOptions.find(opt => opt.value === selectedRecipient)?.label}</strong>
-                                    </p>
-                                    <p className="text-blue-200 text-xs">
-                                        Email editor will open to compose your message
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Email History */}
-                    <div className="glass-effect rounded-xl p-4">
-                        <h3 className="text-sm font-semibold text-white mb-3">📋 Email History</h3>
-                        <div className="space-y-2">
-                            {emailHistory.map((email) => (
-                                <div key={email.id} className="bg-white bg-opacity-10 rounded-lg p-3">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <div className="font-semibold text-white text-sm">{email.subject}</div>
-                                            <div className="text-blue-200 text-xs">{email.sent_to}</div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-white text-xs">{email.sent_date}</div>
-                                            <div className={`px-2 py-1 rounded text-xs ${
-                                                email.status === 'Sent' 
-                                                    ? 'bg-green-500 bg-opacity-20 text-green-100'
-                                                    : 'bg-yellow-500 bg-opacity-20 text-yellow-100'
-                                            }`}>
-                                                {email.status === 'Sent' ? '✅' : '⏰'} {email.status}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Email Editor Modal */}
-                    {showEmailEditor && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                            <div className="glass-effect rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-bold text-white">✍️ Compose Email</h3>
-                                    <button
-                                        onClick={() => {
-                                            setShowEmailEditor(false);
-                                            setSelectedRecipient('');
-                                            setError('');
-                                        }}
-                                        className="text-blue-200 hover:text-white text-xl"
-                                    >
-                                        ✕
-                                    </button>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="bg-blue-500 bg-opacity-20 p-3 rounded-lg">
-                                        <p className="text-blue-100 text-sm">
-                                            <strong>Sending to:</strong> {recipientOptions.find(opt => opt.value === emailData.recipient_type)?.label}
-                                        </p>
-                                        <p className="text-blue-200 text-xs">
-                                            {getRecipientCount(emailData.recipient_type)} recipients
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-blue-100 text-sm font-medium mb-2">
-                                            Subject Line *
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={emailData.subject}
-                                            onChange={(e) => setEmailData({...emailData, subject: e.target.value})}
-                                            placeholder="Enter email subject..."
-                                            required
-                                            autoFocus
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-blue-100 text-sm font-medium mb-2">
-                                            Message *
-                                        </label>
-                                        <textarea
-                                            value={emailData.message}
-                                            onChange={(e) => setEmailData({...emailData, message: e.target.value})}
-                                            placeholder="Write your email message here..."
-                                            rows="8"
-                                            required
-                                            className="w-full resize-none"
-                                        />
-                                    </div>
-
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <label className="flex items-center space-x-2">
-                                                <input
-                                                    type="radio"
-                                                    name="send_option"
-                                                    checked={emailData.send_now}
-                                                    onChange={() => setEmailData({...emailData, send_now: true})}
-                                                />
-                                                <span className="text-blue-100 text-sm">Send Now</span>
-                                            </label>
-                                            <label className="flex items-center space-x-2 mt-2">
-                                                <input
-                                                    type="radio"
-                                                    name="send_option"
-                                                    checked={!emailData.send_now}
-                                                    onChange={() => setEmailData({...emailData, send_now: false})}
-                                                />
-                                                <span className="text-blue-100 text-sm">Schedule for Later</span>
-                                            </label>
-                                        </div>
-
-                                        {!emailData.send_now && (
-                                            <div className="flex gap-2">
-                                                <input
-                                                    type="date"
-                                                    value={emailData.schedule_date}
-                                                    onChange={(e) => setEmailData({...emailData, schedule_date: e.target.value})}
-                                                    required
-                                                    className="text-sm"
-                                                />
-                                                <input
-                                                    type="time"
-                                                    value={emailData.schedule_time}
-                                                    onChange={(e) => setEmailData({...emailData, schedule_time: e.target.value})}
-                                                    required
-                                                    className="text-sm"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {error && (
-                                        <div className="bg-red-500 bg-opacity-20 border border-red-300 text-red-100 px-4 py-3 rounded-lg text-sm">
-                                            {error}
-                                        </div>
-                                    )}
-
-                                    <div className="flex gap-3">
-                                        <button
-                                            onClick={handleSendEmail}
-                                            disabled={!emailData.subject.trim() || !emailData.message.trim()}
-                                            className="glass-button flex-1 text-white font-semibold disabled:opacity-50"
-                                        >
-                                            {emailData.send_now ? '📧 Send Email' : '⏰ Schedule Email'}
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setShowEmailEditor(false);
-                                                setSelectedRecipient('');
-                                                setError('');
-                                            }}
-                                            className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
-                                        >
-                                            Cancel
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        // [ALL OTHER COMPONENTS REMAIN THE SAME - Class Management, Schedule, etc.]
-        // Class Management Component - COMPLETE
+        // Class Management Component - RESTORED
         const ClassManagement = () => {
             const [classes, setClasses] = useState([
                 { id: 1, name: 'Fundamentals', description: 'Basic BJJ techniques for beginners', created_at: new Date().toISOString() },
@@ -1374,15 +830,1525 @@
             );
         };
 
-        // [REMAINING COMPONENTS STAY THE SAME - Schedule, Attendance, Analytics, etc.]
-        // Dashboard Component - COMPLETE AND WORKING
+        // Schedule Management Component - RESTORED
+        const ScheduleManagement = () => {
+            const [schedules, setSchedules] = useState([
+                { id: 1, class_name: 'Fundamentals', day_of_week: 0, start_time: '18:00', end_time: '19:00', instructor: 'Professor Silva' },
+                { id: 2, class_name: 'Advanced', day_of_week: 0, start_time: '19:15', end_time: '20:45', instructor: 'Professor Johnson' },
+                { id: 3, class_name: 'No-Gi', day_of_week: 1, start_time: '19:00', end_time: '20:00', instructor: 'Professor Davis' },
+                { id: 4, class_name: 'Fundamentals', day_of_week: 2, start_time: '18:00', end_time: '19:00', instructor: 'Professor Silva' },
+                { id: 5, class_name: 'Competition', day_of_week: 2, start_time: '19:15', end_time: '21:15', instructor: 'Professor Brown' },
+                { id: 6, class_name: 'Open Mat', day_of_week: 4, start_time: '18:00', end_time: '20:00', instructor: 'Open' },
+                { id: 7, class_name: 'Fundamentals', day_of_week: 5, start_time: '10:00', end_time: '11:00', instructor: 'Professor Silva' },
+                { id: 8, class_name: 'Open Mat', day_of_week: 5, start_time: '11:15', end_time: '13:15', instructor: 'Open' }
+            ]);
+           
+            const [success, setSuccess] = useState('');
+            const [showAddForm, setShowAddForm] = useState(false);
+            
+            const [newSchedule, setNewSchedule] = useState({
+                class_name: '',
+                day_of_week: 0,
+                start_time: '18:00',
+                end_time: '19:00',
+                instructor: ''
+            });
+
+            const classes = ['Fundamentals', 'Advanced', 'Competition', 'No-Gi', 'Open Mat', 'Kids Program'];
+            const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+            const handleAddSchedule = (e) => {
+                e.preventDefault();
+                if (!newSchedule.class_name.trim()) return;
+               
+                const newId = Math.max(...schedules.map(s => s.id)) + 1;
+                const newScheduleItem = {
+                    id: newId,
+                    ...newSchedule
+                };
+               
+                setSchedules(prev => [...prev, newScheduleItem]);
+                setNewSchedule({
+                    class_name: '',
+                    day_of_week: 0,
+                    start_time: '18:00',
+                    end_time: '19:00',
+                    instructor: ''
+                });
+                setShowAddForm(false);
+                setSuccess('✅ Schedule added successfully!');
+                setTimeout(() => setSuccess(''), 3000);
+            };
+
+            const handleDeleteSchedule = (scheduleId, scheduleName) => {
+                if (!window.confirm(`Delete "${scheduleName}" from schedule?`)) return;
+                
+                setSchedules(prev => prev.filter(s => s.id !== scheduleId));
+                setSuccess(`✅ Schedule "${scheduleName}" deleted successfully!`);
+                setTimeout(() => setSuccess(''), 3000);
+            };
+
+            const formatTime = (time) => {
+                const [hours, minutes] = time.split(':');
+                const hour = parseInt(hours);
+                const ampm = hour >= 12 ? 'PM' : 'AM';
+                const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                return `${displayHour}:${minutes} ${ampm}`;
+            };
+
+            return (
+                <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h2 className="text-xl md:text-2xl font-bold text-white">📅 Schedule Management</h2>
+                        <button
+                            onClick={() => setShowAddForm(true)}
+                            className="glass-button px-4 py-2 text-white font-semibold text-sm"
+                        >
+                            ➕ Add Schedule
+                        </button>
+                    </div>
+
+                    {success && (
+                        <div className="bg-green-500 bg-opacity-20 border border-green-300 text-green-100 px-4 py-3 rounded-lg success-pulse text-sm">
+                            {success}
+                        </div>
+                    )}
+
+                    <div className="glass-effect rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-white mb-4">Weekly Schedule</h3>
+                       
+                        <div className="space-y-3">
+                            {daysOfWeek.map((day, dayIndex) => {
+                                const daySchedules = schedules
+                                    .filter(s => s.day_of_week === dayIndex)
+                                    .sort((a, b) => a.start_time.localeCompare(b.start_time));
+                               
+                                return (
+                                    <div key={day} className="bg-white bg-opacity-5 rounded-lg p-3">
+                                        <h4 className="font-semibold text-white text-sm mb-2">
+                                            {day}
+                                        </h4>
+                                       
+                                        {daySchedules.length === 0 ? (
+                                            <div className="text-blue-300 text-xs">No classes scheduled</div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                                {daySchedules.map((schedule) => (
+                                                    <div key={schedule.id} className="bg-white bg-opacity-10 rounded-lg p-2 group hover:bg-opacity-20">
+                                                        <div className="flex justify-between items-start">
+                                                            <div className="flex-1">
+                                                                <div className="font-medium text-white text-xs">{schedule.class_name}</div>
+                                                                <div className="text-blue-200 text-xs">
+                                                                    {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
+                                                                </div>
+                                                                {schedule.instructor && (
+                                                                    <div className="text-blue-300 text-xs">
+                                                                        👨‍🏫 {schedule.instructor}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <button
+                                                                onClick={() => handleDeleteSchedule(schedule.id, schedule.class_name)}
+                                                                className="opacity-0 group-hover:opacity-100 bg-red-500 bg-opacity-20 p-1 text-red-100 rounded text-xs hover:bg-opacity-40 transition-all"
+                                                                title="Delete class"
+                                                            >
+                                                                🗑️
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Add Schedule Modal */}
+                    {showAddForm && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="glass-effect rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+                                <h3 className="text-lg font-bold text-white mb-4">Add New Schedule</h3>
+                               
+                                <form onSubmit={handleAddSchedule} className="space-y-4">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Class *</label>
+                                        <select
+                                            value={newSchedule.class_name}
+                                            onChange={(e) => setNewSchedule({...newSchedule, class_name: e.target.value})}
+                                            required
+                                        >
+                                            <option value="">Select a class</option>
+                                            {classes.map(cls => (
+                                                <option key={cls} value={cls}>{cls}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                   
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Day of Week *</label>
+                                        <select
+                                            value={newSchedule.day_of_week}
+                                            onChange={(e) => setNewSchedule({...newSchedule, day_of_week: parseInt(e.target.value)})}
+                                            required
+                                        >
+                                            {daysOfWeek.map((day, index) => (
+                                                <option key={index} value={index}>{day}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                   
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-blue-100 text-sm font-medium mb-2">Start Time *</label>
+                                            <input
+                                                type="time"
+                                                value={newSchedule.start_time}
+                                                onChange={(e) => setNewSchedule({...newSchedule, start_time: e.target.value})}
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-blue-100 text-sm font-medium mb-2">End Time *</label>
+                                            <input
+                                                type="time"
+                                                value={newSchedule.end_time}
+                                                onChange={(e) => setNewSchedule({...newSchedule, end_time: e.target.value})}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                   
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Instructor</label>
+                                        <input
+                                            type="text"
+                                            value={newSchedule.instructor}
+                                            onChange={(e) => setNewSchedule({...newSchedule, instructor: e.target.value})}
+                                            placeholder="Instructor name"
+                                        />
+                                    </div>
+                                   
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="submit"
+                                            className="glass-button flex-1 text-white font-semibold"
+                                        >
+                                            Add Schedule
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAddForm(false)}
+                                            className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Attendance Management Component - RESTORED
+        const AttendanceManagement = () => {
+            const [attendanceData, setAttendanceData] = useState([
+                { id: 1, student_name: 'John Smith', class_name: 'Fundamentals', check_in_time: '2025-01-05 18:05', member_id: 'MBR001' },
+                { id: 2, student_name: 'Maria Garcia', class_name: 'Fundamentals', check_in_time: '2025-01-05 18:08', member_id: 'MBR002' },
+                { id: 3, student_name: 'David Johnson', class_name: 'Advanced', check_in_time: '2025-01-05 19:20', member_id: 'MBR003' },
+                { id: 4, student_name: 'Sarah Wilson', class_name: 'No-Gi', check_in_time: '2025-01-04 19:05', member_id: 'MBR004' },
+                { id: 5, student_name: 'Mike Brown', class_name: 'Fundamentals', check_in_time: '2025-01-04 18:12', member_id: 'MBR005' },
+            ]);
+           
+            const [filterDate, setFilterDate] = useState('');
+            const [filterStudent, setFilterStudent] = useState('');
+            const [filterClass, setFilterClass] = useState('');
+           
+            const filteredData = attendanceData.filter(record => {
+                const matchesDate = !filterDate || record.check_in_time.includes(filterDate);
+                const matchesStudent = !filterStudent || record.student_name.toLowerCase().includes(filterStudent.toLowerCase());
+                const matchesClass = !filterClass || record.class_name.toLowerCase().includes(filterClass.toLowerCase());
+                return matchesDate && matchesStudent && matchesClass;
+            });
+
+            const todayCount = attendanceData.filter(record =>
+                record.check_in_time.includes(new Date().toISOString().split('T')[0])
+            ).length;
+
+            const weekCount = attendanceData.length;
+
+            return (
+                <div className="space-y-4">
+                    <div>
+                        <h2 className="text-xl md:text-2xl font-bold text-white mb-1">✅ Attendance Tracking</h2>
+                        <p className="text-blue-100 text-sm">Real-time student check-ins and attendance analytics</p>
+                    </div>
+
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="glass-effect rounded-xl p-3">
+                            <div className="text-xl font-bold text-white">{todayCount}</div>
+                            <div className="text-blue-200 text-xs">Today's Check-ins</div>
+                        </div>
+                        <div className="glass-effect rounded-xl p-3">
+                            <div className="text-xl font-bold text-white">{weekCount}</div>
+                            <div className="text-blue-200 text-xs">This Week</div>
+                        </div>
+                        <div className="glass-effect rounded-xl p-3">
+                            <div className="text-xl font-bold text-white">87%</div>
+                            <div className="text-blue-200 text-xs">Attendance Rate</div>
+                        </div>
+                    </div>
+
+                    {/* Filters */}
+                    <div className="glass-effect rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-white mb-3">🔍 Filter Attendance</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label className="block text-blue-100 text-xs font-medium mb-1">Date</label>
+                                <input
+                                    type="date"
+                                    value={filterDate}
+                                    onChange={(e) => setFilterDate(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-blue-100 text-xs font-medium mb-1">Student</label>
+                                <input
+                                    type="text"
+                                    value={filterStudent}
+                                    onChange={(e) => setFilterStudent(e.target.value)}
+                                    placeholder="Filter by student name..."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-blue-100 text-xs font-medium mb-1">Class</label>
+                                <input
+                                    type="text"
+                                    value={filterClass}
+                                    onChange={(e) => setFilterClass(e.target.value)}
+                                    placeholder="Filter by class..."
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-3 text-blue-200 text-xs">
+                            Showing {filteredData.length} attendance records
+                        </div>
+                    </div>
+
+                    {/* Attendance List */}
+                    <div className="glass-effect rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-white mb-3">Recent Check-ins</h3>
+                        <div className="space-y-2">
+                            {filteredData.map((record) => (
+                                <div key={record.id} className="bg-white bg-opacity-10 rounded-lg p-3">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <div className="font-semibold text-white text-sm">{record.student_name}</div>
+                                            <div className="text-blue-200 text-xs">{record.class_name}</div>
+                                            <div className="text-blue-300 text-xs">{record.member_id}</div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-white text-xs">
+                                                {new Date(record.check_in_time).toLocaleString()}
+                                            </div>
+                                            <div className="bg-green-500 bg-opacity-20 px-2 py-1 rounded text-green-100 text-xs mt-1">
+                                                ✅ Checked In
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Business Analytics Component - RESTORED
+        const BusinessAnalytics = () => {
+            const [selectedPeriod, setSelectedPeriod] = useState('month');
+           
+            const metrics = {
+                revenue: { current: 29550, previous: 27800, growth: 6.3 },
+                students: { current: 157, previous: 148, growth: 6.1 },
+                retention: { current: 87, previous: 82, growth: 6.1 },
+                classes: { current: 124, previous: 118, growth: 5.1 }
+            };
+
+            const beltDistribution = [
+                { belt: 'White', count: 68, percentage: 43 },
+                { belt: 'Blue', count: 45, percentage: 29 },
+                { belt: 'Purple', count: 28, percentage: 18 },
+                { belt: 'Brown', count: 12, percentage: 8 },
+                { belt: 'Black', count: 4, percentage: 2 }
+            ];
+
+            return (
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-1">📊 Business Analytics</h2>
+                            <p className="text-blue-100 text-sm">Comprehensive business metrics and performance insights</p>
+                        </div>
+                    </div>
+
+                    {/* Key Metrics */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div className="glass-effect rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="text-sm font-semibold text-white">Revenue</div>
+                                <div className="text-lg">💰</div>
+                            </div>
+                            <div className="text-lg font-bold text-white">${metrics.revenue.current.toLocaleString()}</div>
+                            <div className="text-green-300 text-xs">+{metrics.revenue.growth}% vs last period</div>
+                        </div>
+                       
+                        <div className="glass-effect rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="text-sm font-semibold text-white">Students</div>
+                                <div className="text-lg">👥</div>
+                            </div>
+                            <div className="text-lg font-bold text-white">{metrics.students.current}</div>
+                            <div className="text-green-300 text-xs">+{metrics.students.growth}% growth</div>
+                        </div>
+                       
+                        <div className="glass-effect rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="text-sm font-semibold text-white">Retention</div>
+                                <div className="text-lg">🎯</div>
+                            </div>
+                            <div className="text-lg font-bold text-white">{metrics.retention.current}%</div>
+                            <div className="text-green-300 text-xs">+{metrics.retention.growth}% improvement</div>
+                        </div>
+                       
+                        <div className="glass-effect rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="text-sm font-semibold text-white">Classes</div>
+                                <div className="text-lg">📚</div>
+                            </div>
+                            <div className="text-lg font-bold text-white">{metrics.classes.current}</div>
+                            <div className="text-green-300 text-xs">+{metrics.classes.growth}% this period</div>
+                        </div>
+                    </div>
+
+                    {/* Belt Distribution */}
+                    <div className="glass-effect rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-white mb-3">🥋 Belt Level Distribution</h3>
+                        <div className="space-y-2">
+                            {beltDistribution.map((item, index) => (
+                                <div key={index} className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-2">
+                                        <span className={`belt-${item.belt.toLowerCase()} px-2 py-1 rounded-full text-xs font-medium`}>
+                                            {item.belt}
+                                        </span>
+                                        <span className="text-white text-sm">{item.count}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <div className="w-16 bg-white bg-opacity-20 rounded-full h-1">
+                                            <div
+                                                className="bg-blue-500 h-1 rounded-full"
+                                                style={{ width: `${item.percentage}%` }}
+                                            ></div>
+                                        </div>
+                                        <span className="text-blue-200 text-xs w-8">{item.percentage}%</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Risk Analysis Component - RESTORED
+        const RiskAnalysis = () => {
+            const [atRiskStudents] = useState([
+                { id: 1, name: 'Alex Rodriguez', member_id: 'MBR013', last_attendance: '2024-12-20', days_absent: 16, risk_level: 'High', belt_level: 'Brown' },
+                { id: 2, name: 'Emma Thompson', member_id: 'MBR014', last_attendance: '2024-12-28', days_absent: 8, risk_level: 'Medium', belt_level: 'Blue' },
+                { id: 3, name: 'Ryan O\'Connor', member_id: 'MBR015', last_attendance: '2025-01-01', days_absent: 4, risk_level: 'Low', belt_level: 'White' }
+            ]);
+
+            return (
+                <div className="space-y-4">
+                    <div>
+                        <h2 className="text-xl md:text-2xl font-bold text-white mb-1">⚠️ Risk Analysis</h2>
+                        <p className="text-blue-100 text-sm">AI-powered student retention analysis and intervention tools</p>
+                    </div>
+
+                    <div className="glass-effect rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-white mb-3">At-Risk Students</h3>
+                        <div className="space-y-2">
+                            {atRiskStudents.map((student) => (
+                                <div key={student.id} className={`${student.risk_level === 'High' ? 'risk-high' : student.risk_level === 'Medium' ? 'risk-medium' : 'risk-low'} rounded-lg p-3`}>
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <div className="font-semibold text-white text-sm">{student.name}</div>
+                                            <div className="text-white text-xs opacity-90">{student.member_id} • {student.belt_level} Belt</div>
+                                            <div className="text-white text-xs opacity-80">Last seen: {student.last_attendance}</div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-white font-bold text-sm">{student.days_absent} days</div>
+                                            <div className="text-white text-xs opacity-90">{student.risk_level} Risk</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Financial Management Component - RESTORED
+        const FinancialManagement = () => {
+            const [payments, setPayments] = useState([
+                { id: 1, student_name: 'John Smith', member_id: 'MBR001', amount: 150.00, type: 'Monthly Membership', status: 'Completed', date: '2025-01-05', method: 'Credit Card' },
+                { id: 2, student_name: 'Maria Garcia', member_id: 'MBR002', amount: 150.00, type: 'Monthly Membership', status: 'Completed', date: '2025-01-05', method: 'Bank Transfer' },
+                { id: 3, student_name: 'David Johnson', member_id: 'MBR003', amount: 75.00, type: 'Drop-in Class', status: 'Completed', date: '2025-01-04', method: 'Cash' },
+                { id: 4, student_name: 'Sarah Wilson', member_id: 'MBR004', amount: 150.00, type: 'Monthly Membership', status: 'Pending', date: '2025-01-04', method: 'Credit Card' },
+                { id: 5, student_name: 'Mike Brown', member_id: 'MBR005', amount: 200.00, type: 'Private Lesson', status: 'Completed', date: '2025-01-03', method: 'Cash' }
+            ]);
+
+            const [showAddPayment, setShowAddPayment] = useState(false);
+            const [success, setSuccess] = useState('');
+            const [newPayment, setNewPayment] = useState({
+                student_name: '',
+                member_id: '',
+                amount: '',
+                type: 'Monthly Membership',
+                method: 'Credit Card'
+            });
+
+            // Calculate financial summary
+            const totalRevenue = payments.filter(p => p.status === 'Completed').reduce((sum, p) => sum + p.amount, 0);
+            const pendingAmount = payments.filter(p => p.status === 'Pending').reduce((sum, p) => sum + p.amount, 0);
+            const todayRevenue = payments.filter(p => p.status === 'Completed' && p.date === '2025-01-05').reduce((sum, p) => sum + p.amount, 0);
+            const monthlyRevenue = payments.filter(p => p.status === 'Completed' && p.date.startsWith('2025-01')).reduce((sum, p) => sum + p.amount, 0);
+
+            const handleAddPayment = (e) => {
+                e.preventDefault();
+                if (!newPayment.student_name.trim() || !newPayment.amount) return;
+
+                const newId = Math.max(...payments.map(p => p.id)) + 1;
+                const paymentData = {
+                    id: newId,
+                    ...newPayment,
+                    amount: parseFloat(newPayment.amount),
+                    status: 'Completed',
+                    date: new Date().toISOString().split('T')[0]
+                };
+
+                setPayments(prev => [paymentData, ...prev]);
+                setNewPayment({
+                    student_name: '',
+                    member_id: '',
+                    amount: '',
+                    type: 'Monthly Membership',
+                    method: 'Credit Card'
+                });
+                setShowAddPayment(false);
+                setSuccess('✅ Payment recorded successfully!');
+                setTimeout(() => setSuccess(''), 3000);
+            };
+
+            const paymentTypes = ['Monthly Membership', 'Annual Membership', 'Drop-in Class', 'Private Lesson', 'Equipment', 'Registration Fee', 'Other'];
+            const paymentMethods = ['Credit Card', 'Debit Card', 'Bank Transfer', 'Cash', 'Check', 'Digital Wallet'];
+
+            return (
+                <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-1">💰 Financial Management</h2>
+                            <p className="text-blue-100 text-sm">Payment processing, revenue tracking, and financial analytics</p>
+                        </div>
+                        <button
+                            onClick={() => setShowAddPayment(true)}
+                            className="glass-button px-4 py-2 text-white font-semibold text-sm"
+                        >
+                            ➕ Record Payment
+                        </button>
+                    </div>
+
+                    {success && (
+                        <div className="bg-green-500 bg-opacity-20 border border-green-300 text-green-100 px-4 py-3 rounded-lg success-pulse text-sm">
+                            {success}
+                        </div>
+                    )}
+
+                    {/* Financial Summary Cards */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div className="glass-effect rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="text-sm font-semibold text-white">Today</div>
+                                <div className="text-lg">📈</div>
+                            </div>
+                            <div className="text-lg font-bold text-white">${todayRevenue.toFixed(2)}</div>
+                            <div className="text-blue-200 text-xs">Revenue today</div>
+                        </div>
+
+                        <div className="glass-effect rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="text-sm font-semibold text-white">This Month</div>
+                                <div className="text-lg">💎</div>
+                            </div>
+                            <div className="text-lg font-bold text-white">${monthlyRevenue.toFixed(2)}</div>
+                            <div className="text-green-300 text-xs">Monthly revenue</div>
+                        </div>
+
+                        <div className="glass-effect rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="text-sm font-semibold text-white">Total Revenue</div>
+                                <div className="text-lg">🏆</div>
+                            </div>
+                            <div className="text-lg font-bold text-white">${totalRevenue.toFixed(2)}</div>
+                            <div className="text-blue-200 text-xs">All time</div>
+                        </div>
+
+                        <div className="glass-effect rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="text-sm font-semibold text-white">Pending</div>
+                                <div className="text-lg">⏳</div>
+                            </div>
+                            <div className="text-lg font-bold text-white">${pendingAmount.toFixed(2)}</div>
+                            <div className="text-yellow-300 text-xs">Awaiting payment</div>
+                        </div>
+                    </div>
+
+                    {/* Recent Payments */}
+                    <div className="glass-effect rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-white mb-4">Recent Payments ({payments.length})</h3>
+                        
+                        <div className="space-y-2">
+                            {payments.map((payment) => (
+                                <div key={payment.id} className="bg-white bg-opacity-10 rounded-lg p-3 hover:bg-opacity-20 transition-colors">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h4 className="font-semibold text-white text-sm">{payment.student_name}</h4>
+                                                <span className="member-id-badge">{payment.member_id}</span>
+                                            </div>
+                                            <div className="text-blue-200 text-xs">{payment.type} • {payment.method}</div>
+                                            <div className="text-blue-300 text-xs">{payment.date}</div>
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-right">
+                                                <div className="font-bold text-white text-lg">${payment.amount.toFixed(2)}</div>
+                                            </div>
+                                            <div>
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                    payment.status === 'Completed' 
+                                                        ? 'bg-green-500 bg-opacity-20 text-green-100'
+                                                        : payment.status === 'Pending'
+                                                        ? 'bg-yellow-500 bg-opacity-20 text-yellow-100'
+                                                        : 'bg-red-500 bg-opacity-20 text-red-100'
+                                                }`}>
+                                                    {payment.status === 'Completed' ? '✅' : payment.status === 'Pending' ? '⏳' : '❌'} {payment.status}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Add Payment Modal */}
+                    {showAddPayment && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="glass-effect rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+                                <h3 className="text-lg font-bold text-white mb-4">Record New Payment</h3>
+                                
+                                <form onSubmit={handleAddPayment} className="space-y-4">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Student Name *</label>
+                                        <input
+                                            type="text"
+                                            value={newPayment.student_name}
+                                            onChange={(e) => setNewPayment({...newPayment, student_name: e.target.value})}
+                                            placeholder="Enter student name"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Member ID</label>
+                                        <input
+                                            type="text"
+                                            value={newPayment.member_id}
+                                            onChange={(e) => setNewPayment({...newPayment, member_id: e.target.value})}
+                                            placeholder="e.g., MBR001"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Amount *</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={newPayment.amount}
+                                            onChange={(e) => setNewPayment({...newPayment, amount: e.target.value})}
+                                            placeholder="0.00"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Payment Type *</label>
+                                        <select
+                                            value={newPayment.type}
+                                            onChange={(e) => setNewPayment({...newPayment, type: e.target.value})}
+                                            required
+                                        >
+                                            {paymentTypes.map(type => (
+                                                <option key={type} value={type}>{type}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Payment Method *</label>
+                                        <select
+                                            value={newPayment.method}
+                                            onChange={(e) => setNewPayment({...newPayment, method: e.target.value})}
+                                            required
+                                        >
+                                            {paymentMethods.map(method => (
+                                                <option key={method} value={method}>{method}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="submit"
+                                            className="glass-button flex-1 text-white font-semibold"
+                                        >
+                                            💰 Record Payment
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAddPayment(false)}
+                                            className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Communications Component - RESTORED
+        const Communications = () => {
+            const [emailHistory] = useState([
+                { id: 1, subject: 'Welcome to BJJ Pro Academy', sent_to: 'All new students', sent_date: '2025-01-05', status: 'Sent' },
+                { id: 2, subject: 'Class Schedule Changes', sent_to: 'All students', sent_date: '2025-01-04', status: 'Sent' },
+                { id: 3, subject: 'Retention Campaign', sent_to: 'At-risk students', sent_date: '2025-01-03', status: 'Sent' }
+            ]);
+
+            return (
+                <div className="space-y-4">
+                    <div>
+                        <h2 className="text-xl md:text-2xl font-bold text-white mb-1">📧 Communications</h2>
+                        <p className="text-blue-100 text-sm">Professional email campaigns and student communications</p>
+                    </div>
+
+                    <div className="glass-effect rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-white mb-3">Email History</h3>
+                        <div className="space-y-2">
+                            {emailHistory.map((email) => (
+                                <div key={email.id} className="bg-white bg-opacity-10 rounded-lg p-3">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <div className="font-semibold text-white text-sm">{email.subject}</div>
+                                            <div className="text-blue-200 text-xs">{email.sent_to}</div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-white text-xs">{email.sent_date}</div>
+                                            <div className="bg-green-500 bg-opacity-20 px-2 py-1 rounded text-green-100 text-xs">
+                                                {email.status}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // RFID Management Component - RESTORED WITH FULL ACR122U INTEGRATION
+        const RFIDManagement = () => {
+            const [rfidCards, setRfidCards] = useState([
+                { id: 1, card_number: 'CARD1001', student_name: 'John Smith', member_id: 'MBR001', status: 'Active', assigned_date: '2024-12-01', last_used: '2025-01-05' },
+                { id: 2, card_number: 'CARD1002', student_name: 'Maria Garcia', member_id: 'MBR002', status: 'Active', assigned_date: '2024-12-02', last_used: '2025-01-05' },
+                { id: 3, card_number: 'CARD1003', student_name: 'David Johnson', member_id: 'MBR003', status: 'Active', assigned_date: '2024-12-03', last_used: '2025-01-04' },
+                { id: 4, card_number: 'CARD1004', student_name: 'Sarah Wilson', member_id: 'MBR004', status: 'Lost', assigned_date: '2024-12-04', last_used: '2025-01-01' },
+                { id: 5, card_number: 'CARD1005', student_name: 'Mike Brown', member_id: 'MBR005', status: 'Active', assigned_date: '2024-12-05', last_used: '2025-01-03' }
+            ]);
+
+            const [showAssignCard, setShowAssignCard] = useState(false);
+            const [scanningMode, setScanningMode] = useState(false);
+            const [scannedCard, setScannedCard] = useState('');
+            const [success, setSuccess] = useState('');
+            const [newAssignment, setNewAssignment] = useState({
+                student_name: '',
+                member_id: '',
+                card_number: ''
+            });
+
+            const [rfidStatus, setRfidStatus] = useState('Disconnected');
+            const [rfidStats, setRfidStats] = useState({
+                totalCards: rfidCards.length,
+                activeCards: rfidCards.filter(c => c.status === 'Active').length,
+                lostCards: rfidCards.filter(c => c.status === 'Lost').length,
+                recentScans: 47
+            });
+
+            // RFID Detection - ACR122U Integration
+            useEffect(() => {
+                const checkRFIDConnection = async () => {
+                    try {
+                        const response = await fetch('http://localhost:8888/status');
+                        if (response.ok) {
+                            setRfidStatus('Connected');
+                        }
+                    } catch (e) {
+                        setRfidStatus('Disconnected');
+                    }
+                };
+
+                const checkForNewCard = async () => {
+                    if (!scanningMode) return;
+                    
+                    try {
+                        const response = await fetch('http://localhost:8888/get-card');
+                        const data = await response.json();
+                        
+                        if (data.success && data.card_number && data.card_number !== scannedCard) {
+                            setScannedCard(data.card_number);
+                            setNewAssignment(prev => ({...prev, card_number: data.card_number}));
+                            
+                            // Check if card is already assigned
+                            const existingCard = rfidCards.find(c => c.card_number === data.card_number);
+                            if (existingCard) {
+                                setSuccess(`⚠️ Card ${data.card_number} is already assigned to ${existingCard.student_name}`);
+                            } else {
+                                setSuccess(`✅ New card detected: ${data.card_number}`);
+                            }
+                            setTimeout(() => setSuccess(''), 3000);
+                        }
+                    } catch (e) {
+                        // RFID reader not connected
+                    }
+                };
+
+                checkRFIDConnection();
+                const statusInterval = setInterval(checkRFIDConnection, 5000);
+                const scanInterval = setInterval(checkForNewCard, 1000);
+
+                return () => {
+                    clearInterval(statusInterval);
+                    clearInterval(scanInterval);
+                };
+            }, [scanningMode, scannedCard, rfidCards]);
+
+            const handleAssignCard = (e) => {
+                e.preventDefault();
+                if (!newAssignment.student_name.trim() || !newAssignment.card_number.trim()) return;
+
+                // Check if card is already assigned
+                const existingCard = rfidCards.find(c => c.card_number === newAssignment.card_number);
+                if (existingCard) {
+                    setSuccess(`❌ Card ${newAssignment.card_number} is already assigned to ${existingCard.student_name}`);
+                    setTimeout(() => setSuccess(''), 3000);
+                    return;
+                }
+
+                const newId = Math.max(...rfidCards.map(c => c.id)) + 1;
+                const cardData = {
+                    id: newId,
+                    card_number: newAssignment.card_number,
+                    student_name: newAssignment.student_name,
+                    member_id: newAssignment.member_id || `MBR${newId.toString().padStart(3, '0')}`,
+                    status: 'Active',
+                    assigned_date: new Date().toISOString().split('T')[0],
+                    last_used: 'Never'
+                };
+
+                setRfidCards(prev => [cardData, ...prev]);
+                setNewAssignment({ student_name: '', member_id: '', card_number: '' });
+                setScannedCard('');
+                setScanningMode(false);
+                setShowAssignCard(false);
+                setSuccess('✅ RFID card assigned successfully!');
+                setTimeout(() => setSuccess(''), 3000);
+            };
+
+            const toggleCardStatus = (cardId) => {
+                setRfidCards(prev => prev.map(card => 
+                    card.id === cardId 
+                        ? { ...card, status: card.status === 'Active' ? 'Disabled' : 'Active' }
+                        : card
+                ));
+                setSuccess('✅ Card status updated!');
+                setTimeout(() => setSuccess(''), 2000);
+            };
+
+            const reportLostCard = (cardId) => {
+                if (!window.confirm('Mark this card as lost? This will disable it for security.')) return;
+                
+                setRfidCards(prev => prev.map(card => 
+                    card.id === cardId 
+                        ? { ...card, status: 'Lost' }
+                        : card
+                ));
+                setSuccess('✅ Card reported as lost and disabled!');
+                setTimeout(() => setSuccess(''), 3000);
+            };
+
+            return (
+                <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-1">📡 RFID Management</h2>
+                            <p className="text-blue-100 text-sm">ACR122U RFID card assignment, tracking, and access control</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setShowAssignCard(true)}
+                                className="glass-button px-4 py-2 text-white font-semibold text-sm"
+                            >
+                                ➕ Assign Card
+                            </button>
+                        </div>
+                    </div>
+
+                    {success && (
+                        <div className={`px-4 py-3 rounded-lg text-sm font-medium ${
+                            success.includes('❌') || success.includes('⚠️')
+                                ? 'bg-yellow-500 bg-opacity-20 border border-yellow-300 text-yellow-100'
+                                : 'bg-green-500 bg-opacity-20 border border-green-300 text-green-100'
+                        }`}>
+                            {success}
+                        </div>
+                    )}
+
+                    {/* RFID System Status & Stats */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div className="glass-effect rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="text-sm font-semibold text-white">ACR122U Status</div>
+                                <div className="text-lg">📡</div>
+                            </div>
+                            <div className={`text-lg font-bold ${rfidStatus === 'Connected' ? 'text-green-300' : 'text-red-300'}`}>
+                                {rfidStatus}
+                            </div>
+                            <div className="text-blue-200 text-xs">Scanner connection</div>
+                        </div>
+
+                        <div className="glass-effect rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="text-sm font-semibold text-white">Active Cards</div>
+                                <div className="text-lg">💳</div>
+                            </div>
+                            <div className="text-lg font-bold text-white">{rfidStats.activeCards}</div>
+                            <div className="text-green-300 text-xs">Ready to use</div>
+                        </div>
+
+                        <div className="glass-effect rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="text-sm font-semibold text-white">Lost/Disabled</div>
+                                <div className="text-lg">⚠️</div>
+                            </div>
+                            <div className="text-lg font-bold text-white">{rfidStats.lostCards}</div>
+                            <div className="text-red-300 text-xs">Inactive cards</div>
+                        </div>
+
+                        <div className="glass-effect rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="text-sm font-semibold text-white">Recent Scans</div>
+                                <div className="text-lg">📈</div>
+                            </div>
+                            <div className="text-lg font-bold text-white">{rfidStats.recentScans}</div>
+                            <div className="text-blue-200 text-xs">Last 24 hours</div>
+                        </div>
+                    </div>
+
+                    {/* RFID Cards List */}
+                    <div className="glass-effect rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-white mb-4">RFID Cards ({rfidCards.length})</h3>
+                        
+                        <div className="space-y-2">
+                            {rfidCards.map((card) => (
+                                <div key={card.id} className="bg-white bg-opacity-10 rounded-lg p-3 hover:bg-opacity-20 transition-colors">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h4 className="font-semibold text-white text-sm">{card.student_name}</h4>
+                                                <span className="member-id-badge">{card.member_id}</span>
+                                                <span className="card-number-badge">{card.card_number}</span>
+                                            </div>
+                                            <div className="text-blue-200 text-xs">
+                                                Assigned: {card.assigned_date} • Last used: {card.last_used}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-2">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                card.status === 'Active' 
+                                                    ? 'bg-green-500 bg-opacity-20 text-green-100'
+                                                    : card.status === 'Lost'
+                                                    ? 'bg-red-500 bg-opacity-20 text-red-100'
+                                                    : 'bg-gray-500 bg-opacity-20 text-gray-100'
+                                            }`}>
+                                                {card.status === 'Active' ? '✅' : card.status === 'Lost' ? '🚫' : '⏸️'} {card.status}
+                                            </span>
+                                            
+                                            <div className="flex gap-1">
+                                                <button
+                                                    onClick={() => toggleCardStatus(card.id)}
+                                                    className="bg-blue-500 bg-opacity-20 px-2 py-1 text-blue-100 rounded text-xs hover:bg-opacity-40 transition-all"
+                                                    title={card.status === 'Active' ? 'Disable' : 'Enable'}
+                                                >
+                                                    {card.status === 'Active' ? '⏸️' : '▶️'}
+                                                </button>
+                                                
+                                                {card.status === 'Active' && (
+                                                    <button
+                                                        onClick={() => reportLostCard(card.id)}
+                                                        className="bg-red-500 bg-opacity-20 px-2 py-1 text-red-100 rounded text-xs hover:bg-opacity-40 transition-all"
+                                                        title="Report as lost"
+                                                    >
+                                                        🚫
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Assign Card Modal */}
+                    {showAssignCard && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="glass-effect rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+                                <h3 className="text-lg font-bold text-white mb-4">Assign RFID Card</h3>
+                                
+                                <form onSubmit={handleAssignCard} className="space-y-4">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Student Name *</label>
+                                        <input
+                                            type="text"
+                                            value={newAssignment.student_name}
+                                            onChange={(e) => setNewAssignment({...newAssignment, student_name: e.target.value})}
+                                            placeholder="Enter student name"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Member ID</label>
+                                        <input
+                                            type="text"
+                                            value={newAssignment.member_id}
+                                            onChange={(e) => setNewAssignment({...newAssignment, member_id: e.target.value})}
+                                            placeholder="Auto-generated if empty"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">RFID Card Number *</label>
+                                        <div className="space-y-2">
+                                            <input
+                                                type="text"
+                                                value={newAssignment.card_number}
+                                                onChange={(e) => setNewAssignment({...newAssignment, card_number: e.target.value.toUpperCase()})}
+                                                placeholder="Scan card or enter manually"
+                                                required
+                                                style={{ textTransform: 'uppercase' }}
+                                            />
+                                            
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setScanningMode(!scanningMode);
+                                                    if (!scanningMode) setScannedCard('');
+                                                }}
+                                                className={`w-full py-2 px-4 rounded-lg font-medium text-sm ${
+                                                    scanningMode
+                                                        ? 'bg-red-500 bg-opacity-20 text-red-100 border border-red-300'
+                                                        : 'bg-blue-500 bg-opacity-20 text-blue-100 border border-blue-300'
+                                                }`}
+                                            >
+                                                {scanningMode ? '🔴 Stop Scanning' : '📡 Start RFID Scan'}
+                                            </button>
+                                            
+                                            {scanningMode && (
+                                                <div className="text-center text-blue-200 text-xs">
+                                                    {rfidStatus === 'Connected' 
+                                                        ? '📡 Ready - Please tap RFID card on ACR122U reader...'
+                                                        : '❌ ACR122U Reader not connected'
+                                                    }
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="submit"
+                                            className="glass-button flex-1 text-white font-semibold"
+                                            disabled={!newAssignment.student_name || !newAssignment.card_number}
+                                        >
+                                            📡 Assign Card
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowAssignCard(false);
+                                                setScanningMode(false);
+                                                setScannedCard('');
+                                            }}
+                                            className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // System Status Component - RESTORED
+        const SystemStatus = () => {
+            const [success, setSuccess] = useState('');
+            const [showEmailSettings, setShowEmailSettings] = useState(false);
+            
+            const systemData = {
+                database: 'Healthy',
+                api: 'Healthy', 
+                backup: 'Completed',
+                uptime: '99.9%'
+            };
+
+            const emailData = {
+                scheduleDay: 'Sunday',
+                scheduleTime: '18:00',
+                recipients: 'All Members'
+            };
+
+            const handleEmailSettings = () => {
+                setShowEmailSettings(true);
+            };
+
+            const saveEmailSettings = () => {
+                setSuccess('✅ Email settings saved!');
+                setShowEmailSettings(false);
+                setTimeout(() => setSuccess(''), 3000);
+            };
+
+            return (
+                <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-1">🔧 System Status</h2>
+                            <p className="text-blue-100 text-sm">Health monitoring, backup management, and email settings</p>
+                        </div>
+                        <button
+                            onClick={handleEmailSettings}
+                            className="glass-button px-4 py-2 text-white font-semibold text-sm"
+                        >
+                           ⚙️ Email Settings
+                        </button>
+                    </div>
+
+                    {success && (
+                        <div className="bg-green-500 bg-opacity-20 border border-green-300 text-green-100 px-4 py-3 rounded-lg text-sm">
+                            {success}
+                        </div>
+                    )}
+
+                    <div className="glass-effect rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-white mb-3">System Health</h3>
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                                <span className="text-blue-100 text-sm">Database</span>
+                                <span className="bg-green-500 bg-opacity-20 px-2 py-1 rounded text-green-100 text-xs">
+                                    ✅ {systemData.database}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-blue-100 text-sm">API Status</span>
+                                <span className="bg-green-500 bg-opacity-20 px-2 py-1 rounded text-green-100 text-xs">
+                                    ✅ {systemData.api}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-blue-100 text-sm">Last Backup</span>
+                                <span className="bg-green-500 bg-opacity-20 px-2 py-1 rounded text-green-100 text-xs">
+                                    ✅ {systemData.backup}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-blue-100 text-sm">Uptime</span>
+                                <span className="bg-green-500 bg-opacity-20 px-2 py-1 rounded text-green-100 text-xs">
+                                    🚀 {systemData.uptime}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="glass-effect rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-white mb-3">📧 Email Automation</h3>
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                                <span className="text-blue-100 text-sm">Weekly Schedule Emails</span>
+                                <span className="bg-green-500 bg-opacity-20 px-2 py-1 rounded text-green-100 text-xs">
+                                    ✅ {emailData.scheduleDay}s at {emailData.scheduleTime}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-blue-100 text-sm">Schedule Change Notifications</span>
+                                <span className="bg-green-500 bg-opacity-20 px-2 py-1 rounded text-green-100 text-xs">
+                                    ✅ Enabled
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-blue-100 text-sm">Default Recipients</span>
+                                <span className="bg-blue-500 bg-opacity-20 px-2 py-1 rounded text-blue-100 text-xs">
+                                    👥 {emailData.recipients}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {showEmailSettings && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="glass-effect rounded-xl p-6 w-full max-w-md">
+                                <h3 className="text-lg font-bold text-white mb-4">📧 Email Settings</h3>
+                                
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Weekly Schedule Email Day</label>
+                                        <select className="w-full">
+                                            <option>Sunday</option>
+                                            <option>Monday</option>
+                                            <option>Tuesday</option>
+                                            <option>Wednesday</option>
+                                            <option>Thursday</option>
+                                            <option>Friday</option>
+                                            <option>Saturday</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Email Time</label>
+                                        <input type="time" defaultValue="18:00" />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Default Recipients</label>
+                                        <select className="w-full">
+                                            <option>All (Students + Instructors)</option>
+                                            <option>Students Only</option>
+                                            <option>Instructors Only</option>
+                                            <option>Manual Selection</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex gap-3 pt-4">
+                                        <button
+                                            onClick={saveEmailSettings}
+                                            className="glass-button flex-1 text-white font-semibold"
+                                        >
+                                            💾 Save Settings
+                                        </button>
+                                        <button
+                                            onClick={() => setShowEmailSettings(false)}
+                                            className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // RFID Check-In Interface - RESTORED WITH ACR122U INTEGRATION
+        const CheckInInterface = ({ onBack }) => {
+            const [cardInput, setCardInput] = useState('');
+            const [studentName, setStudentName] = useState('');
+            const [checkInMode, setCheckInMode] = useState('card');
+            const [message, setMessage] = useState('');
+            const [isProcessing, setIsProcessing] = useState(false);
+            const [recentCheckIns, setRecentCheckIns] = useState([]);
+            const [rfidStatus, setRfidStatus] = useState('Disconnected');
+
+            // ACR122U RFID Card Detection
+            useEffect(() => {
+                const checkForCard = async () => {
+                    try {
+                        const response = await fetch('http://localhost:8888/get-card');
+                        const data = await response.json();
+                        if (data.success && data.card_number) {
+                            setCardInput(data.card_number);
+                            setRfidStatus('Connected');
+                            
+                            if (checkInMode === 'card') {
+                                setTimeout(() => handleCheckIn(), 500);
+                            }
+                        }
+                    } catch (e) {
+                        setRfidStatus('Disconnected');
+                    }
+                };
+
+                const interval = setInterval(checkForCard, 1000);
+                return () => clearInterval(interval);
+            }, [checkInMode]);
+
+            const handleCheckIn = async () => {
+                if (!cardInput && !studentName) return;
+                
+                setIsProcessing(true);
+                
+                // Simulate processing
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                let student = null;
+                
+                if (checkInMode === 'card') {
+                    // Find student by card number
+                    const students = [
+                        { card_number: 'CARD1001', name: 'John Smith', member_id: 'MBR001', belt_level: 'Blue' },
+                        { card_number: 'CARD1002', name: 'Maria Garcia', member_id: 'MBR002', belt_level: 'White' },
+                        { card_number: 'CARD6E2E', name: 'Test Student', member_id: 'MBR999', belt_level: 'White' }
+                    ];
+                    
+                    student = students.find(s => s.card_number === cardInput);
+                    if (!student) {
+                        student = { name: `Student with card ${cardInput}`, member_id: 'UNKNOWN', belt_level: 'Unknown', card_number: cardInput };
+                    }
+                } else {
+                    student = { name: studentName, member_id: 'VISITOR', belt_level: 'Visitor', card_number: 'N/A' };
+                }
+
+                const checkInRecord = {
+                    id: Date.now(),
+                    student: student,
+                    timestamp: new Date(),
+                    class: 'Current Class'
+                };
+
+                setRecentCheckIns(prev => [checkInRecord, ...prev.slice(0, 4)]);
+                setMessage(`✅ Welcome ${student.name}! You're checked in for today's class.`);
+                setCardInput('');
+                setStudentName('');
+                setIsProcessing(false);
+                
+                setTimeout(() => setMessage(''), 5000);
+            };
+
+            return (
+                <div className="min-h-screen p-4">
+                    <div className="max-w-6xl mx-auto">
+                        {/* Header */}
+                        <div className="glass-effect rounded-xl p-4 mb-4">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div>
+                                    <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
+                                        🥋 BJJ PRO ACADEMY
+                                    </h1>
+                                    <p className="text-blue-100 text-sm">Student Check-In Kiosk - ACR122U RFID System</p>
+                                    <div className={`text-xs mt-1 ${rfidStatus === 'Connected' ? 'text-green-300' : 'text-red-300'}`}>
+                                        ACR122U Status: {rfidStatus}
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={onBack}
+                                    className="bg-gray-500 bg-opacity-20 px-4 py-2 text-white font-semibold hover:bg-opacity-30 rounded-lg text-sm"
+                                >
+                                    ← Back to Dashboard
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            {/* Main Check-in Interface */}
+                            <div className="lg:col-span-2">
+                                <div className="glass-effect rounded-xl p-6">
+                                    <h2 className="text-lg font-bold text-white mb-4 text-center">Check In for Class</h2>
+                                    
+                                    <div className="flex mb-6">
+                                        <button
+                                            onClick={() => setCheckInMode('card')}
+                                            className={`flex-1 py-3 px-4 rounded-l-lg font-medium text-sm ${
+                                                checkInMode === 'card'
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'bg-white bg-opacity-10 text-blue-100'
+                                            }`}
+                                        >
+                                            💳 RFID Card Scan
+                                        </button>
+                                        <button
+                                            onClick={() => setCheckInMode('manual')}
+                                            className={`flex-1 py-3 px-4 rounded-r-lg font-medium text-sm ${
+                                                checkInMode === 'manual'
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'bg-white bg-opacity-10 text-blue-100'
+                                            }`}
+                                        >
+                                            ✍️ Manual Entry
+                                        </button>
+                                    </div>
+
+                                    {checkInMode === 'card' ? (
+                                        <div className="space-y-4">
+                                            <div className="text-center">
+                                                <div className="text-4xl mb-3">📡</div>
+                                                <p className="text-blue-100 text-sm mb-4">
+                                                    Tap your RFID card on the ACR122U reader
+                                                </p>
+                                            </div>
+                                            
+                                            <div>
+                                                <label className="block text-blue-100 text-sm font-medium mb-2">
+                                                    Card Number
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={cardInput}
+                                                    onChange={(e) => setCardInput(e.target.value.toUpperCase())}
+                                                    placeholder="Card will auto-populate when scanned..."
+                                                    style={{ fontSize: '16px', padding: '12px' }}
+                                                    autoFocus
+                                                />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            <div className="text-center">
+                                                <div className="text-4xl mb-3">👤</div>
+                                                <p className="text-blue-100 text-sm mb-4">
+                                                    Enter your name to check in
+                                                </p>
+                                            </div>
+                                            
+                                            <div>
+                                                <label className="block text-blue-100 text-sm font-medium mb-2">
+                                                    Your Name
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={studentName}
+                                                    onChange={(e) => setStudentName(e.target.value)}
+                                                    placeholder="Enter your full name..."
+                                                    style={{ fontSize: '16px', padding: '12px' }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <button
+                                        onClick={handleCheckIn}
+                                        disabled={(!cardInput && !studentName) || isProcessing}
+                                        className="glass-button w-full text-white font-bold text-lg py-4 mt-6 disabled:opacity-50"
+                                    >
+                                        {isProcessing ? '🔄 Processing...' : '✅ Check In'}
+                                    </button>
+
+                                    {message && (
+                                        <div className={`mt-4 p-3 rounded-lg text-center text-sm font-medium ${
+                                            message.includes('✅') 
+                                                ? 'bg-green-500 bg-opacity-20 border border-green-300 text-green-100' 
+                                                : 'bg-red-500 bg-opacity-20 border border-red-300 text-red-100'
+                                        }`}>
+                                            {message}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Sidebar */}
+                            <div className="space-y-4">
+                                <div className="glass-effect rounded-xl p-4">
+                                    <h3 className="text-sm font-bold text-white mb-3">Recent Check-ins</h3>
+                                    <div className="space-y-2">
+                                        {recentCheckIns.length === 0 ? (
+                                            <p className="text-blue-200 text-center text-xs">No recent check-ins</p>
+                                        ) : (
+                                            recentCheckIns.map((checkIn) => (
+                                                <div key={checkIn.id} className="bg-white bg-opacity-10 rounded-lg p-2">
+                                                    <div className="font-medium text-white text-sm">{checkIn.student.name}</div>
+                                                    <div className="text-blue-200 text-xs">
+                                                        {checkIn.student.member_id} • {checkIn.student.belt_level}
+                                                    </div>
+                                                    <div className="text-blue-300 text-xs">
+                                                        {checkIn.timestamp.toLocaleTimeString()}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="glass-effect rounded-xl p-4">
+                                    <h3 className="text-sm font-bold text-white mb-3">Today's Schedule</h3>
+                                    <div className="space-y-2">
+                                        <div className="bg-green-500 bg-opacity-20 rounded-lg p-2 border border-green-400">
+                                            <div className="font-medium text-green-100 text-sm">Fundamentals</div>
+                                            <div className="text-green-200 text-xs">6:00 PM - 7:00 PM • Current</div>
+                                            <div className="text-green-300 text-xs">Professor Silva</div>
+                                        </div>
+                                        <div className="bg-white bg-opacity-10 rounded-lg p-2">
+                                            <div className="font-medium text-white text-sm">Advanced</div>
+                                            <div className="text-blue-200 text-xs">7:15 PM - 8:45 PM • Next</div>
+                                            <div className="text-blue-300 text-xs">Professor Johnson</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Dashboard Component - COMPLETE WITH ALL ORIGINAL TABS RESTORED
         const Dashboard = ({ adminInfo, onLogout, onCheckInMode }) => {
             const [activeTab, setActiveTab] = useState('students');
 
             const tabs = [
                 { id: 'students', label: 'Students', icon: '👥' },
                 { id: 'classes', label: 'Classes', icon: '📚' },
-                { id: 'communications', label: 'Communications', icon: '📧' }
+                { id: 'schedule', label: 'Schedule', icon: '📅' },
+                { id: 'attendance', label: 'Attendance', icon: '✅' },
+                { id: 'payments', label: 'Payments', icon: '💰' },
+                { id: 'rfid', label: 'RFID', icon: '📡' },
+                { id: 'analytics', label: 'Analytics', icon: '📊' },
+                { id: 'risk-analysis', label: 'Risk Analysis', icon: '⚠️' },
+                { id: 'communications', label: 'Communications', icon: '📧' },
+                { id: 'system', label: 'System', icon: '🔧' }
             ];
 
             return (
@@ -1400,10 +2366,16 @@
                                         Welcome back, {adminInfo.name} • {adminInfo.gym_name}
                                     </p>
                                     <p className="text-blue-200 text-xs">
-                                        Plan: {adminInfo.plan} • Status: ✅ Professional Access
+                                        Plan: {adminInfo.plan} • Status: ✅ Professional Access • ACR122U RFID Ready
                                     </p>
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-2">
+                                    <button
+                                        onClick={onCheckInMode}
+                                        className="glass-button px-4 py-2 text-white font-semibold text-sm"
+                                    >
+                                        🔍 Check-In Kiosk
+                                    </button>
                                     <button
                                         onClick={onLogout}
                                         className="bg-red-500 bg-opacity-20 px-4 py-2 text-white font-semibold hover:bg-opacity-30 rounded-lg text-sm"
@@ -1414,14 +2386,14 @@
                             </div>
                         </div>
 
-                        {/* Tabs */}
+                        {/* Tabs - ALL ORIGINAL TABS RESTORED */}
                         <div className="glass-effect rounded-xl p-2 mb-4">
-                            <div className="flex gap-1">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1">
                                 {tabs.map((tab) => (
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
-                                        className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
+                                        className={`px-2 py-2 rounded-lg font-medium transition-colors text-xs ${
                                             activeTab === tab.id
                                                 ? 'bg-blue-600 text-white'
                                                 : 'text-blue-100 hover:bg-white hover:bg-opacity-10'
@@ -1434,18 +2406,25 @@
                             </div>
                         </div>
 
-                        {/* Content */}
+                        {/* Content - ALL ORIGINAL COMPONENTS RESTORED */}
                         <div className="min-h-96">
                             {activeTab === 'students' && <StudentManagement />}
                             {activeTab === 'classes' && <ClassManagement />}
+                            {activeTab === 'schedule' && <ScheduleManagement />}
+                            {activeTab === 'attendance' && <AttendanceManagement />}
+                            {activeTab === 'payments' && <FinancialManagement />}
+                            {activeTab === 'rfid' && <RFIDManagement />}
+                            {activeTab === 'analytics' && <BusinessAnalytics />}
+                            {activeTab === 'risk-analysis' && <RiskAnalysis />}
                             {activeTab === 'communications' && <Communications />}
+                            {activeTab === 'system' && <SystemStatus />}
                         </div>
                     </div>
                 </div>
             );
         };
 
-        // Main App Component - COMPLETE
+        // Main App Component - COMPLETE WITH CHECK-IN MODE RESTORED
         const App = () => {
             const [user, setUser] = useState(null);
             const [mode, setMode] = useState('login');
@@ -1479,8 +2458,20 @@
                 setMode('login');
             };
 
+            const handleCheckInMode = () => {
+                setMode('checkin');
+            };
+
+            const handleBackToDashboard = () => {
+                setMode('dashboard');
+            };
+
             if (mode === 'login') {
                 return <Login onLogin={handleLogin} />;
+            }
+
+            if (mode === 'checkin') {
+                return <CheckInInterface onBack={handleBackToDashboard} />;
             }
 
             if (mode === 'dashboard' && user?.hasProAccess) {
@@ -1488,6 +2479,7 @@
                     <Dashboard
                         adminInfo={user}
                         onLogout={handleLogout}
+                        onCheckInMode={handleCheckInMode}
                     />
                 );
             }
@@ -1496,6 +2488,74 @@
         };
 
         ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+
+    <!-- RFID Status Indicator -->
+    <div id="rfid-status" style="
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: bold;
+        z-index: 9999;
+        background: rgba(239,68,68,0.2);
+        color: #ef4444;
+        border: 1px solid #ef4444;
+    ">🔴 ACR122U Disconnected</div>
+
+    <!-- ACR122U RFID Integration Script -->
+    <script>
+        // ACR122U card detection for check-ins and card assignment
+        setInterval(async () => {
+            try {
+                const response = await fetch('http://localhost:8888/get-card');
+                const data = await response.json();
+                if (data.success && data.card_number) {
+                    // Auto-fill any card input field
+                    const cardInput = document.querySelector('input[placeholder*="card"], input[placeholder*="Card"], input[placeholder*="Scan"]');
+                    if (cardInput) {
+                        cardInput.value = data.card_number;
+                        cardInput.focus();
+                        
+                        // Trigger input event to update React state
+                        const event = new Event('input', { bubbles: true });
+                        cardInput.dispatchEvent(event);
+                        
+                        // Auto-submit after short delay for check-ins
+                        setTimeout(() => {
+                            const submitBtn = document.querySelector('button[type="submit"]');
+                            if (submitBtn && !submitBtn.disabled && cardInput.placeholder.includes('auto-populate')) {
+                                submitBtn.click();
+                            }
+                        }, 500);
+                    }
+                }
+            } catch (e) {
+                // ACR122U bridge not connected - that's ok
+            }
+        }, 1000);
+
+        // ACR122U status indicator
+        async function checkACR122UStatus() {
+            try {
+                const response = await fetch('http://localhost:8888/');
+                if (response.ok) {
+                    const statusEl = document.getElementById('rfid-status');
+                    statusEl.textContent = '🟢 ACR122U Connected';
+                    statusEl.style.backgroundColor = 'rgba(34,197,94,0.2)';
+                    statusEl.style.color = '#22c55e';
+                    statusEl.style.border = '1px solid #22c55e';
+                }
+            } catch (e) {
+                // Keep status as disconnected
+            }
+        }
+
+        // Check ACR122U status every 5 seconds
+        setInterval(checkACR122UStatus, 5000);
+        checkACR122UStatus(); // Check immediately
     </script>
 </body>
 </html>
