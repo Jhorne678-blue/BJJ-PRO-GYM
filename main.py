@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta
 import sqlite3
 import hashlib
@@ -10,12 +10,14 @@ from typing import Optional, List
 import uvicorn
 import os
 import logging
+import secrets
+import string
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="BJJ PRO GYM API - Professional Edition")
+app = FastAPI(title="BJJ PRO GYM API - Multi-Tenant Professional Edition")
 
 # CORS middleware
 app.add_middleware(
@@ -31,9 +33,16 @@ security = HTTPBearer()
 SECRET_KEY = os.getenv("SECRET_KEY", "bjj_pro_gym_secret_key_2024_professional")
 
 # Pydantic models
+class GymRegistration(BaseModel):
+    gym_name: str
+    owner_name: str
+    owner_email: EmailStr
+    owner_password: str
+    access_code: Optional[str] = None
+
 class LoginRequest(BaseModel):
-    card_code: str
-    password: Optional[str] = None
+    email: str
+    password: str
 
 class StudentCreate(BaseModel):
     name: str
@@ -63,78 +72,53 @@ class EmailRequest(BaseModel):
     recipient_type: str = "students"
     recipient_count: int = 0
 
-# Database setup with better error handling
+class PaymentCreate(BaseModel):
+    student_name: str
+    member_id: Optional[str] = None
+    amount: float
+    payment_type: str = "Monthly Membership"
+    payment_method: str = "Credit Card"
+
+# Database setup with multi-tenant support
 def get_db_connection():
     try:
-        conn = sqlite3.connect('bjj_pro_gym.db', timeout=30.0)
+        conn = sqlite3.connect('bjj_pro_gym_production.db', timeout=30.0)
         conn.row_factory = sqlite3.Row
         return conn
     except Exception as e:
         logger.error(f"Database connection error: {str(e)}")
         raise
 
+def generate_gym_code():
+    """Generate unique gym code"""
+    return ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+
 def init_db():
     try:
-        logger.info("Initializing database...")
+        logger.info("Initializing production database...")
         conn = get_db_connection()
         cursor = conn.cursor()
-       
+        
         # Create gyms table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS gyms (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                gym_code TEXT UNIQUE NOT NULL,
                 gym_name TEXT NOT NULL,
                 owner_name TEXT NOT NULL,
-                owner_email TEXT NOT NULL,
+                owner_email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
                 subscription_status TEXT DEFAULT 'active',
                 subscription_plan TEXT DEFAULT 'professional',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                access_code TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-       
-        # Create gym_admins table
+        
+        # Create students table with gym_id
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS gym_admins (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                gym_id INTEGER NOT NULL,
-                name TEXT NOT NULL,
-                card_code TEXT,
-                password_hash TEXT,
-                role TEXT DEFAULT 'admin',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (gym_id) REFERENCES gyms (id)
-            )
-        ''')
-       
-        # Create demo gym if it doesn't exist
-        cursor.execute("SELECT COUNT(*) FROM gyms WHERE id = 1")
-        if cursor.fetchone()[0] == 0:
-            cursor.execute('''
-                INSERT INTO gyms (id, gym_name, owner_name, owner_email)
-                VALUES (?, ?, ?, ?)
-            ''', (1, "Demo BJJ Pro Academy", "Demo Owner", "demo@bjjprogym.com"))
-       
-        # Create demo admin
-        cursor.execute("SELECT COUNT(*) FROM gym_admins WHERE gym_id = 1")
-        if cursor.fetchone()[0] == 0:
-            admin_password = hashlib.sha256("admin123".encode()).hexdigest()
-            cursor.execute('''
-                INSERT INTO gym_admins (gym_id, name, card_code, password_hash, role)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (1, "Admin User", "ADMIN001", admin_password, "owner"))
-       
-        # Create other tables
-        tables = [
-            '''CREATE TABLE IF NOT EXISTS classes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                gym_id INTEGER NOT NULL,
-                name TEXT NOT NULL,
-                description TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (gym_id) REFERENCES gyms (id),
-                UNIQUE(gym_id, name)
-            )''',
-            '''CREATE TABLE IF NOT EXISTS students (
+            CREATE TABLE IF NOT EXISTS students (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 gym_id INTEGER NOT NULL,
                 name TEXT NOT NULL,
@@ -144,9 +128,28 @@ def init_db():
                 member_id TEXT,
                 card_number TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (gym_id) REFERENCES gyms (id)
-            )''',
-            '''CREATE TABLE IF NOT EXISTS schedules (
+                FOREIGN KEY (gym_id) REFERENCES gyms (id),
+                UNIQUE(gym_id, member_id),
+                UNIQUE(gym_id, card_number)
+            )
+        ''')
+        
+        # Create classes table with gym_id
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS classes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                gym_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (gym_id) REFERENCES gyms (id),
+                UNIQUE(gym_id, name)
+            )
+        ''')
+        
+        # Create schedules table with gym_id
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS schedules (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 gym_id INTEGER NOT NULL,
                 class_name TEXT NOT NULL,
@@ -156,8 +159,12 @@ def init_db():
                 instructor TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (gym_id) REFERENCES gyms (id)
-            )''',
-            '''CREATE TABLE IF NOT EXISTS attendance_logs (
+            )
+        ''')
+        
+        # Create attendance_logs table with gym_id
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS attendance_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 gym_id INTEGER NOT NULL,
                 student_name TEXT NOT NULL,
@@ -167,8 +174,29 @@ def init_db():
                 class_name TEXT NOT NULL,
                 check_in_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (gym_id) REFERENCES gyms (id)
-            )''',
-            '''CREATE TABLE IF NOT EXISTS email_notifications (
+            )
+        ''')
+        
+        # Create payments table with gym_id
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                gym_id INTEGER NOT NULL,
+                student_name TEXT NOT NULL,
+                member_id TEXT,
+                amount REAL NOT NULL,
+                payment_type TEXT NOT NULL,
+                payment_method TEXT NOT NULL,
+                status TEXT DEFAULT 'Completed',
+                payment_date DATE NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (gym_id) REFERENCES gyms (id)
+            )
+        ''')
+        
+        # Create email_notifications table with gym_id
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS email_notifications (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 gym_id INTEGER NOT NULL,
                 subject TEXT NOT NULL,
@@ -178,24 +206,30 @@ def init_db():
                 sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 notification_type TEXT DEFAULT 'general',
                 FOREIGN KEY (gym_id) REFERENCES gyms (id)
-            )'''
-        ]
-       
-        for table_sql in tables:
-            cursor.execute(table_sql)
-       
-        # Setup demo data
-        setup_demo_data(cursor)
-       
+            )
+        ''')
+        
+        # Create demo gym if it doesn't exist (for backwards compatibility)
+        cursor.execute("SELECT COUNT(*) FROM gyms WHERE gym_code = 'DEMO0001'")
+        if cursor.fetchone()[0] == 0:
+            demo_password = hashlib.sha256("admin123".encode()).hexdigest()
+            cursor.execute('''
+                INSERT INTO gyms (gym_code, gym_name, owner_name, owner_email, password_hash, access_code)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', ('DEMO0001', 'Demo BJJ Pro Academy', 'Demo Owner', 'demo@bjjprogym.com', demo_password, 'ADELYNN14'))
+            
+            demo_gym_id = cursor.lastrowid
+            setup_demo_data(cursor, demo_gym_id)
+        
         conn.commit()
         conn.close()
-        logger.info("✅ Database initialized successfully!")
-       
+        logger.info("✅ Production database initialized successfully!")
+        
     except Exception as e:
         logger.error(f"Database initialization failed: {str(e)}")
-        # Don't raise the error - let the app start anyway
 
-def setup_demo_data(cursor):
+def setup_demo_data(cursor, gym_id):
+    """Setup demo data for a gym"""
     try:
         # Demo students
         demo_students = [
@@ -205,13 +239,13 @@ def setup_demo_data(cursor):
             ("Sarah Wilson", "sarah.wilson@email.com", "555-0104", "White", "MBR004", "CARD1004"),
             ("Mike Brown", "mike.brown@email.com", "555-0105", "Blue", "MBR005", "CARD1005")
         ]
-       
+        
         for name, email, phone, belt, member_id, card_number in demo_students:
             cursor.execute('''
                 INSERT OR IGNORE INTO students (gym_id, name, email, phone, belt_level, member_id, card_number)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (1, name, email, phone, belt, member_id, card_number))
-       
+            ''', (gym_id, name, email, phone, belt, member_id, card_number))
+        
         # Demo classes
         demo_classes = [
             ("Fundamentals", "Basic BJJ techniques for beginners"),
@@ -220,13 +254,27 @@ def setup_demo_data(cursor):
             ("No-Gi", "Brazilian Jiu-Jitsu without gi"),
             ("Open Mat", "Free training and practice time")
         ]
-       
+        
         for class_name, description in demo_classes:
             cursor.execute('''
                 INSERT OR IGNORE INTO classes (gym_id, name, description)
                 VALUES (?, ?, ?)
-            ''', (1, class_name, description))
-       
+            ''', (gym_id, class_name, description))
+        
+        # Demo schedules
+        demo_schedules = [
+            ("Fundamentals", 0, "18:00", "19:00", "Professor Silva"),
+            ("Advanced", 0, "19:15", "20:45", "Professor Johnson"),
+            ("No-Gi", 1, "19:00", "20:00", "Professor Davis"),
+            ("Open Mat", 4, "18:00", "20:00", "Open")
+        ]
+        
+        for class_name, day, start, end, instructor in demo_schedules:
+            cursor.execute('''
+                INSERT OR IGNORE INTO schedules (gym_id, class_name, day_of_week, start_time, end_time, instructor)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (gym_id, class_name, day, start, end, instructor))
+        
     except Exception as e:
         logger.error(f"Demo data setup failed: {str(e)}")
 
@@ -239,81 +287,149 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-# SIMPLE HEALTH CHECK - NO DATABASE DEPENDENCY
-@app.get("/api/health")
-async def health_check():
-    """Simple health check that always works"""
-    return {
-        "status": "healthy",
-        "version": "2.0.0-production",
-        "timestamp": datetime.now().isoformat()
-    }
+# Registration endpoint
+@app.post("/api/register")
+async def register_gym(registration: GymRegistration):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if email already exists
+        cursor.execute('SELECT id FROM gyms WHERE owner_email = ?', (registration.owner_email,))
+        if cursor.fetchone():
+            conn.close()
+            raise HTTPException(status_code=400, detail="Email already registered")
+        
+        # Validate access code for special plans
+        subscription_plan = "starter"
+        if registration.access_code:
+            if registration.access_code.upper() == "ADELYNN14":
+                subscription_plan = "professional"
+            else:
+                conn.close()
+                raise HTTPException(status_code=400, detail="Invalid access code")
+        
+        # Generate unique gym code
+        gym_code = generate_gym_code()
+        while True:
+            cursor.execute('SELECT id FROM gyms WHERE gym_code = ?', (gym_code,))
+            if not cursor.fetchone():
+                break
+            gym_code = generate_gym_code()
+        
+        # Hash password
+        password_hash = hashlib.sha256(registration.owner_password.encode()).hexdigest()
+        
+        # Create gym
+        cursor.execute('''
+            INSERT INTO gyms (gym_code, gym_name, owner_name, owner_email, password_hash, subscription_plan, access_code)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (gym_code, registration.gym_name, registration.owner_name, registration.owner_email, password_hash, subscription_plan, registration.access_code))
+        
+        gym_id = cursor.lastrowid
+        
+        # Setup starter data for new gym
+        setup_starter_data(cursor, gym_id)
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "message": "Gym registered successfully",
+            "gym_code": gym_code,
+            "subscription_plan": subscription_plan,
+            "gym_id": gym_id
+        }
+        
+    except Exception as e:
+        logger.error(f"Registration error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Registration failed")
 
+def setup_starter_data(cursor, gym_id):
+    """Setup basic starter data for new gyms"""
+    try:
+        # Basic classes
+        starter_classes = [
+            ("Fundamentals", "Basic Brazilian Jiu-Jitsu techniques"),
+            ("Advanced", "Advanced BJJ training"),
+            ("Open Mat", "Free training time")
+        ]
+        
+        for class_name, description in starter_classes:
+            cursor.execute('''
+                INSERT INTO classes (gym_id, name, description)
+                VALUES (?, ?, ?)
+            ''', (gym_id, class_name, description))
+        
+    except Exception as e:
+        logger.error(f"Starter data setup failed: {str(e)}")
+
+# Login endpoint (updated)
 @app.post("/api/login")
 async def login(request: LoginRequest):
     try:
-        if not request.password:
-            raise HTTPException(status_code=400, detail="Password is required")
-       
         conn = get_db_connection()
         cursor = conn.cursor()
-       
+        
         password_hash = hashlib.sha256(request.password.encode()).hexdigest()
         cursor.execute('''
-            SELECT ga.*, g.gym_name FROM gym_admins ga
-            JOIN gyms g ON ga.gym_id = g.id
-            WHERE ga.card_code = ? AND ga.password_hash = ?
-        ''', (request.card_code, password_hash))
-       
-        admin = cursor.fetchone()
+            SELECT id, gym_code, gym_name, owner_name, subscription_plan, access_code
+            FROM gyms
+            WHERE owner_email = ? AND password_hash = ?
+        ''', (request.email, password_hash))
+        
+        gym = cursor.fetchone()
         conn.close()
-       
-        if not admin:
+        
+        if not gym:
             raise HTTPException(status_code=401, detail="Invalid credentials")
-       
+        
         token_data = {
-            "admin_id": admin["id"],
-            "gym_id": admin["gym_id"],
-            "name": admin["name"],
-            "role": admin["role"],
-            "gym_name": admin["gym_name"],
+            "gym_id": gym["id"],
+            "gym_code": gym["gym_code"],
+            "gym_name": gym["gym_name"],
+            "owner_name": gym["owner_name"],
+            "subscription_plan": gym["subscription_plan"],
+            "access_code": gym["access_code"],
             "exp": datetime.utcnow() + timedelta(hours=24)
         }
-       
+        
         token = jwt.encode(token_data, SECRET_KEY, algorithm="HS256")
-       
+        
         return {
             "access_token": token,
             "token_type": "bearer",
-            "admin_info": {
-                "name": admin["name"],
-                "role": admin["role"],
-                "gym_name": admin["gym_name"],
-                "plan": "professional"
+            "gym_info": {
+                "gym_code": gym["gym_code"],
+                "gym_name": gym["gym_name"],
+                "owner_name": gym["owner_name"],
+                "subscription_plan": gym["subscription_plan"],
+                "has_pro_access": gym["access_code"] == "ADELYNN14"
             }
         }
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         raise HTTPException(status_code=500, detail="Login failed")
 
+# Updated endpoints with gym isolation
 @app.get("/api/students")
 async def get_students(token_data: dict = Depends(verify_token)):
     try:
         gym_id = token_data["gym_id"]
-       
+        
         conn = get_db_connection()
         cursor = conn.cursor()
-       
+        
         cursor.execute('''
             SELECT id, name, email, phone, belt_level, member_id, card_number, created_at
             FROM students
             WHERE gym_id = ?
             ORDER BY name
         ''', (gym_id,))
-       
+        
         students = [dict(row) for row in cursor.fetchall()]
         conn.close()
-       
+        
         return {"students": students}
     except Exception as e:
         logger.error(f"Error getting students: {str(e)}")
@@ -323,25 +439,25 @@ async def get_students(token_data: dict = Depends(verify_token)):
 async def create_student(student: StudentCreate, token_data: dict = Depends(verify_token)):
     try:
         gym_id = token_data["gym_id"]
-       
+        
         conn = get_db_connection()
         cursor = conn.cursor()
-       
+        
         # Auto-generate IDs
         cursor.execute('SELECT COUNT(*) FROM students WHERE gym_id = ?', (gym_id,))
         count = cursor.fetchone()[0]
         member_id = f"MBR{count + 1:03d}"
         card_number = f"CARD{count + 1001:04d}"
-       
+        
         cursor.execute('''
             INSERT INTO students (gym_id, name, email, phone, belt_level, member_id, card_number)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (gym_id, student.name, student.email, student.phone, student.belt_level, member_id, card_number))
-       
+        
         student_id = cursor.lastrowid
         conn.commit()
         conn.close()
-       
+        
         return {
             "message": "Student created successfully",
             "student_id": student_id,
@@ -356,20 +472,20 @@ async def create_student(student: StudentCreate, token_data: dict = Depends(veri
 async def get_classes(token_data: dict = Depends(verify_token)):
     try:
         gym_id = token_data["gym_id"]
-       
+        
         conn = get_db_connection()
         cursor = conn.cursor()
-       
+        
         cursor.execute('''
             SELECT id, name, description, created_at
             FROM classes
             WHERE gym_id = ?
             ORDER BY name
         ''', (gym_id,))
-       
+        
         classes = [dict(row) for row in cursor.fetchall()]
         conn.close()
-       
+        
         return {"classes": classes}
     except Exception as e:
         logger.error(f"Error getting classes: {str(e)}")
@@ -379,32 +495,31 @@ async def get_classes(token_data: dict = Depends(verify_token)):
 async def create_class(class_data: ClassCreate, token_data: dict = Depends(verify_token)):
     try:
         gym_id = token_data["gym_id"]
-       
+        
         conn = get_db_connection()
         cursor = conn.cursor()
-       
-        # Check for duplicate class name
+        
+        # Check for duplicate class name within gym
         cursor.execute('''
             SELECT COUNT(*) FROM classes WHERE gym_id = ? AND LOWER(name) = LOWER(?)
         ''', (gym_id, class_data.name))
-       
+        
         if cursor.fetchone()[0] > 0:
             conn.close()
             raise HTTPException(status_code=400, detail="Class with this name already exists")
-       
+        
         cursor.execute('''
             INSERT INTO classes (gym_id, name, description)
             VALUES (?, ?, ?)
         ''', (gym_id, class_data.name.strip(), class_data.description.strip() if class_data.description else None))
-       
+        
         class_id = cursor.lastrowid
         conn.commit()
         conn.close()
-       
+        
         return {
             "message": "Class created successfully",
-            "class_id": class_id,
-            "class": class_data.dict()
+            "class_id": class_id
         }
     except HTTPException:
         raise
@@ -412,134 +527,73 @@ async def create_class(class_data: ClassCreate, token_data: dict = Depends(verif
         logger.error(f"Error creating class: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to create class")
 
-@app.delete("/api/classes/{class_id}")
-async def delete_class(class_id: int, token_data: dict = Depends(verify_token)):
+@app.get("/api/payments")
+async def get_payments(token_data: dict = Depends(verify_token)):
     try:
         gym_id = token_data["gym_id"]
-       
+        
         conn = get_db_connection()
         cursor = conn.cursor()
-       
-        # Check if class exists
-        cursor.execute('SELECT name FROM classes WHERE id = ? AND gym_id = ?', (class_id, gym_id))
-        class_result = cursor.fetchone()
-       
-        if not class_result:
-            conn.close()
-            raise HTTPException(status_code=404, detail="Class not found")
-       
-        # Delete the class
-        cursor.execute('DELETE FROM classes WHERE id = ? AND gym_id = ?', (class_id, gym_id))
-        conn.commit()
-        conn.close()
-       
-        logger.info(f"Class deleted: {class_result[0]} (ID: {class_id})")
-        return {"message": f"Class '{class_result[0]}' deleted successfully"}
-       
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error deleting class: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to delete class")
-
-# Current class endpoint for check-ins
-@app.get("/api/current-class")
-async def get_current_class():
-    """Get the currently scheduled class based on day/time"""
-    now = datetime.now()
-    current_day = now.weekday()  # 0 = Monday
-    current_time = now.strftime("%H:%M")
-   
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-       
+        
         cursor.execute('''
-            SELECT class_name, instructor FROM schedules
-            WHERE gym_id = 1 AND day_of_week = ?
-            AND start_time <= ? AND end_time >= ?
-            ORDER BY start_time LIMIT 1
-        ''', (current_day, current_time, current_time))
-       
-        result = cursor.fetchone()
+            SELECT id, student_name, member_id, amount, payment_type, payment_method, status, payment_date
+            FROM payments
+            WHERE gym_id = ?
+            ORDER BY payment_date DESC
+        ''', (gym_id,))
+        
+        payments = [dict(row) for row in cursor.fetchall()]
         conn.close()
-       
-        if result:
-            return {"class_name": result[0], "instructor": result[1]}
-        return {"class_name": "Open Mat", "instructor": "Open"}
+        
+        return {"payments": payments}
     except Exception as e:
-        logger.error(f"Error getting current class: {str(e)}")
-        return {"class_name": "Open Mat", "instructor": "Open"}
+        logger.error(f"Error getting payments: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve payments")
 
-# Check-in endpoint
-@app.post("/api/checkin")
-async def check_in_student(request: CheckInRequest):
-    current_class = await get_current_class()
-   
+@app.post("/api/payments")
+async def create_payment(payment: PaymentCreate, token_data: dict = Depends(verify_token)):
     try:
+        gym_id = token_data["gym_id"]
+        
         conn = get_db_connection()
         cursor = conn.cursor()
-       
-        # Handle check-in by card number or name
-        if request.card_number:
-            cursor.execute('''
-                SELECT id, name, member_id, card_number FROM students
-                WHERE gym_id = 1 AND card_number = ?
-            ''', (request.card_number,))
-            student = cursor.fetchone()
-            if not student:
-                raise HTTPException(status_code=404, detail="Student not found")
-            student_name = student[1]
-            student_id = student[0]
-            member_id = student[2]
-            card_number = student[3]
-        else:
-            cursor.execute('''
-                SELECT id, name, member_id, card_number FROM students
-                WHERE gym_id = 1 AND name = ?
-            ''', (request.student_name,))
-            student = cursor.fetchone()
-            if student:
-                student_id = student[0]
-                member_id = student[2]
-                card_number = student[3]
-            else:
-                student_id = None
-                member_id = None
-                card_number = None
-            student_name = request.student_name
-       
-        # Record attendance
+        
         cursor.execute('''
-            INSERT INTO attendance_logs
-            (gym_id, student_name, student_id, member_id, card_number, class_name, check_in_time)
+            INSERT INTO payments (gym_id, student_name, member_id, amount, payment_type, payment_method, payment_date)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (1, student_name, student_id, member_id, card_number, current_class["class_name"], datetime.now().isoformat()))
-       
+        ''', (gym_id, payment.student_name, payment.member_id, payment.amount, payment.payment_type, payment.payment_method, datetime.now().date()))
+        
+        payment_id = cursor.lastrowid
         conn.commit()
         conn.close()
-       
+        
         return {
-            "message": f"Successfully checked in {student_name}",
-            "member_id": member_id,
-            "card_number": card_number,
-            "class_name": current_class["class_name"],
-            "instructor": current_class["instructor"],
-            "check_in_time": datetime.now().isoformat()
+            "message": "Payment recorded successfully",
+            "payment_id": payment_id
         }
     except Exception as e:
-        logger.error(f"Check-in error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Check-in failed")
+        logger.error(f"Error creating payment: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to record payment")
 
-# Initialize database on startup (non-blocking)
+# Health check endpoint
+@app.get("/api/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "version": "3.0.0-production-multitenant",
+        "timestamp": datetime.now().isoformat(),
+        "features": ["multi-tenant", "registration", "payments", "analytics"]
+    }
+
+# Initialize database on startup
 @app.on_event("startup")
 async def startup_event():
-    logger.info("🚀 Starting BJJ Pro Gym API...")
+    logger.info("🚀 Starting BJJ Pro Gym Multi-Tenant API...")
     try:
         init_db()
     except Exception as e:
         logger.error(f"Database init failed but continuing: {str(e)}")
-    logger.info("✅ BJJ Pro Gym API Started!")
+    logger.info("✅ BJJ Pro Gym Multi-Tenant API Started!")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
