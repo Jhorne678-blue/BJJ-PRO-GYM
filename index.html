@@ -1615,7 +1615,7 @@
                 recentScans: 47
             });
 
-            // RFID Detection - ACR122U Integration
+            // RFID Detection - Universal Reader Integration
             useEffect(() => {
                 const checkRFIDConnection = async () => {
                     try {
@@ -1722,7 +1722,7 @@
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
                             <h2 className="text-xl md:text-2xl font-bold text-white mb-1">📡 RFID Management</h2>
-                            <p className="text-blue-100 text-sm">ACR122U RFID card assignment, tracking, and access control</p>
+                            <p className="text-blue-100 text-sm">Universal RFID card assignment, tracking, and access control</p>
                         </div>
                         <div className="flex gap-2">
                             <button
@@ -1748,13 +1748,13 @@
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                         <div className="glass-effect rounded-xl p-3">
                             <div className="flex items-center justify-between mb-1">
-                                <div className="text-sm font-semibold text-white">ACR122U Status</div>
+                                <div className="text-sm font-semibold text-white">RFID Status</div>
                                 <div className="text-lg">📡</div>
                             </div>
                             <div className={`text-lg font-bold ${rfidStatus === 'Connected' ? 'text-green-300' : 'text-red-300'}`}>
                                 {rfidStatus}
                             </div>
-                            <div className="text-blue-200 text-xs">Scanner connection</div>
+                            <div className="text-blue-200 text-xs">Reader connection</div>
                         </div>
 
                         <div className="glass-effect rounded-xl p-3">
@@ -1899,8 +1899,8 @@
                                             {scanningMode && (
                                                 <div className="text-center text-blue-200 text-xs">
                                                     {rfidStatus === 'Connected' 
-                                                        ? '📡 Ready - Please tap RFID card on ACR122U reader...'
-                                                        : '❌ ACR122U Reader not connected'
+                                                        ? '📡 Ready - Please tap RFID card on reader...'
+                                                        : '❌ RFID Reader not connected'
                                                     }
                                                 </div>
                                             )}
@@ -2104,7 +2104,7 @@
             const [recentCheckIns, setRecentCheckIns] = useState([]);
             const [rfidStatus, setRfidStatus] = useState('Disconnected');
 
-            // ACR122U RFID Card Detection
+            // Universal RFID Card Detection
             useEffect(() => {
                 const checkForCard = async () => {
                     try {
@@ -2179,9 +2179,9 @@
                                     <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
                                         🥋 BJJ PRO ACADEMY
                                     </h1>
-                                    <p className="text-blue-100 text-sm">Student Check-In Kiosk - ACR122U RFID System</p>
+                                    <p className="text-blue-100 text-sm">Student Check-In Kiosk - Universal RFID System</p>
                                     <div className={`text-xs mt-1 ${rfidStatus === 'Connected' ? 'text-green-300' : 'text-red-300'}`}>
-                                        ACR122U Status: {rfidStatus}
+                                        RFID Status: {rfidStatus}
                                     </div>
                                 </div>
                                 <button
@@ -2227,7 +2227,7 @@
                                             <div className="text-center">
                                                 <div className="text-4xl mb-3">📡</div>
                                                 <p className="text-blue-100 text-sm mb-4">
-                                                    Tap your RFID card on the ACR122U reader
+                                                    Tap your RFID card on the reader
                                                 </p>
                                             </div>
                                             
@@ -2366,7 +2366,7 @@
                                         Welcome back, {adminInfo.name} • {adminInfo.gym_name}
                                     </p>
                                     <p className="text-blue-200 text-xs">
-                                        Plan: {adminInfo.plan} • Status: ✅ Professional Access • ACR122U RFID Ready
+                                        Plan: {adminInfo.plan} • Status: ✅ Professional Access • Universal RFID Ready
                                     </p>
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-2">
@@ -2503,11 +2503,11 @@
         background: rgba(239,68,68,0.2);
         color: #ef4444;
         border: 1px solid #ef4444;
-    ">🔴 ACR122U Disconnected</div>
+    ">🔴 RFID Disconnected</div>
 
-    <!-- ACR122U RFID Integration Script -->
+    <!-- Universal RFID Integration Script -->
     <script>
-        // ACR122U card detection for check-ins and card assignment
+        // Universal RFID card detection for check-ins and card assignment
         setInterval(async () => {
             try {
                 const response = await fetch('http://localhost:8888/get-card');
@@ -2533,17 +2533,17 @@
                     }
                 }
             } catch (e) {
-                // ACR122U bridge not connected - that's ok
+                // RFID bridge not connected - that's ok
             }
         }, 1000);
 
-        // ACR122U status indicator
-        async function checkACR122UStatus() {
+        // Universal RFID status indicator
+        async function checkRFIDStatus() {
             try {
                 const response = await fetch('http://localhost:8888/');
                 if (response.ok) {
                     const statusEl = document.getElementById('rfid-status');
-                    statusEl.textContent = '🟢 ACR122U Connected';
+                    statusEl.textContent = '🟢 RFID Connected';
                     statusEl.style.backgroundColor = 'rgba(34,197,94,0.2)';
                     statusEl.style.color = '#22c55e';
                     statusEl.style.border = '1px solid #22c55e';
@@ -2553,9 +2553,9 @@
             }
         }
 
-        // Check ACR122U status every 5 seconds
-        setInterval(checkACR122UStatus, 5000);
-        checkACR122UStatus(); // Check immediately
+        // Check RFID status every 5 seconds
+        setInterval(checkRFIDStatus, 5000);
+        checkRFIDStatus(); // Check immediately
     </script>
 </body>
 </html>
