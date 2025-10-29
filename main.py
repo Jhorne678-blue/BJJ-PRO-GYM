@@ -554,19 +554,19 @@ async def get_payments(token_data: dict = Depends(verify_token)):
 async def create_payment(payment: PaymentCreate, token_data: dict = Depends(verify_token)):
     try:
         gym_id = token_data["gym_id"]
-        
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         cursor.execute('''
             INSERT INTO payments (gym_id, student_name, member_id, amount, payment_type, payment_method, payment_date)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (gym_id, payment.student_name, payment.member_id, payment.amount, payment.payment_type, payment.payment_method, datetime.now().date()))
-        
+
         payment_id = cursor.lastrowid
         conn.commit()
         conn.close()
-        
+
         return {
             "message": "Payment recorded successfully",
             "payment_id": payment_id
@@ -574,6 +574,471 @@ async def create_payment(payment: PaymentCreate, token_data: dict = Depends(veri
     except Exception as e:
         logger.error(f"Error creating payment: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to record payment")
+
+# Schedule endpoints
+@app.get("/api/schedules")
+async def get_schedules(token_data: dict = Depends(verify_token)):
+    try:
+        gym_id = token_data["gym_id"]
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT id, class_name, day_of_week, start_time, end_time, instructor
+            FROM schedules
+            WHERE gym_id = ?
+            ORDER BY day_of_week, start_time
+        ''', (gym_id,))
+
+        schedules = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+
+        return {"schedules": schedules}
+    except Exception as e:
+        logger.error(f"Error getting schedules: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve schedules")
+
+@app.post("/api/schedules")
+async def create_schedule(schedule: ScheduleCreate, token_data: dict = Depends(verify_token)):
+    try:
+        gym_id = token_data["gym_id"]
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            INSERT INTO schedules (gym_id, class_name, day_of_week, start_time, end_time, instructor)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (gym_id, schedule.class_name, schedule.day_of_week, schedule.start_time, schedule.end_time, schedule.instructor))
+
+        schedule_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+
+        return {
+            "message": "Schedule created successfully",
+            "schedule_id": schedule_id
+        }
+    except Exception as e:
+        logger.error(f"Error creating schedule: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create schedule")
+
+@app.delete("/api/schedules/{schedule_id}")
+async def delete_schedule(schedule_id: int, token_data: dict = Depends(verify_token)):
+    try:
+        gym_id = token_data["gym_id"]
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('DELETE FROM schedules WHERE id = ? AND gym_id = ?', (schedule_id, gym_id))
+
+        conn.commit()
+        conn.close()
+
+        return {"message": "Schedule deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error deleting schedule: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to delete schedule")
+
+# Attendance endpoints
+@app.get("/api/attendance")
+async def get_attendance(token_data: dict = Depends(verify_token)):
+    try:
+        gym_id = token_data["gym_id"]
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT id, student_name, member_id, card_number, class_name, check_in_time
+            FROM attendance_logs
+            WHERE gym_id = ?
+            ORDER BY check_in_time DESC
+            LIMIT 500
+        ''', (gym_id,))
+
+        attendance = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+
+        return {"attendance": attendance}
+    except Exception as e:
+        logger.error(f"Error getting attendance: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve attendance")
+
+@app.post("/api/attendance/checkin")
+async def check_in(checkin: CheckInRequest, token_data: dict = Depends(verify_token)):
+    try:
+        gym_id = token_data["gym_id"]
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Find student by card number or name
+        student = None
+        if checkin.card_number:
+            cursor.execute('''
+                SELECT id, name, member_id, card_number FROM students
+                WHERE gym_id = ? AND card_number = ?
+            ''', (gym_id, checkin.card_number))
+            student = cursor.fetchone()
+        elif checkin.student_name:
+            cursor.execute('''
+                SELECT id, name, member_id, card_number FROM students
+                WHERE gym_id = ? AND name = ?
+            ''', (gym_id, checkin.student_name))
+            student = cursor.fetchone()
+
+        if not student:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Student not found")
+
+        # Get current class based on time
+        now = datetime.now()
+        day_of_week = now.weekday()
+        current_time = now.strftime("%H:%M")
+
+        cursor.execute('''
+            SELECT class_name FROM schedules
+            WHERE gym_id = ? AND day_of_week = ? AND start_time <= ? AND end_time >= ?
+            ORDER BY start_time DESC LIMIT 1
+        ''', (gym_id, day_of_week, current_time, current_time))
+
+        schedule = cursor.fetchone()
+        class_name = schedule["class_name"] if schedule else "Open Mat"
+
+        # Log attendance
+        cursor.execute('''
+            INSERT INTO attendance_logs (gym_id, student_name, student_id, member_id, card_number, class_name, check_in_time)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (gym_id, student["name"], student["id"], student["member_id"], student["card_number"], class_name, datetime.now()))
+
+        conn.commit()
+        conn.close()
+
+        return {
+            "message": "Check-in successful",
+            "student_name": student["name"],
+            "member_id": student["member_id"],
+            "class_name": class_name,
+            "check_in_time": datetime.now().isoformat()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error checking in: {str(e)}")
+        raise HTTPException(status_code=500, detail="Check-in failed")
+
+# Analytics endpoint
+@app.get("/api/analytics")
+async def get_analytics(token_data: dict = Depends(verify_token)):
+    try:
+        gym_id = token_data["gym_id"]
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Total students
+        cursor.execute('SELECT COUNT(*) as count FROM students WHERE gym_id = ?', (gym_id,))
+        total_students = cursor.fetchone()["count"]
+
+        # Total revenue this month
+        cursor.execute('''
+            SELECT COALESCE(SUM(amount), 0) as total FROM payments
+            WHERE gym_id = ? AND strftime('%Y-%m', payment_date) = strftime('%Y-%m', 'now')
+        ''', (gym_id,))
+        monthly_revenue = cursor.fetchone()["total"]
+
+        # Check-ins today
+        cursor.execute('''
+            SELECT COUNT(*) as count FROM attendance_logs
+            WHERE gym_id = ? AND DATE(check_in_time) = DATE('now')
+        ''', (gym_id,))
+        checkins_today = cursor.fetchone()["count"]
+
+        # Active students (checked in within last 7 days)
+        cursor.execute('''
+            SELECT COUNT(DISTINCT student_id) as count FROM attendance_logs
+            WHERE gym_id = ? AND check_in_time >= datetime('now', '-7 days')
+        ''', (gym_id,))
+        active_students = cursor.fetchone()["count"]
+
+        # Belt distribution
+        cursor.execute('''
+            SELECT belt_level, COUNT(*) as count FROM students
+            WHERE gym_id = ? GROUP BY belt_level
+        ''', (gym_id,))
+        belt_distribution = {row["belt_level"]: row["count"] for row in cursor.fetchall()}
+
+        # Popular classes (last 30 days)
+        cursor.execute('''
+            SELECT class_name, COUNT(*) as count FROM attendance_logs
+            WHERE gym_id = ? AND check_in_time >= datetime('now', '-30 days')
+            GROUP BY class_name ORDER BY count DESC LIMIT 5
+        ''', (gym_id,))
+        popular_classes = [dict(row) for row in cursor.fetchall()]
+
+        # Revenue trend (last 6 months)
+        cursor.execute('''
+            SELECT strftime('%Y-%m', payment_date) as month, SUM(amount) as total
+            FROM payments WHERE gym_id = ?
+            GROUP BY month ORDER BY month DESC LIMIT 6
+        ''', (gym_id,))
+        revenue_trend = [dict(row) for row in cursor.fetchall()]
+
+        # Attendance trend (last 7 days)
+        cursor.execute('''
+            SELECT DATE(check_in_time) as date, COUNT(*) as count
+            FROM attendance_logs WHERE gym_id = ?
+            AND check_in_time >= datetime('now', '-7 days')
+            GROUP BY date ORDER BY date
+        ''', (gym_id,))
+        attendance_trend = [dict(row) for row in cursor.fetchall()]
+
+        conn.close()
+
+        return {
+            "summary": {
+                "total_students": total_students,
+                "monthly_revenue": float(monthly_revenue),
+                "checkins_today": checkins_today,
+                "active_students": active_students
+            },
+            "belt_distribution": belt_distribution,
+            "popular_classes": popular_classes,
+            "revenue_trend": revenue_trend,
+            "attendance_trend": attendance_trend
+        }
+    except Exception as e:
+        logger.error(f"Error getting analytics: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve analytics")
+
+# Risk analysis endpoint
+@app.get("/api/risk-analysis")
+async def get_risk_analysis(token_data: dict = Depends(verify_token)):
+    try:
+        gym_id = token_data["gym_id"]
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Get all students
+        cursor.execute('SELECT id, name, member_id, belt_level FROM students WHERE gym_id = ?', (gym_id,))
+        students = cursor.fetchall()
+
+        at_risk_students = []
+
+        for student in students:
+            # Get last attendance date
+            cursor.execute('''
+                SELECT MAX(check_in_time) as last_attendance FROM attendance_logs
+                WHERE gym_id = ? AND student_id = ?
+            ''', (gym_id, student["id"]))
+
+            last_attendance_row = cursor.fetchone()
+            last_attendance_str = last_attendance_row["last_attendance"]
+
+            if last_attendance_str:
+                last_attendance = datetime.fromisoformat(last_attendance_str)
+                days_absent = (datetime.now() - last_attendance).days
+
+                # Flag students who haven't attended in 7+ days
+                if days_absent >= 7:
+                    risk_level = "High" if days_absent >= 14 else "Medium"
+                    at_risk_students.append({
+                        "id": student["id"],
+                        "name": student["name"],
+                        "member_id": student["member_id"],
+                        "belt_level": student["belt_level"],
+                        "last_attendance": last_attendance_str,
+                        "days_absent": days_absent,
+                        "risk_level": risk_level
+                    })
+            else:
+                # Never attended
+                at_risk_students.append({
+                    "id": student["id"],
+                    "name": student["name"],
+                    "member_id": student["member_id"],
+                    "belt_level": student["belt_level"],
+                    "last_attendance": None,
+                    "days_absent": 999,
+                    "risk_level": "High"
+                })
+
+        # Sort by days absent (highest first)
+        at_risk_students.sort(key=lambda x: x["days_absent"], reverse=True)
+
+        conn.close()
+
+        return {"at_risk_students": at_risk_students}
+    except Exception as e:
+        logger.error(f"Error getting risk analysis: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve risk analysis")
+
+# Email notification endpoint
+@app.post("/api/notifications/email")
+async def send_email_notification(email: EmailRequest, token_data: dict = Depends(verify_token)):
+    try:
+        gym_id = token_data["gym_id"]
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Log the email notification
+        cursor.execute('''
+            INSERT INTO email_notifications (gym_id, subject, message, recipient_count, sent_by, notification_type)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (gym_id, email.subject, email.message, email.recipient_count, token_data["owner_name"], email.notification_type))
+
+        notification_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+
+        return {
+            "message": "Email notification logged successfully",
+            "notification_id": notification_id,
+            "note": "Email sending functionality requires SMTP configuration"
+        }
+    except Exception as e:
+        logger.error(f"Error logging email: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to log email notification")
+
+@app.get("/api/notifications/history")
+async def get_notification_history(token_data: dict = Depends(verify_token)):
+    try:
+        gym_id = token_data["gym_id"]
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT id, subject, message, recipient_count, sent_by, sent_at, notification_type
+            FROM email_notifications
+            WHERE gym_id = ?
+            ORDER BY sent_at DESC
+            LIMIT 50
+        ''', (gym_id,))
+
+        notifications = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+
+        return {"notifications": notifications}
+    except Exception as e:
+        logger.error(f"Error getting notification history: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve notification history")
+
+# Student update and delete endpoints
+@app.put("/api/students/{student_id}")
+async def update_student(student_id: int, student: StudentCreate, token_data: dict = Depends(verify_token)):
+    try:
+        gym_id = token_data["gym_id"]
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            UPDATE students
+            SET name = ?, email = ?, phone = ?, belt_level = ?
+            WHERE id = ? AND gym_id = ?
+        ''', (student.name, student.email, student.phone, student.belt_level, student_id, gym_id))
+
+        conn.commit()
+        conn.close()
+
+        return {"message": "Student updated successfully"}
+    except Exception as e:
+        logger.error(f"Error updating student: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update student")
+
+@app.delete("/api/students/{student_id}")
+async def delete_student(student_id: int, token_data: dict = Depends(verify_token)):
+    try:
+        gym_id = token_data["gym_id"]
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('DELETE FROM students WHERE id = ? AND gym_id = ?', (student_id, gym_id))
+
+        conn.commit()
+        conn.close()
+
+        return {"message": "Student deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error deleting student: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to delete student")
+
+# Class delete endpoint
+@app.delete("/api/classes/{class_id}")
+async def delete_class(class_id: int, token_data: dict = Depends(verify_token)):
+    try:
+        gym_id = token_data["gym_id"]
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('DELETE FROM classes WHERE id = ? AND gym_id = ?', (class_id, gym_id))
+
+        conn.commit()
+        conn.close()
+
+        return {"message": "Class deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error deleting class: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to delete class")
+
+# RFID card management endpoints
+@app.get("/api/rfid/cards")
+async def get_rfid_cards(token_data: dict = Depends(verify_token)):
+    try:
+        gym_id = token_data["gym_id"]
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT s.id, s.name as student_name, s.member_id, s.card_number, s.created_at as assigned_date,
+                   (SELECT MAX(check_in_time) FROM attendance_logs WHERE gym_id = ? AND student_id = s.id) as last_used
+            FROM students s
+            WHERE s.gym_id = ? AND s.card_number IS NOT NULL
+            ORDER BY s.name
+        ''', (gym_id, gym_id))
+
+        cards = []
+        for row in cursor.fetchall():
+            card = dict(row)
+            card["status"] = "Active"
+            cards.append(card)
+
+        conn.close()
+
+        return {"cards": cards}
+    except Exception as e:
+        logger.error(f"Error getting RFID cards: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve RFID cards")
+
+@app.post("/api/rfid/assign")
+async def assign_rfid_card(student_id: int, card_number: str, token_data: dict = Depends(verify_token)):
+    try:
+        gym_id = token_data["gym_id"]
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            UPDATE students SET card_number = ?
+            WHERE id = ? AND gym_id = ?
+        ''', (card_number, student_id, gym_id))
+
+        conn.commit()
+        conn.close()
+
+        return {"message": "RFID card assigned successfully"}
+    except Exception as e:
+        logger.error(f"Error assigning RFID card: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to assign RFID card")
 
 # Health check endpoint
 @app.get("/api/health")
