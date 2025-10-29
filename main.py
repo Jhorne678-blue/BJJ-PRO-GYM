@@ -1,10 +1,10 @@
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, EmailStr
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from pydantic import BaseModel, EmailStr, validator
 from datetime import datetime, timedelta
 import sqlite3
-import hashlib
 import jwt
 from typing import Optional, List
 import uvicorn
@@ -12,33 +12,186 @@ import os
 import logging
 import secrets
 import string
+import re
+from passlib.context import CryptContext
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="BJJ PRO GYM API - Multi-Tenant Professional Edition")
+# Security logger for audit trail
+security_logger = logging.getLogger('security')
+security_logger.setLevel(logging.INFO)
 
-# CORS middleware
+# Password hashing context using bcrypt
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
+app = FastAPI(
+    title="BJJ PRO GYM API - Multi-Tenant Professional Edition",
+    docs_url=None,  # Disable docs in production
+    redoc_url=None,  # Disable redoc in production
+    openapi_url=None  # Disable OpenAPI schema in production
+)
+
+# Rate limit error handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Trusted Host Middleware (prevents host header attacks)
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["*"]  # Configure with your actual domain in production
+)
+
+# CORS middleware with stricter settings
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Content-Type", "Authorization"],
+    max_age=600,
 )
+
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' unpkg.com cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    return response
 
 # Security
 security = HTTPBearer()
-SECRET_KEY = os.getenv("SECRET_KEY", "bjj_pro_gym_secret_key_2024_professional")
+SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
 
-# Pydantic models
+# Failed login tracking
+failed_login_attempts = {}
+ACCOUNT_LOCKOUT_THRESHOLD = 5
+LOCKOUT_DURATION = timedelta(minutes=15)
+
+# Security helper functions
+def validate_password_strength(password: str) -> tuple[bool, str]:
+    """Validate password meets security requirements"""
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long"
+    if not re.search(r"[A-Z]", password):
+        return False, "Password must contain at least one uppercase letter"
+    if not re.search(r"[a-z]", password):
+        return False, "Password must contain at least one lowercase letter"
+    if not re.search(r"\d", password):
+        return False, "Password must contain at least one number"
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        return False, "Password must contain at least one special character"
+    return True, "Password is strong"
+
+def sanitize_input(text: str, max_length: int = 255) -> str:
+    """Sanitize user input to prevent XSS and injection attacks"""
+    if not text:
+        return ""
+    # Remove any potentially dangerous characters
+    text = text.strip()
+    text = re.sub(r'[<>\"\'%;()&+]', '', text)
+    return text[:max_length]
+
+def hash_password(password: str) -> str:
+    """Hash password using bcrypt"""
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify password against hash"""
+    return pwd_context.verify(plain_password, hashed_password)
+
+def log_security_event(event_type: str, details: dict, severity: str = "INFO"):
+    """Log security-related events for audit trail"""
+    log_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "event_type": event_type,
+        "severity": severity,
+        **details
+    }
+    security_logger.info(f"SECURITY_EVENT: {log_entry}")
+
+    # Also store in database
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO security_logs (event_type, details, severity, created_at)
+            VALUES (?, ?, ?, ?)
+        ''', (event_type, str(details), severity, datetime.now()))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Failed to log security event to database: {e}")
+
+def check_account_lockout(email: str) -> tuple[bool, Optional[datetime]]:
+    """Check if account is locked due to failed login attempts"""
+    if email in failed_login_attempts:
+        attempts, lockout_until = failed_login_attempts[email]
+        if lockout_until and datetime.now() < lockout_until:
+            return True, lockout_until
+        elif datetime.now() >= lockout_until:
+            # Lockout expired, reset
+            del failed_login_attempts[email]
+    return False, None
+
+def record_failed_login(email: str):
+    """Record failed login attempt and apply lockout if threshold reached"""
+    if email not in failed_login_attempts:
+        failed_login_attempts[email] = [1, None]
+    else:
+        attempts, _ = failed_login_attempts[email]
+        attempts += 1
+        if attempts >= ACCOUNT_LOCKOUT_THRESHOLD:
+            lockout_until = datetime.now() + LOCKOUT_DURATION
+            failed_login_attempts[email] = [attempts, lockout_until]
+            log_security_event(
+                "ACCOUNT_LOCKED",
+                {"email": email, "attempts": attempts, "lockout_until": lockout_until.isoformat()},
+                "WARNING"
+            )
+        else:
+            failed_login_attempts[email] = [attempts, None]
+
+def clear_failed_logins(email: str):
+    """Clear failed login attempts after successful login"""
+    if email in failed_login_attempts:
+        del failed_login_attempts[email]
+
+# Pydantic models with validation
 class GymRegistration(BaseModel):
     gym_name: str
     owner_name: str
     owner_email: EmailStr
     owner_password: str
     access_code: Optional[str] = None
+
+    @validator('gym_name', 'owner_name')
+    def sanitize_names(cls, v):
+        return sanitize_input(v, 100)
+
+    @validator('owner_password')
+    def validate_password(cls, v):
+        is_valid, message = validate_password_strength(v)
+        if not is_valid:
+            raise ValueError(message)
+        return v
 
 class LoginRequest(BaseModel):
     email: str
@@ -208,18 +361,36 @@ def init_db():
                 FOREIGN KEY (gym_id) REFERENCES gyms (id)
             )
         ''')
-        
+
+        # Create security_logs table for audit trail
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS security_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_type TEXT NOT NULL,
+                details TEXT NOT NULL,
+                severity TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
         # Create demo gym if it doesn't exist (for backwards compatibility)
         cursor.execute("SELECT COUNT(*) FROM gyms WHERE gym_code = 'DEMO0001'")
         if cursor.fetchone()[0] == 0:
-            demo_password = hashlib.sha256("admin123".encode()).hexdigest()
+            # Use bcrypt for secure password hashing
+            demo_password = hash_password("Admin123!")
             cursor.execute('''
                 INSERT INTO gyms (gym_code, gym_name, owner_name, owner_email, password_hash, access_code)
                 VALUES (?, ?, ?, ?, ?, ?)
             ''', ('DEMO0001', 'Demo BJJ Pro Academy', 'Demo Owner', 'demo@bjjprogym.com', demo_password, 'ADELYNN14'))
-            
+
             demo_gym_id = cursor.lastrowid
             setup_demo_data(cursor, demo_gym_id)
+
+            log_security_event(
+                "DEMO_ACCOUNT_CREATED",
+                {"email": "demo@bjjprogym.com", "gym_code": "DEMO0001"},
+                "INFO"
+            )
         
         conn.commit()
         conn.close()
@@ -287,19 +458,25 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-# Registration endpoint
+# Registration endpoint with security features
 @app.post("/api/register")
-async def register_gym(registration: GymRegistration):
+@limiter.limit("3/hour")  # Rate limit: 3 registrations per hour
+async def register_gym(request: Request, registration: GymRegistration):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # Check if email already exists
         cursor.execute('SELECT id FROM gyms WHERE owner_email = ?', (registration.owner_email,))
         if cursor.fetchone():
             conn.close()
+            log_security_event(
+                "REGISTRATION_FAILED",
+                {"email": registration.owner_email, "reason": "Email already exists"},
+                "WARNING"
+            )
             raise HTTPException(status_code=400, detail="Email already registered")
-        
+
         # Validate access code for special plans
         subscription_plan = "starter"
         if registration.access_code:
@@ -307,8 +484,13 @@ async def register_gym(registration: GymRegistration):
                 subscription_plan = "professional"
             else:
                 conn.close()
+                log_security_event(
+                    "REGISTRATION_FAILED",
+                    {"email": registration.owner_email, "reason": "Invalid access code"},
+                    "WARNING"
+                )
                 raise HTTPException(status_code=400, detail="Invalid access code")
-        
+
         # Generate unique gym code
         gym_code = generate_gym_code()
         while True:
@@ -316,33 +498,51 @@ async def register_gym(registration: GymRegistration):
             if not cursor.fetchone():
                 break
             gym_code = generate_gym_code()
-        
-        # Hash password
-        password_hash = hashlib.sha256(registration.owner_password.encode()).hexdigest()
-        
+
+        # Hash password using bcrypt
+        password_hash = hash_password(registration.owner_password)
+
         # Create gym
         cursor.execute('''
             INSERT INTO gyms (gym_code, gym_name, owner_name, owner_email, password_hash, subscription_plan, access_code)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (gym_code, registration.gym_name, registration.owner_name, registration.owner_email, password_hash, subscription_plan, registration.access_code))
-        
+
         gym_id = cursor.lastrowid
-        
+
         # Setup starter data for new gym
         setup_starter_data(cursor, gym_id)
-        
+
         conn.commit()
         conn.close()
-        
+
+        log_security_event(
+            "REGISTRATION_SUCCESS",
+            {
+                "email": registration.owner_email,
+                "gym_code": gym_code,
+                "gym_name": registration.gym_name,
+                "subscription_plan": subscription_plan
+            },
+            "INFO"
+        )
+
         return {
             "message": "Gym registered successfully",
             "gym_code": gym_code,
             "subscription_plan": subscription_plan,
             "gym_id": gym_id
         }
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Registration error: {str(e)}")
+        log_security_event(
+            "REGISTRATION_ERROR",
+            {"email": registration.owner_email, "error": str(e)},
+            "ERROR"
+        )
         raise HTTPException(status_code=500, detail="Registration failed")
 
 def setup_starter_data(cursor, gym_id):
@@ -364,26 +564,50 @@ def setup_starter_data(cursor, gym_id):
     except Exception as e:
         logger.error(f"Starter data setup failed: {str(e)}")
 
-# Login endpoint (updated)
+# Login endpoint with security features
 @app.post("/api/login")
-async def login(request: LoginRequest):
+@limiter.limit("5/minute")  # Rate limit: 5 attempts per minute
+async def login(request: Request, login_request: LoginRequest):
     try:
+        # Check if account is locked
+        is_locked, lockout_until = check_account_lockout(login_request.email)
+        if is_locked:
+            log_security_event(
+                "LOGIN_ATTEMPT_WHILE_LOCKED",
+                {"email": login_request.email, "lockout_until": lockout_until.isoformat()},
+                "WARNING"
+            )
+            raise HTTPException(
+                status_code=423,
+                detail=f"Account locked due to too many failed attempts. Try again after {lockout_until.strftime('%H:%M')}"
+            )
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        
-        password_hash = hashlib.sha256(request.password.encode()).hexdigest()
+
+        # Fetch user by email
         cursor.execute('''
-            SELECT id, gym_code, gym_name, owner_name, subscription_plan, access_code
+            SELECT id, gym_code, gym_name, owner_name, subscription_plan, access_code, password_hash, owner_email
             FROM gyms
-            WHERE owner_email = ? AND password_hash = ?
-        ''', (request.email, password_hash))
-        
+            WHERE owner_email = ?
+        ''', (login_request.email,))
+
         gym = cursor.fetchone()
         conn.close()
-        
-        if not gym:
+
+        # Verify password using bcrypt
+        if not gym or not verify_password(login_request.password, gym["password_hash"]):
+            record_failed_login(login_request.email)
+            log_security_event(
+                "LOGIN_FAILED",
+                {"email": login_request.email, "reason": "Invalid credentials"},
+                "WARNING"
+            )
             raise HTTPException(status_code=401, detail="Invalid credentials")
-        
+
+        # Successful login - clear failed attempts
+        clear_failed_logins(login_request.email)
+
         token_data = {
             "gym_id": gym["id"],
             "gym_code": gym["gym_code"],
@@ -393,9 +617,15 @@ async def login(request: LoginRequest):
             "access_code": gym["access_code"],
             "exp": datetime.utcnow() + timedelta(hours=24)
         }
-        
+
         token = jwt.encode(token_data, SECRET_KEY, algorithm="HS256")
-        
+
+        log_security_event(
+            "LOGIN_SUCCESS",
+            {"email": login_request.email, "gym_code": gym["gym_code"]},
+            "INFO"
+        )
+
         return {
             "access_token": token,
             "token_type": "bearer",
@@ -407,8 +637,15 @@ async def login(request: LoginRequest):
                 "has_pro_access": gym["access_code"] == "ADELYNN14"
             }
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
+        log_security_event(
+            "LOGIN_ERROR",
+            {"email": login_request.email, "error": str(e)},
+            "ERROR"
+        )
         raise HTTPException(status_code=500, detail="Login failed")
 
 # Updated endpoints with gym isolation
