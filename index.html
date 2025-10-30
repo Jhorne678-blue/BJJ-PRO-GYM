@@ -464,7 +464,16 @@
             const [error, setError] = useState('');
             const [success, setSuccess] = useState('');
             const [showAddForm, setShowAddForm] = useState(false);
-            const [newClass, setNewClass] = useState({ name: '', description: '' });
+            const [newClass, setNewClass] = useState({
+                name: '',
+                description: '',
+                day_of_week: 0,
+                start_time: '18:00',
+                end_time: '19:00',
+                instructor: '',
+                send_notification: false,
+                notification_recipient_type: 'all'
+            });
 
             const fetchClasses = async () => {
                 try {
@@ -490,8 +499,17 @@
                         method: 'POST',
                         body: JSON.stringify(newClass)
                     });
-                    setSuccess('Class added successfully!');
-                    setNewClass({ name: '', description: '' });
+                    setSuccess('Class added successfully with schedule!');
+                    setNewClass({
+                        name: '',
+                        description: '',
+                        day_of_week: 0,
+                        start_time: '18:00',
+                        end_time: '19:00',
+                        instructor: '',
+                        send_notification: false,
+                        notification_recipient_type: 'all'
+                    });
                     setShowAddForm(false);
                     fetchClasses();
                     setTimeout(() => setSuccess(''), 3000);
@@ -567,7 +585,7 @@
 
                     {showAddForm && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                            <div className="glass-effect rounded-xl p-6 w-full max-w-md">
+                            <div className="glass-effect rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
                                 <h3 className="text-lg font-bold text-white mb-4">Add New Class</h3>
                                 <form onSubmit={handleAddClass} className="space-y-4">
                                     <div>
@@ -586,6 +604,78 @@
                                             onChange={(e) => setNewClass({...newClass, description: e.target.value})}
                                             rows="3"
                                         />
+                                    </div>
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Day of Week *</label>
+                                        <select
+                                            value={newClass.day_of_week}
+                                            onChange={(e) => setNewClass({...newClass, day_of_week: parseInt(e.target.value)})}
+                                            required
+                                        >
+                                            <option value="0">Monday</option>
+                                            <option value="1">Tuesday</option>
+                                            <option value="2">Wednesday</option>
+                                            <option value="3">Thursday</option>
+                                            <option value="4">Friday</option>
+                                            <option value="5">Saturday</option>
+                                            <option value="6">Sunday</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Start Time *</label>
+                                        <input
+                                            type="time"
+                                            value={newClass.start_time}
+                                            onChange={(e) => setNewClass({...newClass, start_time: e.target.value})}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">End Time *</label>
+                                        <input
+                                            type="time"
+                                            value={newClass.end_time}
+                                            onChange={(e) => setNewClass({...newClass, end_time: e.target.value})}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Instructor</label>
+                                        <input
+                                            type="text"
+                                            value={newClass.instructor}
+                                            onChange={(e) => setNewClass({...newClass, instructor: e.target.value})}
+                                            placeholder="e.g., Professor Silva"
+                                        />
+                                    </div>
+                                    <div className="border-t border-blue-300 pt-4">
+                                        <div className="flex items-center mb-3">
+                                            <input
+                                                type="checkbox"
+                                                id="send_notification"
+                                                checked={newClass.send_notification}
+                                                onChange={(e) => setNewClass({...newClass, send_notification: e.target.checked})}
+                                                className="mr-2"
+                                            />
+                                            <label htmlFor="send_notification" className="text-blue-100 text-sm font-medium">
+                                                Send email notification to students
+                                            </label>
+                                        </div>
+                                        {newClass.send_notification && (
+                                            <div>
+                                                <label className="block text-blue-100 text-sm font-medium mb-2">Send To *</label>
+                                                <select
+                                                    value={newClass.notification_recipient_type}
+                                                    onChange={(e) => setNewClass({...newClass, notification_recipient_type: e.target.value})}
+                                                    required={newClass.send_notification}
+                                                >
+                                                    <option value="all">All Students</option>
+                                                    <option value="instructors">Instructors Only</option>
+                                                    <option value="kids">Kids Only</option>
+                                                    <option value="adults">Adults Only</option>
+                                                </select>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex gap-3">
                                         <button type="submit" className="glass-button flex-1 text-white font-semibold">

@@ -206,6 +206,12 @@ class StudentCreate(BaseModel):
 class ClassCreate(BaseModel):
     name: str
     description: Optional[str] = None
+    day_of_week: int  # 0=Monday, 1=Tuesday, etc.
+    start_time: str  # Format: "18:00"
+    end_time: str  # Format: "19:00"
+    instructor: Optional[str] = None
+    send_notification: bool = False
+    notification_recipient_type: Optional[str] = None  # "all", "instructors", "kids", "adults"
 
 class ScheduleCreate(BaseModel):
     class_name: str
@@ -400,54 +406,9 @@ def init_db():
         logger.error(f"Database initialization failed: {str(e)}")
 
 def setup_demo_data(cursor, gym_id):
-    """Setup demo data for a gym"""
-    try:
-        # Demo students
-        demo_students = [
-            ("John Smith", "john.smith@email.com", "555-0101", "Blue", "MBR001", "CARD1001"),
-            ("Maria Garcia", "maria.garcia@email.com", "555-0102", "White", "MBR002", "CARD1002"),
-            ("David Johnson", "david.johnson@email.com", "555-0103", "Purple", "MBR003", "CARD1003"),
-            ("Sarah Wilson", "sarah.wilson@email.com", "555-0104", "White", "MBR004", "CARD1004"),
-            ("Mike Brown", "mike.brown@email.com", "555-0105", "Blue", "MBR005", "CARD1005")
-        ]
-        
-        for name, email, phone, belt, member_id, card_number in demo_students:
-            cursor.execute('''
-                INSERT OR IGNORE INTO students (gym_id, name, email, phone, belt_level, member_id, card_number)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (gym_id, name, email, phone, belt, member_id, card_number))
-        
-        # Demo classes
-        demo_classes = [
-            ("Fundamentals", "Basic BJJ techniques for beginners"),
-            ("Advanced", "Advanced techniques and sparring"),
-            ("Competition", "Competition preparation and training"),
-            ("No-Gi", "Brazilian Jiu-Jitsu without gi"),
-            ("Open Mat", "Free training and practice time")
-        ]
-        
-        for class_name, description in demo_classes:
-            cursor.execute('''
-                INSERT OR IGNORE INTO classes (gym_id, name, description)
-                VALUES (?, ?, ?)
-            ''', (gym_id, class_name, description))
-        
-        # Demo schedules
-        demo_schedules = [
-            ("Fundamentals", 0, "18:00", "19:00", "Professor Silva"),
-            ("Advanced", 0, "19:15", "20:45", "Professor Johnson"),
-            ("No-Gi", 1, "19:00", "20:00", "Professor Davis"),
-            ("Open Mat", 4, "18:00", "20:00", "Open")
-        ]
-        
-        for class_name, day, start, end, instructor in demo_schedules:
-            cursor.execute('''
-                INSERT OR IGNORE INTO schedules (gym_id, class_name, day_of_week, start_time, end_time, instructor)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (gym_id, class_name, day, start, end, instructor))
-        
-    except Exception as e:
-        logger.error(f"Demo data setup failed: {str(e)}")
+    """Setup demo data for a gym - now empty so gym starts with clean slate"""
+    # No demo data - gym owner will add their own real data
+    pass
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
@@ -732,31 +693,72 @@ async def get_classes(token_data: dict = Depends(verify_token)):
 async def create_class(class_data: ClassCreate, token_data: dict = Depends(verify_token)):
     try:
         gym_id = token_data["gym_id"]
-        
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # Check for duplicate class name within gym
         cursor.execute('''
             SELECT COUNT(*) FROM classes WHERE gym_id = ? AND LOWER(name) = LOWER(?)
         ''', (gym_id, class_data.name))
-        
+
         if cursor.fetchone()[0] > 0:
             conn.close()
             raise HTTPException(status_code=400, detail="Class with this name already exists")
-        
+
+        # Create the class
         cursor.execute('''
             INSERT INTO classes (gym_id, name, description)
             VALUES (?, ?, ?)
         ''', (gym_id, class_data.name.strip(), class_data.description.strip() if class_data.description else None))
-        
+
         class_id = cursor.lastrowid
+
+        # Create the schedule entry for this class
+        cursor.execute('''
+            INSERT INTO schedules (gym_id, class_name, day_of_week, start_time, end_time, instructor)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (gym_id, class_data.name.strip(), class_data.day_of_week, class_data.start_time,
+              class_data.end_time, class_data.instructor.strip() if class_data.instructor else None))
+
+        schedule_id = cursor.lastrowid
+
+        # Handle email notifications if requested
+        if class_data.send_notification and class_data.notification_recipient_type:
+            # Get recipients based on type
+            recipient_count = 0
+            if class_data.notification_recipient_type == "all":
+                cursor.execute('SELECT COUNT(*) FROM students WHERE gym_id = ?', (gym_id,))
+                recipient_count = cursor.fetchone()[0]
+            elif class_data.notification_recipient_type in ["instructors", "kids", "adults"]:
+                # For now, assume all students (can be enhanced with student categories later)
+                cursor.execute('SELECT COUNT(*) FROM students WHERE gym_id = ?', (gym_id,))
+                recipient_count = cursor.fetchone()[0]
+
+            # Log the notification
+            days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            day_name = days[class_data.day_of_week]
+
+            cursor.execute('''
+                INSERT INTO notifications (gym_id, subject, message, notification_type, recipient_type, recipient_count, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                gym_id,
+                f"New Class Added: {class_data.name}",
+                f"A new class '{class_data.name}' has been added on {day_name} at {class_data.start_time}. Instructor: {class_data.instructor or 'TBA'}. {class_data.description or ''}",
+                "class_announcement",
+                class_data.notification_recipient_type,
+                recipient_count,
+                "sent"
+            ))
+
         conn.commit()
         conn.close()
-        
+
         return {
-            "message": "Class created successfully",
-            "class_id": class_id
+            "message": "Class created successfully with schedule and notifications",
+            "class_id": class_id,
+            "schedule_id": schedule_id
         }
     except HTTPException:
         raise
