@@ -1209,6 +1209,31 @@ async def delete_student(student_id: int, token_data: dict = Depends(verify_toke
         logger.error(f"Error deleting student: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to delete student")
 
+# Class update endpoint
+@app.put("/api/classes/{class_id}")
+async def update_class(class_id: int, class_data: dict, token_data: dict = Depends(verify_token)):
+    try:
+        gym_id = token_data["gym_id"]
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Only allow updating description (name is used in schedules)
+        if 'description' in class_data:
+            cursor.execute('''
+                UPDATE classes
+                SET description = ?
+                WHERE id = ? AND gym_id = ?
+            ''', (class_data['description'], class_id, gym_id))
+
+        conn.commit()
+        conn.close()
+
+        return {"message": "Class updated successfully"}
+    except Exception as e:
+        logger.error(f"Error updating class: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update class")
+
 # Class delete endpoint
 @app.delete("/api/classes/{class_id}")
 async def delete_class(class_id: int, token_data: dict = Depends(verify_token)):

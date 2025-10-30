@@ -464,16 +464,18 @@
             const [error, setError] = useState('');
             const [success, setSuccess] = useState('');
             const [showAddForm, setShowAddForm] = useState(false);
+            const [showEditForm, setShowEditForm] = useState(false);
+            const [showEmailPrompt, setShowEmailPrompt] = useState(false);
+            const [emailPromptData, setEmailPromptData] = useState(null);
             const [newClass, setNewClass] = useState({
                 name: '',
                 description: '',
                 day_of_week: 0,
                 start_time: '18:00',
                 end_time: '19:00',
-                instructor: '',
-                send_notification: false,
-                notification_recipient_type: 'all'
+                instructor: ''
             });
+            const [editingClass, setEditingClass] = useState(null);
 
             const fetchClasses = async () => {
                 try {
@@ -495,39 +497,117 @@
             const handleAddClass = async (e) => {
                 e.preventDefault();
                 try {
+                    const classData = { ...newClass, send_notification: false };
                     await apiCall('/api/classes', {
                         method: 'POST',
-                        body: JSON.stringify(newClass)
+                        body: JSON.stringify(classData)
                     });
-                    setSuccess('Class added successfully with schedule!');
+
+                    const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+                    // Show email prompt after successful creation
+                    setEmailPromptData({
+                        action: 'added',
+                        className: newClass.name,
+                        day: daysOfWeek[newClass.day_of_week],
+                        time: newClass.start_time,
+                        instructor: newClass.instructor,
+                        description: newClass.description
+                    });
+                    setShowEmailPrompt(true);
+
                     setNewClass({
                         name: '',
                         description: '',
                         day_of_week: 0,
                         start_time: '18:00',
                         end_time: '19:00',
-                        instructor: '',
-                        send_notification: false,
-                        notification_recipient_type: 'all'
+                        instructor: ''
                     });
                     setShowAddForm(false);
                     fetchClasses();
-                    setTimeout(() => setSuccess(''), 3000);
                 } catch (err) {
                     setError(err.message);
                 }
             };
 
+            const handleEditClass = async (e) => {
+                e.preventDefault();
+                try {
+                    // Update class details (description only for now since name is used in schedules)
+                    const updateData = {
+                        description: editingClass.description
+                    };
+
+                    await apiCall(`/api/classes/${editingClass.id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(updateData)
+                    });
+
+                    // Show email prompt after successful edit
+                    setEmailPromptData({
+                        action: 'updated',
+                        className: editingClass.name,
+                        description: editingClass.description
+                    });
+                    setShowEmailPrompt(true);
+
+                    setShowEditForm(false);
+                    setEditingClass(null);
+                    fetchClasses();
+                } catch (err) {
+                    setError(err.message);
+                }
+            };
+
+            const sendEmailNotification = async (recipientType) => {
+                try {
+                    const { action, className, day, time, instructor, description } = emailPromptData;
+
+                    let message = '';
+                    if (action === 'added') {
+                        message = `A new class "${className}" has been added on ${day} at ${time}. Instructor: ${instructor || 'TBA'}. ${description || ''}`;
+                    } else if (action === 'updated') {
+                        message = `The class "${className}" has been updated. ${description || ''}`;
+                    } else if (action === 'deleted') {
+                        message = `The class "${className}" has been cancelled and removed from the schedule.`;
+                    }
+
+                    await apiCall('/api/notifications/email', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            subject: `Class ${action.charAt(0).toUpperCase() + action.slice(1)}: ${className}`,
+                            message: message,
+                            notification_type: 'class_announcement',
+                            recipient_type: recipientType
+                        })
+                    });
+
+                    setSuccess(`Email notification sent to ${recipientType}!`);
+                    setTimeout(() => setSuccess(''), 3000);
+                } catch (err) {
+                    setError('Failed to send email notification: ' + err.message);
+                }
+                setShowEmailPrompt(false);
+                setEmailPromptData(null);
+            };
+
             const handleDeleteClass = async (classId, className) => {
-                if (!window.confirm(`Delete "${className}"?`)) return;
+                if (!window.confirm(`Delete "${className}"? This will also remove it from the schedule.`)) return;
 
                 try {
                     await apiCall(`/api/classes/${classId}`, {
                         method: 'DELETE'
                     });
-                    setSuccess('Class deleted successfully!');
+
+                    // Show email prompt after successful deletion
+                    setEmailPromptData({
+                        action: 'deleted',
+                        className: className
+                    });
+                    setShowEmailPrompt(true);
+
                     fetchClasses();
-                    setTimeout(() => setSuccess(''), 3000);
                 } catch (err) {
                     setError(err.message);
                 }
@@ -569,12 +649,23 @@
                                     <div key={classItem.id} className="bg-white bg-opacity-10 rounded-lg p-4 hover:bg-opacity-20">
                                         <div className="flex justify-between items-start mb-2">
                                             <h4 className="font-bold text-white">{classItem.name}</h4>
-                                            <button
-                                                onClick={() => handleDeleteClass(classItem.id, classItem.name)}
-                                                className="bg-red-500 bg-opacity-20 px-2 py-1 text-red-100 rounded hover:bg-opacity-40"
-                                            >
-                                                🗑️
-                                            </button>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingClass(classItem);
+                                                        setShowEditForm(true);
+                                                    }}
+                                                    className="bg-blue-500 bg-opacity-20 px-2 py-1 text-blue-100 rounded hover:bg-opacity-40 text-sm"
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteClass(classItem.id, classItem.name)}
+                                                    className="bg-red-500 bg-opacity-20 px-2 py-1 text-red-100 rounded hover:bg-opacity-40 text-sm"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
                                         </div>
                                         <p className="text-blue-100 text-sm">{classItem.description || 'No description'}</p>
                                     </div>
@@ -648,35 +739,6 @@
                                             placeholder="e.g., Professor Silva"
                                         />
                                     </div>
-                                    <div className="border-t border-blue-300 pt-4">
-                                        <div className="flex items-center mb-3">
-                                            <input
-                                                type="checkbox"
-                                                id="send_notification"
-                                                checked={newClass.send_notification}
-                                                onChange={(e) => setNewClass({...newClass, send_notification: e.target.checked})}
-                                                className="mr-2"
-                                            />
-                                            <label htmlFor="send_notification" className="text-blue-100 text-sm font-medium">
-                                                Send email notification to students
-                                            </label>
-                                        </div>
-                                        {newClass.send_notification && (
-                                            <div>
-                                                <label className="block text-blue-100 text-sm font-medium mb-2">Send To *</label>
-                                                <select
-                                                    value={newClass.notification_recipient_type}
-                                                    onChange={(e) => setNewClass({...newClass, notification_recipient_type: e.target.value})}
-                                                    required={newClass.send_notification}
-                                                >
-                                                    <option value="all">All Students</option>
-                                                    <option value="instructors">Instructors Only</option>
-                                                    <option value="kids">Kids Only</option>
-                                                    <option value="adults">Adults Only</option>
-                                                </select>
-                                            </div>
-                                        )}
-                                    </div>
                                     <div className="flex gap-3">
                                         <button type="submit" className="glass-button flex-1 text-white font-semibold">
                                             Add Class
@@ -690,6 +752,104 @@
                                         </button>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {showEditForm && editingClass && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="glass-effect rounded-xl p-6 w-full max-w-md">
+                                <h3 className="text-lg font-bold text-white mb-4">Edit Class</h3>
+                                <form onSubmit={handleEditClass} className="space-y-4">
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Class Name</label>
+                                        <input
+                                            type="text"
+                                            value={editingClass.name}
+                                            disabled
+                                            className="opacity-50 cursor-not-allowed"
+                                        />
+                                        <p className="text-blue-300 text-xs mt-1">Class name cannot be changed</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-blue-100 text-sm font-medium mb-2">Description</label>
+                                        <textarea
+                                            value={editingClass.description || ''}
+                                            onChange={(e) => setEditingClass({...editingClass, description: e.target.value})}
+                                            rows="3"
+                                        />
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <button type="submit" className="glass-button flex-1 text-white font-semibold">
+                                            Update Class
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowEditForm(false);
+                                                setEditingClass(null);
+                                            }}
+                                            className="bg-gray-500 bg-opacity-20 flex-1 text-white font-semibold hover:bg-opacity-30"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {showEmailPrompt && emailPromptData && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="glass-effect rounded-xl p-6 w-full max-w-md">
+                                <h3 className="text-lg font-bold text-white mb-4">
+                                    📧 Send Email Notification?
+                                </h3>
+                                <div className="mb-6">
+                                    <p className="text-blue-100 text-sm mb-4">
+                                        {emailPromptData.action === 'added' && `The class "${emailPromptData.className}" has been successfully added.`}
+                                        {emailPromptData.action === 'updated' && `The class "${emailPromptData.className}" has been successfully updated.`}
+                                        {emailPromptData.action === 'deleted' && `The class "${emailPromptData.className}" has been successfully deleted.`}
+                                    </p>
+                                    <p className="text-white font-medium">Would you like to notify students about this change?</p>
+                                </div>
+                                <div className="space-y-3">
+                                    <button
+                                        onClick={() => sendEmailNotification('all')}
+                                        className="glass-button w-full text-white font-semibold"
+                                    >
+                                        📧 Notify All Students
+                                    </button>
+                                    <button
+                                        onClick={() => sendEmailNotification('instructors')}
+                                        className="bg-purple-500 bg-opacity-20 w-full text-white font-semibold hover:bg-opacity-40 min-h-[50px] rounded-lg"
+                                    >
+                                        👨‍🏫 Notify Instructors Only
+                                    </button>
+                                    <button
+                                        onClick={() => sendEmailNotification('kids')}
+                                        className="bg-yellow-500 bg-opacity-20 w-full text-white font-semibold hover:bg-opacity-40 min-h-[50px] rounded-lg"
+                                    >
+                                        🧒 Notify Kids Only
+                                    </button>
+                                    <button
+                                        onClick={() => sendEmailNotification('adults')}
+                                        className="bg-green-500 bg-opacity-20 w-full text-white font-semibold hover:bg-opacity-40 min-h-[50px] rounded-lg"
+                                    >
+                                        🧑 Notify Adults Only
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setShowEmailPrompt(false);
+                                            setEmailPromptData(null);
+                                            setSuccess('Changes saved without sending notifications.');
+                                            setTimeout(() => setSuccess(''), 3000);
+                                        }}
+                                        className="bg-gray-500 bg-opacity-20 w-full text-white font-semibold hover:bg-opacity-40 min-h-[50px] rounded-lg"
+                                    >
+                                        Skip - Don't Send Email
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
