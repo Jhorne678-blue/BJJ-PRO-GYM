@@ -1315,6 +1315,39 @@ async def health_check():
         "features": ["multi-tenant", "registration", "payments", "analytics"]
     }
 
+# Debug endpoint - check if demo account exists
+@app.get("/api/debug/demo-account")
+async def check_demo_account():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT gym_code, gym_name, owner_email FROM gyms WHERE gym_code = 'DEMO0001'")
+        demo = cursor.fetchone()
+
+        conn.close()
+
+        if demo:
+            return {
+                "exists": True,
+                "gym_code": demo["gym_code"],
+                "gym_name": demo["gym_name"],
+                "email": demo["owner_email"],
+                "correct_password": "Admin123!",
+                "message": "Demo account EXISTS - try logging in with the email and password shown above"
+            }
+        else:
+            return {
+                "exists": False,
+                "message": "Demo account NOT FOUND - database may not be initialized. Check Railway logs."
+            }
+    except Exception as e:
+        return {
+            "exists": False,
+            "error": str(e),
+            "message": "Error checking database"
+        }
+
 # Initialize database on startup
 @app.on_event("startup")
 async def startup_event():

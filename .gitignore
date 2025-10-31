@@ -52,6 +52,7 @@ Thumbs.db
 *.json
 !package.json
 !tsconfig.json
+!railway.json
 
 # Backup files
 *.backup
