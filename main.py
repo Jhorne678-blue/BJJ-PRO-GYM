@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, EmailStr, validator
 from datetime import datetime, timedelta
 import sqlite3
@@ -1323,6 +1324,16 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Database init failed but continuing: {str(e)}")
     logger.info("✅ BJJ Pro Gym Multi-Tenant API Started!")
+
+# Serve the frontend HTML file
+@app.get("/", response_class=HTMLResponse)
+async def serve_frontend():
+    try:
+        with open("index.html", "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception as e:
+        logger.error(f"Failed to serve index.html: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to load frontend")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
