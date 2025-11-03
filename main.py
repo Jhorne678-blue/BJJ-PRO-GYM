@@ -383,12 +383,12 @@ def init_db():
         # Create demo gym if it doesn't exist (for backwards compatibility)
         cursor.execute("SELECT COUNT(*) FROM gyms WHERE gym_code = 'DEMO0001'")
         if cursor.fetchone()[0] == 0:
-            # Use bcrypt for secure password hashing
-            demo_password = hash_password("Admin123!")
+            # Use simple password for demo
+            demo_password = hash_password("admin123")
             cursor.execute('''
                 INSERT INTO gyms (gym_code, gym_name, owner_name, owner_email, password_hash, access_code)
                 VALUES (?, ?, ?, ?, ?, ?)
-            ''', ('DEMO0001', 'Demo BJJ Pro Academy', 'Demo Owner', 'demo@bjjprogym.com', demo_password, 'ADELYNN14'))
+            ''', ('DEMO0001', 'Demo BJJ Pro Academy', 'Demo Owner', 'demo@bjjprogym.com', demo_password, 'DEMO123'))
 
             demo_gym_id = cursor.lastrowid
             setup_demo_data(cursor, demo_gym_id)
