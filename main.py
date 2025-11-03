@@ -383,12 +383,12 @@ def init_db():
         # Create demo gym if it doesn't exist (for backwards compatibility)
         cursor.execute("SELECT COUNT(*) FROM gyms WHERE gym_code = 'DEMO0001'")
         if cursor.fetchone()[0] == 0:
-            # Use bcrypt for secure password hashing
-            demo_password = hash_password("Admin123!")
+            # Use simple password for demo
+            demo_password = hash_password("admin123")
             cursor.execute('''
                 INSERT INTO gyms (gym_code, gym_name, owner_name, owner_email, password_hash, access_code)
                 VALUES (?, ?, ?, ?, ?, ?)
-            ''', ('DEMO0001', 'Demo BJJ Pro Academy', 'Demo Owner', 'demo@bjjprogym.com', demo_password, 'ADELYNN14'))
+            ''', ('DEMO0001', 'Demo BJJ Pro Academy', 'Demo Owner', 'demo@bjjprogym.com', demo_password, 'DEMO123'))
 
             demo_gym_id = cursor.lastrowid
             setup_demo_data(cursor, demo_gym_id)
@@ -1315,37 +1315,38 @@ async def health_check():
         "features": ["multi-tenant", "registration", "payments", "analytics"]
     }
 
-# Debug endpoint - check if demo account exists
-@app.get("/api/debug/demo-account")
-async def check_demo_account():
+# FORCE CREATE DEMO ACCOUNT - Visit this URL to create/reset demo account
+@app.get("/api/create-demo")
+async def force_create_demo_account():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT gym_code, gym_name, owner_email FROM gyms WHERE gym_code = 'DEMO0001'")
-        demo = cursor.fetchone()
+        # Delete existing demo account if it exists
+        cursor.execute("DELETE FROM gyms WHERE gym_code = 'DEMO0001'")
 
+        # Create fresh demo account with SIMPLE password
+        demo_password = hash_password("admin123")
+        cursor.execute('''
+            INSERT INTO gyms (gym_code, gym_name, owner_name, owner_email, password_hash, access_code)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', ('DEMO0001', 'Demo BJJ Pro Academy', 'Demo Owner', 'demo@bjjprogym.com', demo_password, 'DEMO123'))
+
+        conn.commit()
         conn.close()
 
-        if demo:
-            return {
-                "exists": True,
-                "gym_code": demo["gym_code"],
-                "gym_name": demo["gym_name"],
-                "email": demo["owner_email"],
-                "correct_password": "Admin123!",
-                "message": "Demo account EXISTS - try logging in with the email and password shown above"
-            }
-        else:
-            return {
-                "exists": False,
-                "message": "Demo account NOT FOUND - database may not be initialized. Check Railway logs."
-            }
+        return {
+            "success": True,
+            "message": "✅ DEMO ACCOUNT CREATED! Login now with the credentials below:",
+            "email": "demo@bjjprogym.com",
+            "password": "admin123",
+            "instructions": "Go back to the homepage and login with these credentials"
+        }
     except Exception as e:
         return {
-            "exists": False,
+            "success": False,
             "error": str(e),
-            "message": "Error checking database"
+            "message": "ERROR: Failed to create demo account"
         }
 
 # Initialize database on startup
